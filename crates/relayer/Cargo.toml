@@ -24,6 +24,9 @@ ibc-proto         = { version = "0.39.0", features = ["serde"] }
 ibc-telemetry     = { version = "0.26.3", path = "../telemetry", optional = true }
 ibc-relayer-types = { version = "0.26.3", path = "../relayer-types", features = ["mocks"] }
 
+penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra.git", tag = "v0.63.2" }
+pbjson-types = "0.6"
+
 subtle-encoding = "0.5"
 humantime-serde = "1.1.1"
 serde = "1.0"

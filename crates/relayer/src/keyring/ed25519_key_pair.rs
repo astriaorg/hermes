@@ -1,13 +1,32 @@
 use core::any::Any;
 
-use bip39::{Language, Mnemonic, Seed};
-use ed25519_dalek::{SigningKey, VerifyingKey};
-use ed25519_dalek_bip32::{ChildIndex, DerivationPath, ExtendedSigningKey};
+use bip39::{
+    Language,
+    Mnemonic,
+    Seed,
+};
+use ed25519_dalek::{
+    SigningKey,
+    VerifyingKey,
+};
+use ed25519_dalek_bip32::{
+    ChildIndex,
+    DerivationPath,
+    ExtendedSigningKey,
+};
 use hdpath::StandardHDPath;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use signature::Signer;
 
-use super::{errors::Error, KeyFile, KeyType, SigningKeyPair};
+use super::{
+    errors::Error,
+    KeyFile,
+    KeyType,
+    SigningKeyPair,
+};
 use crate::config::AddressType;
 
 pub fn private_key_from_mnemonic(
@@ -45,6 +64,7 @@ fn standard_path_to_derivation_path(path: &StandardHDPath) -> DerivationPath {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Ed25519AddressType {
     Solana,
+    Astria,
 }
 
 impl TryFrom<&AddressType> for Ed25519AddressType {
@@ -55,6 +75,7 @@ impl TryFrom<&AddressType> for Ed25519AddressType {
             AddressType::Cosmos | AddressType::Ethermint { .. } => Err(
                 Error::unsupported_address_type(address_type.clone(), Ed25519KeyPair::KEY_TYPE),
             ),
+            AddressType::Astria => Ok(Self::Astria),
         }
     }
 }
@@ -102,7 +123,7 @@ impl SigningKeyPair for Ed25519KeyPair {
             })?;
 
         let public_key_from_file = match address_type {
-            Ed25519AddressType::Solana => {
+            Ed25519AddressType::Solana | Ed25519AddressType::Astria => {
                 VerifyingKey::from_bytes(public_key_bytes).map_err(Error::invalid_public_key)?
             }
         };
@@ -131,6 +152,9 @@ impl SigningKeyPair for Ed25519KeyPair {
         match self.address_type {
             Ed25519AddressType::Solana => {
                 bs58::encode(&self.signing_key.verifying_key()).into_string()
+            }
+            Ed25519AddressType::Astria => {
+                hex::encode(self.signing_key.verifying_key().as_bytes().to_vec())
             }
         }
     }

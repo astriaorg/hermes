@@ -8,34 +8,58 @@ pub mod proof_specs;
 pub mod types;
 
 use alloc::collections::BTreeMap;
-use byte_unit::Byte;
 use core::{
     cmp::Ordering,
-    fmt::{Display, Error as FmtError, Formatter},
+    fmt::{
+        Display,
+        Error as FmtError,
+        Formatter,
+    },
     str::FromStr,
     time::Duration,
 };
-use serde_derive::{Deserialize, Serialize};
-use std::{fs, fs::File, io::Write, ops::Range, path::Path};
-use tendermint::block::Height as BlockHeight;
-use tendermint_rpc::Url;
-use tendermint_rpc::WebSocketClientUrl;
+use std::{
+    fs,
+    fs::File,
+    io::Write,
+    ops::Range,
+    path::Path,
+};
 
+use byte_unit::Byte;
+pub use error::Error;
+pub use filter::PacketFilter;
 use ibc_proto::google::protobuf::Any;
-use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
-use ibc_relayer_types::timestamp::ZERO_DURATION;
-
-use crate::extension_options::ExtensionOptionDynamicFeeTx;
-use crate::keyring::Store;
-use crate::keyring::{AnySigningKeyPair, KeyRing};
-use crate::{chain::cosmos::config::CosmosSdkConfig, error::Error as RelayerError};
-
-use crate::keyring;
+use ibc_relayer_types::{
+    core::ics24_host::identifier::{
+        ChainId,
+        ChannelId,
+        PortId,
+    },
+    timestamp::ZERO_DURATION,
+};
+use serde_derive::{
+    Deserialize,
+    Serialize,
+};
+use tendermint::block::Height as BlockHeight;
+use tendermint_rpc::{
+    Url,
+    WebSocketClientUrl,
+};
 
 pub use crate::config::Error as ConfigError;
-pub use error::Error;
-
-pub use filter::PacketFilter;
+use crate::{
+    chain::cosmos::config::CosmosSdkConfig,
+    error::Error as RelayerError,
+    extension_options::ExtensionOptionDynamicFeeTx,
+    keyring,
+    keyring::{
+        AnySigningKeyPair,
+        KeyRing,
+        Store,
+    },
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GasPrice {
@@ -283,10 +307,11 @@ impl Config {
             }
 
             match chain_config {
-                ChainConfig::CosmosSdk(cosmos_config) => {
-                    cosmos_config
-                        .validate()
-                        .map_err(Into::<Diagnostic<Error>>::into)?;
+                ChainConfig::CosmosSdk(config) => {
+                    config.validate().map_err(Into::<Diagnostic<Error>>::into)?;
+                }
+                ChainConfig::Astria(config) => {
+                    config.validate().map_err(Into::<Diagnostic<Error>>::into)?;
                 }
             }
         }
@@ -544,10 +569,11 @@ impl Default for RestConfig {
 #[derive(Default)]
 pub enum AddressType {
     #[default]
-    Cosmos,
+    Cosmos, // secp256k1?
     Ethermint {
         pk_type: String,
     },
+    Astria, // ed25519
 }
 
 impl Display for AddressType {
@@ -555,6 +581,7 @@ impl Display for AddressType {
         match self {
             AddressType::Cosmos => write!(f, "cosmos"),
             AddressType::Ethermint { .. } => write!(f, "ethermint"),
+            AddressType::Astria => write!(f, "astria"),
         }
     }
 }
@@ -593,36 +620,42 @@ pub enum EventSourceMode {
 #[serde(tag = "type")]
 pub enum ChainConfig {
     CosmosSdk(CosmosSdkConfig),
+    Astria(CosmosSdkConfig), // TODO: if the config is the cometbft config, it's the same
 }
 
 impl ChainConfig {
     pub fn id(&self) -> &ChainId {
         match self {
             Self::CosmosSdk(config) => &config.id,
+            Self::Astria(config) => &config.id,
         }
     }
 
     pub fn packet_filter(&self) -> &PacketFilter {
         match self {
             Self::CosmosSdk(config) => &config.packet_filter,
+            Self::Astria(config) => &config.packet_filter,
         }
     }
 
     pub fn max_block_time(&self) -> Duration {
         match self {
             Self::CosmosSdk(config) => config.max_block_time,
+            Self::Astria(config) => config.max_block_time,
         }
     }
 
     pub fn key_name(&self) -> &String {
         match self {
             Self::CosmosSdk(config) => &config.key_name,
+            Self::Astria(config) => &config.key_name,
         }
     }
 
     pub fn set_key_name(&mut self, key_name: String) {
         match self {
             Self::CosmosSdk(config) => config.key_name = key_name,
+            Self::Astria(config) => config.key_name = key_name,
         }
     }
 
@@ -641,6 +674,19 @@ impl ChainConfig {
                     .map(|(key_name, keys)| (key_name, keys.into()))
                     .collect()
             }
+            ChainConfig::Astria(config) => {
+                let keyring = KeyRing::new_ed25519(
+                    Store::Test,
+                    &config.account_prefix,
+                    &config.id,
+                    &config.key_store_folder,
+                )?;
+                keyring
+                    .keys()?
+                    .into_iter()
+                    .map(|(key_name, keys)| (key_name, keys.into()))
+                    .collect()
+            }
         };
         Ok(keys)
     }
@@ -648,6 +694,7 @@ impl ChainConfig {
     pub fn clear_interval(&self) -> Option<u64> {
         match self {
             Self::CosmosSdk(config) => config.clear_interval,
+            Self::Astria(config) => config.clear_interval,
         }
     }
 }
@@ -724,9 +771,14 @@ impl From<CosmosConfigError> for Error {
 mod tests {
     use core::str::FromStr;
 
-    use super::{load, parse_gas_prices, store_writer};
-    use crate::config::GasPrice;
     use test_log::test;
+
+    use super::{
+        load,
+        parse_gas_prices,
+        store_writer,
+    };
+    use crate::config::GasPrice;
 
     #[test]
     fn parse_valid_config() {

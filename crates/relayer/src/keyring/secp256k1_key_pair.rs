@@ -1,24 +1,53 @@
 use core::any::Any;
 
-use bip39::{Language, Mnemonic, Seed};
+use bip39::{
+    Language,
+    Mnemonic,
+    Seed,
+};
 use bitcoin::{
-    bip32::{ChildNumber, DerivationPath, ExtendedPrivKey, ExtendedPubKey},
+    bip32::{
+        ChildNumber,
+        DerivationPath,
+        ExtendedPrivKey,
+        ExtendedPubKey,
+    },
     network::constants::Network,
 };
 use digest::Digest;
-use generic_array::{typenum::U32, GenericArray};
+use generic_array::{
+    typenum::U32,
+    GenericArray,
+};
 use hdpath::StandardHDPath;
 use ripemd::Ripemd160;
-use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
-use serde::{Deserialize, Serialize};
+use secp256k1::{
+    Message,
+    PublicKey,
+    Secp256k1,
+    SecretKey,
+};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use sha2::Sha256;
-use strum::{EnumIter, IntoEnumIterator};
+use strum::{
+    EnumIter,
+    IntoEnumIterator,
+};
 
 use super::{
     errors::Error,
-    key_utils::{decode_bech32, encode_bech32, keccak256_hash},
+    key_utils::{
+        decode_bech32,
+        encode_bech32,
+        keccak256_hash,
+    },
     pub_key::EncodedPubKey,
-    KeyFile, KeyType, SigningKeyPair,
+    KeyFile,
+    KeyType,
+    SigningKeyPair,
 };
 use crate::config::AddressType;
 
@@ -91,6 +120,10 @@ impl TryFrom<&AddressType> for Secp256k1AddressType {
                 Ok(Self::Ethermint)
             }
             AddressType::Cosmos | AddressType::Ethermint { pk_type: _ } => Ok(Self::Cosmos),
+            AddressType::Astria => Err(Error::unsupported_address_type(
+                address_type.clone(),
+                Secp256k1KeyPair::KEY_TYPE,
+            )),
         }
     }
 }

@@ -1,25 +1,45 @@
 use alloc::sync::Arc;
 use core::{
-    fmt::{Display, Error as FmtError, Formatter},
+    fmt::{
+        Display,
+        Error as FmtError,
+        Formatter,
+    },
     str::FromStr,
 };
 use std::thread;
 
-use abscissa_core::clap::Parser;
-use abscissa_core::{application::fatal_error, Runnable};
+use abscissa_core::{
+    application::fatal_error,
+    clap::Parser,
+    Runnable,
+};
 use eyre::eyre;
-use itertools::Itertools;
-use tendermint_rpc::{client::CompatMode, Client, HttpClient};
-use tokio::runtime::Runtime as TokioRuntime;
-use tracing::{error, info, instrument};
-
 use ibc_relayer::{
     chain::handle::Subscription,
-    config::{ChainConfig, EventSourceMode},
+    config::{
+        ChainConfig,
+        EventSourceMode,
+    },
     event::source::EventSource,
     util::compat_mode::compat_mode_from_version,
 };
-use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent};
+use ibc_relayer_types::{
+    core::ics24_host::identifier::ChainId,
+    events::IbcEvent,
+};
+use itertools::Itertools;
+use tendermint_rpc::{
+    client::CompatMode,
+    Client,
+    HttpClient,
+};
+use tokio::runtime::Runtime as TokioRuntime;
+use tracing::{
+    error,
+    info,
+    instrument,
+};
 
 use crate::prelude::*;
 
@@ -147,7 +167,7 @@ fn subscribe(
     // Q: Should this be restricted only to backends that support it,
     // or are all backends expected to support subscriptions?
     match chain_config {
-        ChainConfig::CosmosSdk(config) => {
+        ChainConfig::CosmosSdk(config) | ChainConfig::Astria(config) => {
             let (event_source, monitor_tx) = match &config.event_source {
                 EventSourceMode::Push { url, batch_delay } => EventSource::websocket(
                     chain_config.id().clone(),
@@ -179,11 +199,15 @@ fn detect_compatibility_mode(
     // TODO(erwan): move this to the cosmos sdk endpoint implementation
     let rpc_addr = match config {
         ChainConfig::CosmosSdk(config) => config.rpc_addr.clone(),
+        ChainConfig::Astria(config) => config.rpc_addr.clone(),
     };
     let client = HttpClient::new(rpc_addr)?;
     let status = rt.block_on(client.status())?;
     let compat_mode = match config {
         ChainConfig::CosmosSdk(config) => {
+            compat_mode_from_version(&config.compat_mode, status.node_info.version)?.into()
+        }
+        ChainConfig::Astria(config) => {
             compat_mode_from_version(&config.compat_mode, status.node_info.version)?.into()
         }
     };
@@ -192,12 +216,15 @@ fn detect_compatibility_mode(
 
 #[cfg(test)]
 mod tests {
-    use super::{EventFilter, ListenCmd};
-
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+
+    use super::{
+        EventFilter,
+        ListenCmd,
+    };
 
     #[test]
     fn test_listen_required_only() {
