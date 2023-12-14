@@ -2416,7 +2416,7 @@ fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
     });
 }
 
-async fn fetch_node_info(
+pub(crate) async fn fetch_node_info(
     rpc_client: &HttpClient,
     config: &config::CosmosSdkConfig,
 ) -> Result<node::Info, Error> {

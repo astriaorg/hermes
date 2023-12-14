@@ -621,6 +621,11 @@ define_error! {
         InvalidCompatMode
             [ TendermintRpcError ]
             |_| { "Invalid CompatMode queried from chain and no `compat_mode` configured in Hermes. This can be fixed by specifying a `compat_mode` in Hermes config.toml" },
+
+        Other {
+            source: Box<dyn std::error::Error + Send + Sync>,
+        }
+            |e| { format!("other error: {}", e.source) },
     }
 }
 

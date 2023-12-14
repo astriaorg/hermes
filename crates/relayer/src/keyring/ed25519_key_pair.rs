@@ -100,6 +100,10 @@ impl Ed25519KeyPair {
             address_type,
         })
     }
+
+    pub(crate) fn signing_key(&self) -> &SigningKey {
+        &self.signing_key
+    }
 }
 
 impl SigningKeyPair for Ed25519KeyPair {

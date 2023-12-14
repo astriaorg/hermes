@@ -631,6 +631,13 @@ impl ChainConfig {
         }
     }
 
+    pub fn rpc_addr(&self) -> &Url {
+        match self {
+            Self::CosmosSdk(config) => &config.rpc_addr,
+            Self::Astria(config) => &config.rpc_addr,
+        }
+    }
+
     pub fn packet_filter(&self) -> &PacketFilter {
         match self {
             Self::CosmosSdk(config) => &config.packet_filter,

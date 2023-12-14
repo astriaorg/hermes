@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use std::time::Duration;
 
 use ibc_proto::ibc::apps::fee::v1::{
     QueryIncentivizedPacketRequest,
@@ -56,15 +57,34 @@ use ibc_relayer_types::{
     timestamp::Timestamp,
     Height as ICSHeight,
 };
+use prost::Message;
 use tendermint::time::Time as TmTime;
-use tendermint_rpc::endpoint::broadcast::tx_sync::Response as TxResponse;
+use tendermint_light_client::verifier::types::LightBlock;
+use tendermint_rpc::{
+    endpoint::{
+        broadcast::{
+            tx_commit,
+            tx_sync,
+            tx_sync::Response as TxResponse,
+        },
+        status,
+    },
+    event::EventData,
+    Client,
+    HttpClient,
+    SubscriptionClient,
+};
 use tokio::runtime::Runtime as TokioRuntime;
 
 use crate::{
     account::Balance,
     chain::{
+        astria::utils::response_to_tx_sync_result,
         client::ClientSettings,
-        cosmos::version::Specs,
+        cosmos::{
+            version::Specs,
+            wait::wait_for_block_commits,
+        },
         endpoint::{
             ChainEndpoint,
             ChainStatus,
@@ -94,24 +114,107 @@ use crate::{
         KeyRing,
         SigningKeyPairSized,
     },
-    light_client::tendermint::LightClient,
+    light_client::{
+        tendermint::LightClient,
+        LightClient as _,
+    },
     misbehaviour::MisbehaviourEvidence,
 };
+
+const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct AstriaEndpoint {
     config: ChainConfig,
     keybase: KeyRing<Ed25519KeyPair>,
+    sequencer_client: HttpClient,
+    light_client: LightClient,
+    rt: Arc<TokioRuntime>,
 }
 
 impl AstriaEndpoint {
-    pub fn new(config: ChainConfig, keybase: KeyRing<Ed25519KeyPair>) -> Self {
-        Self { config, keybase }
+    pub fn new(
+        config: ChainConfig,
+        keybase: KeyRing<Ed25519KeyPair>,
+        rt: Arc<TokioRuntime>,
+    ) -> Result<Self, Error> {
+        let sequencer_client =
+            HttpClient::new(config.rpc_addr().clone()).map_err(|e| Error::other(e.into()))?;
+
+        let cosmos_config = match &config {
+            ChainConfig::Astria(c) => c,
+            _ => panic!("wrong chain config type"), // TODO no panic
+        };
+
+        use crate::chain::cosmos::fetch_node_info;
+        let node_info = rt.block_on(fetch_node_info(&sequencer_client, cosmos_config))?;
+
+        let light_client = LightClient::from_cosmos_sdk_config(cosmos_config, node_info.id)?;
+
+        Ok(Self {
+            config,
+            keybase,
+            sequencer_client,
+            light_client,
+            rt,
+        })
+    }
+
+    fn chain_status(&self) -> Result<status::Response, Error> {
+        let status = self
+            .rt
+            .block_on(self.sequencer_client.status())
+            .map_err(|e| Error::rpc(self.config.rpc_addr().clone(), e))?;
+
+        Ok(status)
+    }
+}
+
+impl AstriaEndpoint {
+    async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
+        use ::astria_proto::native::sequencer::v1alpha1::{
+            asset::default_native_asset_id,
+            Action,
+            UnsignedTransaction,
+        };
+        use penumbra_ibc::IbcRelay;
+        use penumbra_proto::core::component::ibc::v1alpha1::IbcRelay as RawIbcRelay;
+
+        let msg_len = tracked_msgs.msgs.len();
+        let mut ibc_actions: Vec<Action> = Vec::with_capacity(msg_len);
+        for msg in tracked_msgs.msgs {
+            let ibc_action = RawIbcRelay {
+                raw_action: Some(pbjson_types::Any {
+                    type_url: msg.type_url,
+                    value: msg.value.into(),
+                }),
+            };
+            let non_raw = IbcRelay::try_from(ibc_action).map_err(|e| Error::other(e.into()))?;
+            ibc_actions.push(Action::Ibc(non_raw));
+        }
+
+        let unsigned_tx = UnsignedTransaction {
+            nonce: 0, // TODO
+            actions: ibc_actions,
+            fee_asset_id: default_native_asset_id(),
+        };
+
+        let signing_key: ed25519_consensus::SigningKey =
+            self.get_key()?.signing_key().as_bytes().clone().into(); // TODO cache this
+        let signed_tx = unsigned_tx.into_signed(&signing_key);
+        let tx_bytes = signed_tx.into_raw().encode_to_vec();
+
+        let resp = self
+            .sequencer_client
+            .broadcast_tx_sync(tx_bytes)
+            .await
+            .map_err(|e| Error::other(e.into()))?;
+        Ok(resp)
     }
 }
 
 impl ChainEndpoint for AstriaEndpoint {
     /// Type of light blocks for this chain
-    type LightBlock = LightClient;
+    type LightBlock = LightBlock;
 
     /// Type of headers for this chain
     type Header = Header;
@@ -179,10 +282,9 @@ impl ChainEndpoint for AstriaEndpoint {
 
     /// Get the signing key pair
     fn get_key(&mut self) -> Result<Self::SigningKeyPair, Error> {
-        // TODO what's our key name?
         self.keybase
-            .get_key("default")
-            .map_err(|e| Error::key_not_found("default".to_string(), e))
+            .get_key(self.config.key_name())
+            .map_err(|e| Error::key_not_found(self.config.key_name().to_string(), e))
     }
 
     // Versioning
@@ -200,20 +302,27 @@ impl ChainEndpoint for AstriaEndpoint {
         &mut self,
         tracked_msgs: TrackedMsgs,
     ) -> Result<Vec<IbcEventWithHeight>, Error> {
-        use ::penumbra_proto::core::component::ibc::v1alpha1::IbcAction;
+        let runtime = self.rt.clone();
+        let msg_len = tracked_msgs.msgs.len();
+        let resp = runtime.block_on(self.broadcast_messages(tracked_msgs))?;
 
-        let mut ibc_actions: Vec<IbcAction> = Vec::with_capacity(tracked_msgs.msgs.len());
-        for msg in tracked_msgs.msgs {
-            let ibc_action = IbcAction {
-                raw_action: Some(pbjson_types::Any {
-                    type_url: msg.type_url,
-                    value: msg.value.into(),
-                }),
-            };
-            ibc_actions.push(ibc_action);
-        }
+        // `wait_for_block_commits` will append the events to this
+        let mut resps = vec![response_to_tx_sync_result(self.id(), msg_len, resp)];
 
-        todo!()
+        runtime.block_on(wait_for_block_commits(
+            self.config.id(),
+            &self.sequencer_client,
+            self.config.rpc_addr(),
+            &DEFAULT_RPC_TIMEOUT,
+            &mut resps,
+        ))?;
+
+        let events = resps
+            .into_iter()
+            .flat_map(|resp| resp.events)
+            .collect::<Vec<_>>();
+
+        Ok(events)
     }
 
     /// Sends one or more transactions with `msgs` to chain.
@@ -222,7 +331,10 @@ impl ChainEndpoint for AstriaEndpoint {
         &mut self,
         tracked_msgs: TrackedMsgs,
     ) -> Result<Vec<TxResponse>, Error> {
-        todo!()
+        let runtime = self.rt.clone();
+        runtime
+            .block_on(self.broadcast_messages(tracked_msgs))
+            .map(|resp| vec![resp])
     }
 
     /// Fetch a header from the chain at the given height and verify it.
@@ -232,7 +344,18 @@ impl ChainEndpoint for AstriaEndpoint {
         target: ICSHeight,
         client_state: &AnyClientState,
     ) -> Result<Self::LightBlock, Error> {
-        todo!()
+        let status = self.chain_status()?;
+        if status.sync_info.catching_up {
+            return Err(Error::chain_not_caught_up(
+                self.config.rpc_addr().to_string(),
+                self.id().clone(),
+            ));
+        }
+
+        let latest_timestamp = status.sync_info.latest_block_time;
+        self.light_client
+            .verify(trusted, target, client_state, latest_timestamp)
+            .map(|v| v.target)
     }
 
     /// Given a client update event that includes the header used in a client update,
