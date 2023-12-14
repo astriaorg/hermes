@@ -15,7 +15,9 @@ pub(crate) fn response_to_tx_sync_result(
     response: Response,
 ) -> TxSyncResult {
     if response.code.is_err() {
-        // Note: we don't have any height information in this case. This hack will fix itself
+        // TODO: can we remove this and just return an err in the caller?
+        //
+        // Note (penumbra): we don't have any height information in this case. This hack will fix itself
         // once we remove the `ChainError` event (which is not actually an event)
         let height = ibc_relayer_types::Height::new(chain_id.version(), 1).unwrap();
 

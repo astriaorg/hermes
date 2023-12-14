@@ -245,7 +245,10 @@ impl ChainEndpoint for AstriaEndpoint {
 
     /// Constructs the chain
     fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
-        todo!()
+        // TODO: don't use a test keyring?
+        let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
+            .map_err(|e| Error::other(e.into()))?;
+        Self::new(config, keybase, rt)
     }
 
     /// Shutdown the chain runtime
@@ -276,12 +279,15 @@ impl ChainEndpoint for AstriaEndpoint {
     }
 
     fn get_signer(&self) -> Result<Signer, Error> {
-        // TODO ??
-        Ok(Signer::dummy())
+        use std::str::FromStr as _;
+
+        use crate::keyring::SigningKeyPair as _;
+
+        Signer::from_str(&self.get_key()?.account()).map_err(|e| Error::other(e.into()))
     }
 
     /// Get the signing key pair
-    fn get_key(&mut self) -> Result<Self::SigningKeyPair, Error> {
+    fn get_key(&self) -> Result<Self::SigningKeyPair, Error> {
         self.keybase
             .get_key(self.config.key_name())
             .map_err(|e| Error::key_not_found(self.config.key_name().to_string(), e))
@@ -365,7 +371,17 @@ impl ChainEndpoint for AstriaEndpoint {
         update: &UpdateClient,
         client_state: &AnyClientState,
     ) -> Result<Option<MisbehaviourEvidence>, Error> {
-        todo!()
+        let status = self.chain_status()?;
+        if status.sync_info.catching_up {
+            return Err(Error::chain_not_caught_up(
+                self.config.rpc_addr().to_string(),
+                self.id().clone(),
+            ));
+        }
+
+        let latest_timestamp = status.sync_info.latest_block_time;
+        self.light_client
+            .detect_misbehaviour(update, client_state, latest_timestamp)
     }
 
     // Queries
