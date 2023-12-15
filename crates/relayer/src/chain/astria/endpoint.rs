@@ -1,9 +1,21 @@
 use alloc::sync::Arc;
-use std::time::Duration;
+use std::{
+    str::FromStr as _,
+    time::Duration,
+};
 
-use ibc_proto::ibc::apps::fee::v1::{
-    QueryIncentivizedPacketRequest,
-    QueryIncentivizedPacketResponse,
+use ibc_proto::{
+    ibc::{
+        apps::fee::v1::{
+            QueryIncentivizedPacketRequest,
+            QueryIncentivizedPacketResponse,
+        },
+        core::{
+            client::v1::query_client::QueryClient as IbcClientQueryClient,
+            connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
+        },
+    },
+    Protobuf as _,
 };
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
@@ -13,16 +25,13 @@ use ibc_relayer_types::{
         header::Header,
     },
     core::{
-        ics02_client::events::UpdateClient,
-        ics03_connection::{
-            connection::{
-                ConnectionEnd,
-                IdentifiedConnectionEnd,
-            },
-            version::{
-                get_compatible_versions,
-                Version,
-            },
+        ics02_client::{
+            client_type::ClientType,
+            events::UpdateClient,
+        },
+        ics03_connection::connection::{
+            ConnectionEnd,
+            IdentifiedConnectionEnd,
         },
         ics04_channel::{
             channel::{
@@ -41,12 +50,19 @@ use ibc_relayer_types::{
             },
             merkle::MerkleProof,
         },
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            ClientId,
-            ConnectionId,
-            PortId,
+        ics24_host::{
+            identifier::{
+                ChainId,
+                ChannelId,
+                ClientId,
+                ConnectionId,
+                PortId,
+            },
+            path::{
+                ClientConsensusStatePath,
+                ClientStatePath,
+            },
+            Path,
         },
     },
     proofs::{
@@ -82,6 +98,7 @@ use crate::{
         astria::utils::response_to_tx_sync_result,
         client::ClientSettings,
         cosmos::{
+            query::QueryResponse,
             version::Specs,
             wait::wait_for_block_commits,
         },
@@ -128,6 +145,9 @@ pub struct AstriaEndpoint {
     keybase: KeyRing<Ed25519KeyPair>,
     sequencer_client: HttpClient,
     light_client: LightClient,
+    /// gRPC client for sequencer app
+    ibc_client_grpc_client: IbcClientQueryClient<tonic::transport::Channel>,
+    ibc_connection_grpc_client: IbcConnectionQueryClient<tonic::transport::Channel>,
     rt: Arc<TokioRuntime>,
 }
 
@@ -150,11 +170,23 @@ impl AstriaEndpoint {
 
         let light_client = LightClient::from_cosmos_sdk_config(cosmos_config, node_info.id)?;
 
+        use http::Uri;
+        let grpc_addr = Uri::from_str(&cosmos_config.grpc_addr.to_string())
+            .map_err(|e| Error::invalid_uri(cosmos_config.grpc_addr.to_string(), e))?;
+        let ibc_client_grpc_client = rt
+            .block_on(IbcClientQueryClient::connect(grpc_addr.clone()))
+            .map_err(Error::grpc_transport)?;
+        let ibc_connection_grpc_client = rt
+            .block_on(IbcConnectionQueryClient::connect(grpc_addr))
+            .map_err(Error::grpc_transport)?;
+
         Ok(Self {
             config,
             keybase,
             sequencer_client,
             light_client,
+            ibc_client_grpc_client,
+            ibc_connection_grpc_client,
             rt,
         })
     }
@@ -170,6 +202,10 @@ impl AstriaEndpoint {
 }
 
 impl AstriaEndpoint {
+    fn block_on<T>(&self, fut: impl std::future::Future<Output = T>) -> T {
+        self.rt.block_on(fut)
+    }
+
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
         use ::astria_proto::native::sequencer::v1alpha1::{
             asset::default_native_asset_id,
@@ -209,6 +245,31 @@ impl AstriaEndpoint {
             .await
             .map_err(|e| Error::other(e.into()))?;
         Ok(resp)
+    }
+
+    fn query(
+        &self,
+        data: impl Into<Path>,
+        height_query: QueryHeight,
+        prove: bool,
+    ) -> Result<QueryResponse, Error> {
+        use crate::chain::cosmos::query::abci_query;
+
+        let data_prefixed = format!("ibc-data/{}", data.into());
+
+        let response = self.block_on(abci_query(
+            &self.sequencer_client,
+            self.config.rpc_addr(),
+            "state/key".to_string(),
+            data_prefixed,
+            height_query.into(),
+            prove,
+        ))?;
+
+        // TODO - Verify response proof, if requested.
+        if prove {}
+
+        Ok(response)
     }
 }
 
@@ -405,12 +466,21 @@ impl ChainEndpoint for AstriaEndpoint {
     }
 
     fn query_commitment_prefix(&self) -> Result<CommitmentPrefix, Error> {
-        todo!()
+        // TODO get this from the penumbra const
+        Ok(b"ibc-data".to_vec().try_into().unwrap())
     }
 
     /// Query the latest height and timestamp the application is at
     fn query_application_status(&self) -> Result<ChainStatus, Error> {
-        todo!()
+        let rt = self.rt.clone();
+        let head_block = rt
+            .block_on(self.sequencer_client.latest_block())
+            .map_err(|e| Error::rpc(self.config.rpc_addr().clone(), e))?;
+        Ok(ChainStatus {
+            height: ICSHeight::new(self.id().version(), head_block.block.header.height.value())
+                .map_err(|e| Error::other(Box::new(e)))?,
+            timestamp: head_block.block.header.time.into(),
+        })
     }
 
     /// Performs a query to retrieve the state of all clients that a chain hosts.
@@ -418,7 +488,47 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryClientStatesRequest,
     ) -> Result<Vec<IdentifiedAnyClientState>, Error> {
-        todo!()
+        use tracing::warn;
+
+        use crate::{
+            chain::cosmos::client_id_suffix,
+            util::pretty::PrettyIdentifiedClientState,
+        };
+
+        let rt = self.rt.clone();
+
+        let mut client = self
+            .ibc_client_grpc_client
+            .clone()
+            .max_decoding_message_size(self.config().max_grpc_decoding_size().get_bytes() as usize);
+
+        let request = tonic::Request::new(request.into());
+        let response = rt
+            .block_on(client.client_states(request))
+            .map_err(|e| Error::grpc_status(e, "query_clients".to_owned()))?
+            .into_inner();
+
+        // Deserialize into domain type
+        let mut clients: Vec<IdentifiedAnyClientState> = response
+            .client_states
+            .into_iter()
+            .filter_map(|cs| {
+                IdentifiedAnyClientState::try_from(cs.clone())
+                    .map_err(|e| {
+                        warn!(
+                            "failed to parse client state {}. Error: {}",
+                            PrettyIdentifiedClientState(&cs),
+                            e
+                        )
+                    })
+                    .ok()
+            })
+            .collect();
+
+        // Sort by client identifier counter
+        clients.sort_by_cached_key(|c| client_id_suffix(&c.client_id).unwrap_or(0));
+
+        Ok(clients)
     }
 
     /// Performs a query to retrieve the state of the specified light client. A
@@ -428,7 +538,20 @@ impl ChainEndpoint for AstriaEndpoint {
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
     ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
-        todo!()
+        let res = self.query(
+            ClientStatePath(request.client_id.clone()),
+            request.height,
+            matches!(include_proof, IncludeProof::Yes),
+        )?;
+        let client_state = AnyClientState::decode_vec(&res.value).map_err(Error::decode)?;
+
+        match include_proof {
+            IncludeProof::Yes => {
+                let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
+                Ok((client_state, Some(proof)))
+            }
+            IncludeProof::No => Ok((client_state, None)),
+        }
     }
 
     /// Query the consensus state at the specified height for a given client.
@@ -437,7 +560,32 @@ impl ChainEndpoint for AstriaEndpoint {
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
     ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
-        todo!()
+        let res = self.query(
+            ClientConsensusStatePath {
+                client_id: request.client_id.clone(),
+                epoch: request.consensus_height.revision_number(),
+                height: request.consensus_height.revision_height(),
+            },
+            request.query_height,
+            matches!(include_proof, IncludeProof::Yes),
+        )?;
+
+        let consensus_state = AnyConsensusState::decode_vec(&res.value).map_err(Error::decode)?;
+
+        if !matches!(consensus_state, AnyConsensusState::Tendermint(_)) {
+            return Err(Error::consensus_state_type_mismatch(
+                ClientType::Tendermint,
+                consensus_state.client_type(),
+            ));
+        }
+
+        match include_proof {
+            IncludeProof::Yes => {
+                let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
+                Ok((consensus_state, Some(proof)))
+            }
+            IncludeProof::No => Ok((consensus_state, None)),
+        }
     }
 
     /// Query the heights of every consensus state for a given client.
@@ -467,7 +615,39 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryConnectionsRequest,
     ) -> Result<Vec<IdentifiedConnectionEnd>, Error> {
-        todo!()
+        use tracing::warn;
+
+        use crate::util::pretty::PrettyIdentifiedConnection;
+
+        let mut client = self.ibc_connection_grpc_client.clone();
+
+        client = client
+            .max_decoding_message_size(self.config().max_grpc_decoding_size().get_bytes() as usize);
+
+        let request = tonic::Request::new(request.into());
+
+        let response = self
+            .block_on(client.connections(request))
+            .map_err(|e| Error::grpc_status(e, "query_connections".to_owned()))?
+            .into_inner();
+
+        let connections = response
+            .connections
+            .into_iter()
+            .filter_map(|co| {
+                IdentifiedConnectionEnd::try_from(co.clone())
+                    .map_err(|e| {
+                        warn!(
+                            "connection with ID {} failed parsing. Error: {}",
+                            PrettyIdentifiedConnection(&co),
+                            e
+                        )
+                    })
+                    .ok()
+            })
+            .collect();
+
+        Ok(connections)
     }
 
     /// Performs a query to retrieve the identifiers of all connections.

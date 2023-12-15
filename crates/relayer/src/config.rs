@@ -704,6 +704,13 @@ impl ChainConfig {
             Self::Astria(config) => config.clear_interval,
         }
     }
+
+    pub fn max_grpc_decoding_size(&self) -> Byte {
+        match self {
+            Self::CosmosSdk(config) => config.max_grpc_decoding_size,
+            Self::Astria(config) => config.max_grpc_decoding_size,
+        }
+    }
 }
 
 /// Attempt to load and parse the TOML config file as a `Config`.

@@ -24,10 +24,10 @@ ibc-proto         = { version = "0.39.0", features = ["serde"] }
 ibc-telemetry     = { version = "0.26.3", path = "../telemetry", optional = true }
 ibc-relayer-types = { version = "0.26.3", path = "../relayer-types", features = ["mocks"] }
 
-astria-proto = { git = "https://github.com/astriaorg/astria", rev = "6f53324cb6a41df618d2fe9d392cac8ab27ea76d" }
+astria-proto = { git = "https://github.com/astriaorg/astria", rev = "d599e0ec606250ce28dab2e5d4efabb4a89489b6" }
 ed25519-consensus = "2.1.0"
-penumbra-ibc = { git = "https://github.com/penumbra-zone/penumbra.git", rev = "11d3b524da750c16c376759b03e4bbb3474562d9", default-features = false }
-penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra.git", rev = "11d3b524da750c16c376759b03e4bbb3474562d9" }
+penumbra-ibc = { git = "https://github.com/penumbra-zone/penumbra.git", tag = "v0.64.1", default-features = false }
+penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra.git", tag = "v0.64.1" }
 pbjson-types = "0.6"
 
 subtle-encoding = "0.5"
