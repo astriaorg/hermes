@@ -157,9 +157,7 @@ impl SigningKeyPair for Ed25519KeyPair {
             Ed25519AddressType::Solana => {
                 bs58::encode(&self.signing_key.verifying_key()).into_string()
             }
-            Ed25519AddressType::Astria => {
-                hex::encode(self.signing_key.verifying_key().as_bytes().to_vec())
-            }
+            Ed25519AddressType::Astria => hex::encode(self.signing_key.verifying_key().as_bytes()),
         }
     }
 

@@ -26,6 +26,7 @@ ibc-relayer-types = { version = "0.26.3", path = "../relayer-types", features = 
 
 astria-proto = { git = "https://github.com/astriaorg/astria", rev = "d599e0ec606250ce28dab2e5d4efabb4a89489b6" }
 ed25519-consensus = "2.1.0"
+ibc-types = "0.10.0"
 penumbra-ibc = { git = "https://github.com/penumbra-zone/penumbra.git", tag = "v0.64.1", default-features = false }
 penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra.git", tag = "v0.64.1" }
 pbjson-types = "0.6"

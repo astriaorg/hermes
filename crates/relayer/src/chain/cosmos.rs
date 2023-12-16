@@ -2406,7 +2406,7 @@ impl ChainEndpoint for CosmosSdkChain {
     }
 }
 
-fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
+pub(crate) fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
     events.sort_by(|a, b| {
         a.event
             .packet()

@@ -77,6 +77,10 @@ use crate::{
 
 define_error! {
     Error {
+        OtherWithString
+            { source: String }
+            |_| { "other error" },
+
         Io
             [ TraceError<std::io::Error> ]
             |_| { "I/O error" },

@@ -2117,6 +2117,7 @@ dependencies = [
  "ibc-proto",
  "ibc-relayer-types",
  "ibc-telemetry",
+ "ibc-types",
  "itertools 0.10.5",
  "moka",
  "num-bigint",

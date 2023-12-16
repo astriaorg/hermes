@@ -31,10 +31,13 @@ pub use error::Error;
 pub use filter::PacketFilter;
 use ibc_proto::google::protobuf::Any;
 use ibc_relayer_types::{
-    core::ics24_host::identifier::{
-        ChainId,
-        ChannelId,
-        PortId,
+    core::{
+        ics23_commitment::specs::ProofSpecs,
+        ics24_host::identifier::{
+            ChainId,
+            ChannelId,
+            PortId,
+        },
     },
     timestamp::ZERO_DURATION,
 };
@@ -709,6 +712,20 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => config.max_grpc_decoding_size,
             Self::Astria(config) => config.max_grpc_decoding_size,
+        }
+    }
+
+    pub fn proof_specs(&self) -> &Option<ProofSpecs> {
+        match self {
+            Self::CosmosSdk(config) => &config.proof_specs,
+            Self::Astria(config) => &config.proof_specs,
+        }
+    }
+
+    pub fn event_source_mode(&self) -> &EventSourceMode {
+        match self {
+            Self::CosmosSdk(config) => &config.event_source,
+            Self::Astria(config) => &config.event_source,
         }
     }
 }
