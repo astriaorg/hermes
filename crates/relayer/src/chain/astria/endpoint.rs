@@ -81,6 +81,7 @@ use crate::{
             wait::wait_for_block_commits,
         },
         endpoint::{
+            Bootstrap,
             ChainEndpoint,
             ChainStatus,
             HealthCheck,
@@ -131,6 +132,17 @@ pub struct AstriaEndpoint {
     tx_monitor_cmd: Option<TxEventSourceCmd>,
 }
 
+impl Bootstrap for AstriaEndpoint {
+    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
+            .map_err(|e| Error::other(e.into()))?;
+        Self::new(config, keybase, rt)
+    }
+}
+
 impl AstriaEndpoint {
     pub fn new(
         config: ChainConfig,
@@ -142,7 +154,10 @@ impl AstriaEndpoint {
 
         let cosmos_config = match &config {
             ChainConfig::Astria(c) => c,
-            _ => panic!("wrong chain config type"), // TODO no panic
+            _ => {
+                println!("Wrong chain configuration type in AstriaEndpoint::bootstrap");
+                return Err(Error::config(crate::config::ConfigError::wrong_type()));
+            }
         };
 
         use crate::chain::cosmos::fetch_node_info;
@@ -399,13 +414,13 @@ impl ChainEndpoint for AstriaEndpoint {
 
     // Life cycle
 
-    /// Constructs the chain
-    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
-        // TODO: don't use a test keyring?
-        let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
-            .map_err(|e| Error::other(e.into()))?;
-        Self::new(config, keybase, rt)
-    }
+    // /// Constructs the chain
+    // fn bootstrap(&self, config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
+    //     // TODO: don't use a test keyring?
+    //     let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
+    //         .map_err(|e| Error::other(e.into()))?;
+    //     Self::new(config, keybase, rt)
+    // }
 
     /// Shutdown the chain runtime
     fn shutdown(self) -> Result<(), Error> {

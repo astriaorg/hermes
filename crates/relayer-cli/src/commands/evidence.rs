@@ -16,6 +16,7 @@ use abscissa_core::{
 };
 use ibc_relayer::{
     chain::{
+        astria::AstriaEndpoint,
         cosmos::CosmosSdkChain,
         endpoint::ChainEndpoint,
         handle::{
@@ -119,13 +120,13 @@ impl Runnable for EvidenceCmd {
                 .exit()
             });
 
-        if !matches!(chain_config, ChainConfig::CosmosSdk(_)) {
-            Output::error(format!(
-                "chain `{}` is not a Cosmos SDK chain",
-                self.chain_id
-            ))
-            .exit();
-        }
+        // if !matches!(chain_config, ChainConfig::CosmosSdk(_)) {
+        //     Output::error(format!(
+        //         "chain `{}` is not a Cosmos SDK chain",
+        //         self.chain_id
+        //     ))
+        //     .exit();
+        // }
 
         if let Some(ref key_name) = self.key_name {
             chain_config.set_key_name(key_name.to_string());
@@ -138,7 +139,21 @@ impl Runnable for EvidenceCmd {
                 .unwrap(),
         );
 
-        let chain = CosmosSdkChain::bootstrap(chain_config, rt.clone()).unwrap();
+        use ibc_relayer::chain::endpoint::Bootstrap;
+
+        let chain = match chain_config {
+            ChainConfig::Astria(_) => {
+                println!("AstriaEndpoint::bootstrap");
+                //AstriaEndpoint::bootstrap(chain_config, rt.clone()).unwrap()
+                return;
+            }
+            ChainConfig::CosmosSdk(ref cfg) => {
+                println!("CosmosSdkChain::bootstrap");
+                println!("cfg: {:?}", &cfg);
+                CosmosSdkChain::bootstrap(chain_config, rt.clone()).unwrap()
+            }
+        };
+
         let res = monitor_misbehaviours(
             rt,
             &config,

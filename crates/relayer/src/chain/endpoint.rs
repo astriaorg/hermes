@@ -105,8 +105,14 @@ pub struct ChainStatus {
     pub timestamp: Timestamp,
 }
 
+pub trait Bootstrap {
+    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>
+    where
+        Self: Sized;
+}
+
 /// Defines a blockchain as understood by the relayer
-pub trait ChainEndpoint: Sized {
+pub trait ChainEndpoint {
     /// Type of light blocks for this chain
     type LightBlock: Send + Sync;
 
@@ -133,8 +139,8 @@ pub trait ChainEndpoint: Sized {
 
     // Life cycle
 
-    /// Constructs the chain
-    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>;
+    // /// Constructs the chain
+    // fn bootstrap(&self, config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>;
 
     /// Shutdown the chain runtime
     fn shutdown(self) -> Result<(), Error>;

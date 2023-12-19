@@ -109,7 +109,7 @@ pub struct ChainRuntime<Endpoint: ChainEndpoint> {
 
 impl<Endpoint> ChainRuntime<Endpoint>
 where
-    Endpoint: ChainEndpoint + Send + 'static,
+    Endpoint: ChainEndpoint + crate::chain::endpoint::Bootstrap + Send + 'static,
 {
     /// Spawns a new runtime for a specific Chain implementation.
     pub fn spawn<Handle: ChainHandle>(
@@ -117,6 +117,7 @@ where
         rt: Arc<TokioRuntime>,
     ) -> Result<Handle, Error> {
         // Similar to `from_config`.
+        // AAAAAAAAAA
         let chain = Endpoint::bootstrap(config, rt.clone())?;
 
         // Instantiate & spawn the runtime
