@@ -116,7 +116,7 @@ use crate::{
     misbehaviour::MisbehaviourEvidence,
 };
 
-const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(10);
+const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub struct AstriaEndpoint {
     config: ChainConfig,

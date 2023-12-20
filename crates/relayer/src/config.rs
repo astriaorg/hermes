@@ -188,7 +188,7 @@ pub mod default {
     }
 
     pub fn rpc_timeout() -> Duration {
-        Duration::from_secs(10)
+        Duration::from_secs(60)
     }
 
     pub fn poll_interval() -> Duration {
