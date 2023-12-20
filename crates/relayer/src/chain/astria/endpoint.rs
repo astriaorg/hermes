@@ -1351,8 +1351,12 @@ impl ChainEndpoint for AstriaEndpoint {
         let trusting_period_default = 2 * unbonding_period / 3;
         let trusting_period = settings.trusting_period.unwrap_or(trusting_period_default);
 
-        // TODO: astria default?
-        let proof_specs = self.config.proof_specs().clone().expect("proof specs");
+        // TODO: with_prehash or no_prehash?
+        let proof_specs = self
+            .config
+            .proof_specs()
+            .clone()
+            .unwrap_or_else(|| crate::chain::astria::proof_specs::proof_spec_no_prehash());
 
         Self::ClientState::new(
             self.id().clone(),
