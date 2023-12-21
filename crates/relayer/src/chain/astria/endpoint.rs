@@ -1365,7 +1365,7 @@ impl ChainEndpoint for AstriaEndpoint {
             .config
             .proof_specs()
             .clone()
-            .unwrap_or_else(|| crate::chain::astria::proof_specs::proof_spec_with_prehash());
+            .unwrap_or_else(|| crate::chain::astria::proof_specs::proof_spec_no_prehash());
 
         Self::ClientState::new(
             self.id().clone(),
