@@ -367,17 +367,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
-name = "astria-merkle"
+name = "astria-core"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?rev=d599e0ec606250ce28dab2e5d4efabb4a89489b6#d599e0ec606250ce28dab2e5d4efabb4a89489b6"
-dependencies = [
- "sha2 0.10.8",
-]
-
-[[package]]
-name = "astria-proto"
-version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?rev=d599e0ec606250ce28dab2e5d4efabb4a89489b6#d599e0ec606250ce28dab2e5d4efabb4a89489b6"
+source = "git+https://github.com/astriaorg/astria?rev=6ffbced612a7244ccea146db90c6cfb8c1aa7466#6ffbced612a7244ccea146db90c6cfb8c1aa7466"
 dependencies = [
  "astria-merkle",
  "ed25519-consensus",
@@ -391,6 +383,30 @@ dependencies = [
  "sha2 0.10.8",
  "tendermint",
  "tendermint-proto",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "astria-merkle"
+version = "0.1.0"
+source = "git+https://github.com/astriaorg/astria?rev=6ffbced612a7244ccea146db90c6cfb8c1aa7466#6ffbced612a7244ccea146db90c6cfb8c1aa7466"
+dependencies = [
+ "sha2 0.10.8",
+]
+
+[[package]]
+name = "astria-sequencer-client"
+version = "0.1.0"
+source = "git+https://github.com/astriaorg/astria?rev=6ffbced612a7244ccea146db90c6cfb8c1aa7466#6ffbced612a7244ccea146db90c6cfb8c1aa7466"
+dependencies = [
+ "astria-core",
+ "async-trait",
+ "futures",
+ "hex",
+ "prost 0.12.3",
+ "tendermint",
+ "tendermint-rpc",
  "thiserror",
  "tracing",
 ]
@@ -2136,7 +2152,8 @@ name = "ibc-relayer"
 version = "0.26.3"
 dependencies = [
  "anyhow",
- "astria-proto",
+ "astria-core",
+ "astria-sequencer-client",
  "async-stream 0.3.5",
  "bech32 0.9.1",
  "bitcoin",

@@ -241,11 +241,13 @@ impl AstriaEndpoint {
     }
 
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
-        use ::astria_proto::native::sequencer::v1alpha1::{
+        use astria_core::sequencer::v1alpha1::{
             asset::default_native_asset_id,
-            Action,
+            transaction::Action,
+            Address,
             UnsignedTransaction,
         };
+        use astria_sequencer_client::SequencerClientExt as _;
         use penumbra_ibc::IbcRelay;
         use penumbra_proto::core::component::ibc::v1alpha1::IbcRelay as RawIbcRelay;
 
@@ -262,14 +264,21 @@ impl AstriaEndpoint {
             ibc_actions.push(Action::Ibc(non_raw));
         }
 
+        let signing_key: ed25519_consensus::SigningKey =
+            (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
+        let address = Address::from_verification_key(signing_key.verification_key());
+        let nonce = self
+            .sequencer_client
+            .get_latest_nonce(address)
+            .await
+            .map_err(|e| Error::other(Box::new(e)))?;
+
         let unsigned_tx = UnsignedTransaction {
-            nonce: 0, // TODO
+            nonce: nonce.nonce,
             actions: ibc_actions,
             fee_asset_id: default_native_asset_id(),
         };
 
-        let signing_key: ed25519_consensus::SigningKey =
-            (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
         let signed_tx = unsigned_tx.into_signed(&signing_key);
         let tx_bytes = signed_tx.into_raw().encode_to_vec();
 
@@ -1356,7 +1365,7 @@ impl ChainEndpoint for AstriaEndpoint {
             .config
             .proof_specs()
             .clone()
-            .unwrap_or_else(|| crate::chain::astria::proof_specs::proof_spec_no_prehash());
+            .unwrap_or_else(|| crate::chain::astria::proof_specs::proof_spec_with_prehash());
 
         Self::ClientState::new(
             self.id().clone(),

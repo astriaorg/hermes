@@ -24,7 +24,8 @@ ibc-proto         = { version = "0.39.0", features = ["serde"] }
 ibc-telemetry     = { version = "0.26.3", path = "../telemetry", optional = true }
 ibc-relayer-types = { version = "0.26.3", path = "../relayer-types", features = ["mocks"] }
 
-astria-proto = { git = "https://github.com/astriaorg/astria", rev = "d599e0ec606250ce28dab2e5d4efabb4a89489b6" }
+astria-core = { git = "https://github.com/astriaorg/astria", rev = "6ffbced612a7244ccea146db90c6cfb8c1aa7466" }
+astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "6ffbced612a7244ccea146db90c6cfb8c1aa7466", features = [ "http" ] }
 ed25519-consensus = "2.1.0"
 ibc-types = "0.10.0"
 jmt = "0.6"

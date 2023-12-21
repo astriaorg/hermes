@@ -496,6 +496,7 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
         host_chain: DstChain,
         client_id: &ClientId,
     ) -> Result<ForeignClient<DstChain, SrcChain>, ForeignClientError> {
+        println!("find query_client_state");
         match host_chain.query_client_state(
             QueryClientStateRequest {
                 client_id: client_id.clone(),
@@ -813,7 +814,7 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
             } => {
                 error!(
                     latest_height = %client_state.latest_height(),
-                    network_timestmap = %network_timestamp,
+                    network_timestamp = %network_timestamp,
                     consensus_state_timestamp = %consensus_state_timestmap,
                     elapsed = ?elapsed,
                     "client state is not valid: latest height is outside of trusting period!",
@@ -1538,6 +1539,7 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
         fields(client = %self)
     )]
     fn fetch_consensus_state_heights(&self) -> Result<Vec<Height>, ForeignClientError> {
+        println!("fetch_consensus_state_heights");
         let mut heights = self
             .dst_chain
             .query_consensus_state_heights(QueryConsensusStateHeightsRequest {
