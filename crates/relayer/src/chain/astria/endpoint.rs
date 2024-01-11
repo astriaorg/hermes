@@ -584,7 +584,20 @@ impl ChainEndpoint for AstriaEndpoint {
         _key_name: Option<&str>,
         _denom: Option<&str>,
     ) -> Result<Balance, Error> {
-        todo!()
+        use astria_sequencer_client::Address;
+        use astria_sequencer_client::SequencerClientExt as _;
+
+        let signing_key: ed25519_consensus::SigningKey =
+        (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
+        let address = Address::from_verification_key(signing_key.verification_key());
+        let balance = self.block_on(self
+            .sequencer_client
+            .get_latest_balance(address)).map_err(|e| Error::other(Box::new(e)))?;
+
+        Ok(Balance {
+            amount: balance.balance.to_string(),
+            denom: astria_core::sequencer::v1alpha1::asset::DEFAULT_NATIVE_ASSET_DENOM.to_string(),
+        })
     }
 
     /// Query the balances of the given account for all the denom.
@@ -1360,12 +1373,7 @@ impl ChainEndpoint for AstriaEndpoint {
         let trusting_period_default = 2 * unbonding_period / 3;
         let trusting_period = settings.trusting_period.unwrap_or(trusting_period_default);
 
-        // TODO: with_prehash or no_prehash?
-        let proof_specs = self
-            .config
-            .proof_specs()
-            .clone()
-            .unwrap_or_else(|| crate::chain::astria::proof_specs::proof_spec_no_prehash());
+        let proof_specs = crate::chain::astria::proof_specs::proof_spec_with_prehash();
 
         Self::ClientState::new(
             self.id().clone(),

@@ -46,14 +46,14 @@ trust_threshold = { numerator = '1', denominator = '3' }
 id = 'ibc-0'
 type = 'CosmosSdk'
 rpc_addr = 'http://localhost:27050'
-grpc_addr = 'http://localhost:27052'
+grpc_addr = 'http://localhost:9090'
 event_source = { mode = 'push', url = 'ws://localhost:27050/websocket', batch_delay = '200ms' }
 rpc_timeout = '15s'
 trusted_node = true
-account_prefix = 'cosmos'
+account_prefix = 'osmo'
 key_name = 'wallet'
 store_prefix = 'ibc'
-gas_price = { price = 0.001, denom = 'stake' }
+gas_price = { price = 0.0026, denom = 'stake' }
 gas_multiplier = 1.2
 default_gas = 1000000
 max_gas = 10000000
