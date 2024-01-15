@@ -437,10 +437,15 @@ pub trait ChainEndpoint {
         client_id: &ClientId,
         height: ICSHeight,
     ) -> Result<(Option<AnyClientState>, Proofs), Error> {
+        let query_height = ibc_relayer_types::core::ics02_client::height::Height::new(
+            height.revision_number(),
+            height.revision_height() - 1,
+        ).expect("valid height");
+
         let (connection_end, maybe_connection_proof) = self.query_connection(
             QueryConnectionRequest {
                 connection_id: connection_id.clone(),
-                height: QueryHeight::Specific(height),
+                height: QueryHeight::Specific(query_height),
             },
             IncludeProof::Yes,
         )?;
@@ -481,7 +486,7 @@ pub trait ChainEndpoint {
                 let (client_state_value, maybe_client_state_proof) = self.query_client_state(
                     QueryClientStateRequest {
                         client_id: client_id.clone(),
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Specific(query_height),
                     },
                     IncludeProof::Yes,
                 )?;
@@ -500,7 +505,7 @@ pub trait ChainEndpoint {
                         QueryConsensusStateRequest {
                             client_id: client_id.clone(),
                             consensus_height: client_state_value.latest_height(),
-                            query_height: QueryHeight::Specific(height),
+                            query_height: QueryHeight::Specific(query_height),
                         },
                         IncludeProof::Yes,
                     )?;
@@ -534,7 +539,8 @@ pub trait ChainEndpoint {
                 consensus_proof,
                 None, // TODO: Retrieve host consensus proof when available
                 None,
-                height.increment(),
+                //height.increment(),
+                height,
             )
             .map_err(Error::malformed_proof)?,
         ))

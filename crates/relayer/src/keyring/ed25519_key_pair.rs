@@ -111,7 +111,6 @@ impl SigningKeyPair for Ed25519KeyPair {
     type KeyFile = KeyFile;
 
     fn from_key_file(key_file: KeyFile, hd_path: &StandardHDPath) -> Result<Self, Error> {
-        println!("key_file: {:?}", key_file);
         use ed25519_dalek::PUBLIC_KEY_LENGTH;
 
         // TODO: Derive this from something in `key_file`

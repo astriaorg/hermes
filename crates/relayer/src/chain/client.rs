@@ -32,12 +32,10 @@ impl ClientSettings {
         let src_chain_config = match src_chain_config {
             ChainConfig::CosmosSdk(src_chain_config) => src_chain_config,
             ChainConfig::Astria(src_chain_config) => src_chain_config,
-            _ => panic!("Unsupported chain config: {:?}", src_chain_config),
         };
         let dst_chain_config = match dst_chain_config {
             ChainConfig::CosmosSdk(dst_chain_config) => dst_chain_config,
             ChainConfig::Astria(dst_chain_config) => dst_chain_config,
-            _ => panic!("Unsupported chain config: {:?}", dst_chain_config),
         };
 
         ClientSettings::Tendermint(cosmos::client::Settings::for_create_command(

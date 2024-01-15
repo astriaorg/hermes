@@ -4,8 +4,7 @@ use ibc_relayer_types::core::ics23_commitment::specs::ProofSpecs;
 const SPARSE_MERKLE_PLACEHOLDER_HASH: [u8; 32] = *b"SPARSE_MERKLE_PLACEHOLDER_HASH__";
 
 /// note: these are copied from penumbra's hermes fork.
-/// todo: no_prehash vs with_prehash?
-pub(crate) fn jmt_spec_no_prehash() -> ics23::ProofSpec {
+pub(crate) fn jmt_spec_with_prehash() -> ics23::ProofSpec {
     ics23::ProofSpec {
         leaf_spec: Some(ics23::LeafOp {
             hash: ics23::HashOp::Sha256.into(),
@@ -24,21 +23,11 @@ pub(crate) fn jmt_spec_no_prehash() -> ics23::ProofSpec {
         }),
         min_depth: 0,
         max_depth: 64,
-        prehash_key_before_comparison: false, // for now, until support lands
+        prehash_key_before_comparison: true,
     }
 }
 
-pub(crate) fn jmt_spec_with_prehash() -> ics23::ProofSpec {
-    let mut spec = jmt_spec_no_prehash();
-    spec.prehash_key_before_comparison = true;
-    spec
-}
-
 // TODO: this should re-export the proof specs from the Penumbra crate
-pub(crate) fn proof_spec_no_prehash() -> ProofSpecs {
-    vec![jmt_spec_no_prehash(), jmt_spec_no_prehash()].into()
-}
-
 pub(crate) fn proof_spec_with_prehash() -> ProofSpecs {
     vec![jmt_spec_with_prehash(), jmt_spec_with_prehash()].into()
 }

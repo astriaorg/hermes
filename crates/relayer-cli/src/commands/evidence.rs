@@ -16,7 +16,6 @@ use abscissa_core::{
 };
 use ibc_relayer::{
     chain::{
-        astria::AstriaEndpoint,
         cosmos::CosmosSdkChain,
         endpoint::ChainEndpoint,
         handle::{
@@ -143,13 +142,10 @@ impl Runnable for EvidenceCmd {
 
         let chain = match chain_config {
             ChainConfig::Astria(_) => {
-                println!("AstriaEndpoint::bootstrap");
-                //AstriaEndpoint::bootstrap(chain_config, rt.clone()).unwrap()
-                return;
+                todo!("AstriaEndpoint::bootstrap");
+                // AstriaEndpoint::bootstrap(chain_config, rt.clone()).unwrap()
             }
-            ChainConfig::CosmosSdk(ref cfg) => {
-                println!("CosmosSdkChain::bootstrap");
-                println!("cfg: {:?}", &cfg);
+            ChainConfig::CosmosSdk(ref _cfg) => {
                 CosmosSdkChain::bootstrap(chain_config, rt.clone()).unwrap()
             }
         };

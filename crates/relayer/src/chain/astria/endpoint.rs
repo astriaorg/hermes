@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use tonic::IntoRequest;
 use std::{
     str::FromStr as _,
     time::Duration,
@@ -584,15 +585,17 @@ impl ChainEndpoint for AstriaEndpoint {
         _key_name: Option<&str>,
         _denom: Option<&str>,
     ) -> Result<Balance, Error> {
-        use astria_sequencer_client::Address;
-        use astria_sequencer_client::SequencerClientExt as _;
+        use astria_sequencer_client::{
+            Address,
+            SequencerClientExt as _,
+        };
 
         let signing_key: ed25519_consensus::SigningKey =
-        (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
+            (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
         let address = Address::from_verification_key(signing_key.verification_key());
-        let balance = self.block_on(self
-            .sequencer_client
-            .get_latest_balance(address)).map_err(|e| Error::other(Box::new(e)))?;
+        let balance = self
+            .block_on(self.sequencer_client.get_latest_balance(address))
+            .map_err(|e| Error::other(Box::new(e)))?;
 
         Ok(Balance {
             amount: balance.balance.to_string(),
@@ -682,14 +685,20 @@ impl ChainEndpoint for AstriaEndpoint {
     ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
 
-        let req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
+        let mut req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
             client_id: request.client_id.to_string(),
             // TODO: height is ignored
-        };
+        }.into_request();
 
-        let request = tonic::Request::new(req);
+        let map = req.metadata_mut();
+        let height_str: String = match request.height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
+        };
+        map.insert("height", height_str.parse().expect("valid ascii string"));
+
         let response = self
-            .block_on(client.client_state(request))
+            .block_on(client.client_state(req))
             .map_err(|e| Error::grpc_status(e, "query_client_state".to_owned()))?
             .into_inner();
 
@@ -715,12 +724,19 @@ impl ChainEndpoint for AstriaEndpoint {
     ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
 
-        let req = ibc_proto::ibc::core::client::v1::QueryConsensusStateRequest {
+        let mut req = ibc_proto::ibc::core::client::v1::QueryConsensusStateRequest {
             client_id: request.client_id.to_string(),
             revision_height: request.consensus_height.revision_height(),
             revision_number: request.consensus_height.revision_number(),
             latest_height: false, // TODO?
+        }.into_request();
+
+        let map = req.metadata_mut();
+        let height_str: String = match request.query_height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
         };
+        map.insert("height", height_str.parse().expect("valid ascii string"));
 
         let response = self
             .block_on(client.consensus_state(req))
@@ -882,14 +898,19 @@ impl ChainEndpoint for AstriaEndpoint {
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
     ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
-        use tonic::IntoRequest;
-
         let mut client = self.ibc_connection_grpc_client.clone();
-        let req = ibc_proto::ibc::core::connection::v1::QueryConnectionRequest {
+        let mut req = ibc_proto::ibc::core::connection::v1::QueryConnectionRequest {
             connection_id: request.connection_id.to_string(),
             // TODO height is ignored
         }
         .into_request();
+
+        let map = req.metadata_mut();
+        let height_str: String = match request.height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
+        };
+        map.insert("height", height_str.parse().expect("valid ascii string"));
 
         let response = self.block_on(client.connection(req)).map_err(|e| {
             if e.code() == tonic::Code::NotFound {
