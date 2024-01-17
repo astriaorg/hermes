@@ -1,5 +1,4 @@
 use alloc::sync::Arc;
-use tonic::IntoRequest;
 use std::{
     str::FromStr as _,
     time::Duration,
@@ -67,6 +66,7 @@ use tendermint_rpc::{
     HttpClient,
 };
 use tokio::runtime::Runtime as TokioRuntime;
+use tonic::IntoRequest;
 use tracing::warn;
 
 use crate::{
@@ -82,7 +82,6 @@ use crate::{
             wait::wait_for_block_commits,
         },
         endpoint::{
-            Bootstrap,
             ChainEndpoint,
             ChainStatus,
             HealthCheck,
@@ -131,17 +130,6 @@ pub struct AstriaEndpoint {
     ibc_channel_grpc_client: IbcChannelQueryClient<tonic::transport::Channel>,
     rt: Arc<TokioRuntime>,
     tx_monitor_cmd: Option<TxEventSourceCmd>,
-}
-
-impl Bootstrap for AstriaEndpoint {
-    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
-        let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
-            .map_err(|e| Error::other(e.into()))?;
-        Self::new(config, keybase, rt)
-    }
 }
 
 impl AstriaEndpoint {
@@ -425,12 +413,11 @@ impl ChainEndpoint for AstriaEndpoint {
     // Life cycle
 
     // /// Constructs the chain
-    // fn bootstrap(&self, config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
-    //     // TODO: don't use a test keyring?
-    //     let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
-    //         .map_err(|e| Error::other(e.into()))?;
-    //     Self::new(config, keybase, rt)
-    // }
+    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
+        let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
+            .map_err(|e| Error::other(e.into()))?;
+        Self::new(config, keybase, rt)
+    }
 
     /// Shutdown the chain runtime
     fn shutdown(self) -> Result<(), Error> {
@@ -688,7 +675,8 @@ impl ChainEndpoint for AstriaEndpoint {
         let mut req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
             client_id: request.client_id.to_string(),
             // TODO: height is ignored
-        }.into_request();
+        }
+        .into_request();
 
         let map = req.metadata_mut();
         let height_str: String = match request.height {
@@ -729,7 +717,8 @@ impl ChainEndpoint for AstriaEndpoint {
             revision_height: request.consensus_height.revision_height(),
             revision_number: request.consensus_height.revision_number(),
             latest_height: false, // TODO?
-        }.into_request();
+        }
+        .into_request();
 
         let map = req.metadata_mut();
         let height_str: String = match request.query_height {

@@ -105,14 +105,8 @@ pub struct ChainStatus {
     pub timestamp: Timestamp,
 }
 
-pub trait Bootstrap {
-    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>
-    where
-        Self: Sized;
-}
-
 /// Defines a blockchain as understood by the relayer
-pub trait ChainEndpoint {
+pub trait ChainEndpoint: Sized {
     /// Type of light blocks for this chain
     type LightBlock: Send + Sync;
 
@@ -140,7 +134,7 @@ pub trait ChainEndpoint {
     // Life cycle
 
     // /// Constructs the chain
-    // fn bootstrap(&self, config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>;
+    fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>;
 
     /// Shutdown the chain runtime
     fn shutdown(self) -> Result<(), Error>;
@@ -440,7 +434,8 @@ pub trait ChainEndpoint {
         let query_height = ibc_relayer_types::core::ics02_client::height::Height::new(
             height.revision_number(),
             height.revision_height() - 1,
-        ).expect("valid height");
+        )
+        .expect("valid height");
 
         let (connection_end, maybe_connection_proof) = self.query_connection(
             QueryConnectionRequest {

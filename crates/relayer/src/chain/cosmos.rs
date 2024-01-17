@@ -980,7 +980,18 @@ impl CosmosSdkChain {
     }
 }
 
-impl crate::chain::endpoint::Bootstrap for CosmosSdkChain {
+impl ChainEndpoint for CosmosSdkChain {
+    type LightBlock = TmLightBlock;
+    type Header = TmHeader;
+    type ConsensusState = TmConsensusState;
+    type ClientState = TmClientState;
+    type Time = TmTime;
+    type SigningKeyPair = Secp256k1KeyPair;
+
+    fn id(&self) -> &ChainId {
+        &self.config.id
+    }
+
     fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
         #[allow(irrefutable_let_patterns)]
         let ChainConfig::CosmosSdk(config) = config
@@ -1029,19 +1040,6 @@ impl crate::chain::endpoint::Bootstrap for CosmosSdkChain {
         };
 
         Ok(chain)
-    }
-}
-
-impl ChainEndpoint for CosmosSdkChain {
-    type LightBlock = TmLightBlock;
-    type Header = TmHeader;
-    type ConsensusState = TmConsensusState;
-    type ClientState = TmClientState;
-    type Time = TmTime;
-    type SigningKeyPair = Secp256k1KeyPair;
-
-    fn id(&self) -> &ChainId {
-        &self.config.id
     }
 
     fn shutdown(self) -> Result<(), Error> {

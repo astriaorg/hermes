@@ -119,14 +119,6 @@ impl Runnable for EvidenceCmd {
                 .exit()
             });
 
-        // if !matches!(chain_config, ChainConfig::CosmosSdk(_)) {
-        //     Output::error(format!(
-        //         "chain `{}` is not a Cosmos SDK chain",
-        //         self.chain_id
-        //     ))
-        //     .exit();
-        // }
-
         if let Some(ref key_name) = self.key_name {
             chain_config.set_key_name(key_name.to_string());
         }
@@ -138,12 +130,9 @@ impl Runnable for EvidenceCmd {
                 .unwrap(),
         );
 
-        use ibc_relayer::chain::endpoint::Bootstrap;
-
         let chain = match chain_config {
             ChainConfig::Astria(_) => {
                 todo!("AstriaEndpoint::bootstrap");
-                // AstriaEndpoint::bootstrap(chain_config, rt.clone()).unwrap()
             }
             ChainConfig::CosmosSdk(ref _cfg) => {
                 CosmosSdkChain::bootstrap(chain_config, rt.clone()).unwrap()
