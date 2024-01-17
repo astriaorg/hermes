@@ -24,6 +24,7 @@ ibc-proto         = { version = "0.39.0", features = ["serde"] }
 ibc-telemetry     = { version = "0.26.3", path = "../telemetry", optional = true }
 ibc-relayer-types = { version = "0.26.3", path = "../relayer-types", features = ["mocks"] }
 
+# TODO: bump this after IBC PRs (specifically balance query) are merged
 astria-core = { git = "https://github.com/astriaorg/astria", rev = "6ffbced612a7244ccea146db90c6cfb8c1aa7466" }
 astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "6ffbced612a7244ccea146db90c6cfb8c1aa7466", features = [ "http" ] }
 ed25519-consensus = "2.1.0"

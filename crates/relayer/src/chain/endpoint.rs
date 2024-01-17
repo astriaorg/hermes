@@ -133,7 +133,7 @@ pub trait ChainEndpoint: Sized {
 
     // Life cycle
 
-    // /// Constructs the chain
+    /// Constructs the chain
     fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error>;
 
     /// Shutdown the chain runtime
@@ -429,14 +429,8 @@ pub trait ChainEndpoint: Sized {
         message_type: ConnectionMsgType,
         connection_id: &ConnectionId,
         client_id: &ClientId,
-        height: ICSHeight,
+        query_height: ICSHeight,
     ) -> Result<(Option<AnyClientState>, Proofs), Error> {
-        let query_height = ibc_relayer_types::core::ics02_client::height::Height::new(
-            height.revision_number(),
-            height.revision_height() - 1,
-        )
-        .expect("valid height");
-
         let (connection_end, maybe_connection_proof) = self.query_connection(
             QueryConnectionRequest {
                 connection_id: connection_id.clone(),
@@ -534,8 +528,7 @@ pub trait ChainEndpoint: Sized {
                 consensus_proof,
                 None, // TODO: Retrieve host consensus proof when available
                 None,
-                //height.increment(),
-                height,
+                query_height.increment(),
             )
             .map_err(Error::malformed_proof)?,
         ))

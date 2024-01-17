@@ -230,19 +230,35 @@ impl AstriaEndpoint {
     }
 
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
-        use astria_core::sequencer::v1alpha1::{
-            asset::default_native_asset_id,
-            transaction::Action,
-            Address,
-            UnsignedTransaction,
+        use astria_core::{
+            generated::sequencer::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
+            sequencer::v1alpha1::{
+                asset::default_native_asset_id,
+                transaction::{
+                    action::Ics20Withdrawal,
+                    Action,
+                },
+                Address,
+                UnsignedTransaction,
+            },
         };
         use astria_sequencer_client::SequencerClientExt as _;
+        use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
         use penumbra_ibc::IbcRelay;
         use penumbra_proto::core::component::ibc::v1alpha1::IbcRelay as RawIbcRelay;
 
         let msg_len = tracked_msgs.msgs.len();
-        let mut ibc_actions: Vec<Action> = Vec::with_capacity(msg_len);
+        let mut actions: Vec<Action> = Vec::with_capacity(msg_len);
         for msg in tracked_msgs.msgs {
+            if msg.type_url == ASTRIA_WITHDRAWAL_TYPE_URL {
+                let action = RawIcs20Withdrawal::decode(msg.value.as_slice())
+                    .map_err(|e| Error::other(e.into()))?;
+                let non_raw =
+                    Ics20Withdrawal::try_from_raw(action).map_err(|e| Error::other(e.into()))?;
+                actions.push(Action::Ics20Withdrawal(non_raw));
+                continue;
+            }
+
             let ibc_action = RawIbcRelay {
                 raw_action: Some(pbjson_types::Any {
                     type_url: msg.type_url,
@@ -250,7 +266,7 @@ impl AstriaEndpoint {
                 }),
             };
             let non_raw = IbcRelay::try_from(ibc_action).map_err(|e| Error::other(e.into()))?;
-            ibc_actions.push(Action::Ibc(non_raw));
+            actions.push(Action::Ibc(non_raw));
         }
 
         let signing_key: ed25519_consensus::SigningKey =
@@ -264,7 +280,7 @@ impl AstriaEndpoint {
 
         let unsigned_tx = UnsignedTransaction {
             nonce: nonce.nonce,
-            actions: ibc_actions,
+            actions,
             fee_asset_id: default_native_asset_id(),
         };
 
@@ -412,7 +428,7 @@ impl ChainEndpoint for AstriaEndpoint {
 
     // Life cycle
 
-    // /// Constructs the chain
+    /// Constructs the chain
     fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
         let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
             .map_err(|e| Error::other(e.into()))?;
