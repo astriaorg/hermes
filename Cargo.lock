@@ -418,7 +418,7 @@ checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 [[package]]
 name = "astria-core"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?rev=1684774dfc66af2bf49b01899e7b299089f47e58#1684774dfc66af2bf49b01899e7b299089f47e58"
+source = "git+https://github.com/astriaorg/astria?rev=53244b59be27f80a1b4062a8e96f452be98977c0#53244b59be27f80a1b4062a8e96f452be98977c0"
 dependencies = [
  "astria-merkle",
  "base64 0.21.7",
@@ -441,7 +441,7 @@ dependencies = [
 [[package]]
 name = "astria-merkle"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?rev=1684774dfc66af2bf49b01899e7b299089f47e58#1684774dfc66af2bf49b01899e7b299089f47e58"
+source = "git+https://github.com/astriaorg/astria?rev=53244b59be27f80a1b4062a8e96f452be98977c0#53244b59be27f80a1b4062a8e96f452be98977c0"
 dependencies = [
  "sha2 0.10.8",
 ]
@@ -449,7 +449,7 @@ dependencies = [
 [[package]]
 name = "astria-sequencer-client"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?rev=1684774dfc66af2bf49b01899e7b299089f47e58#1684774dfc66af2bf49b01899e7b299089f47e58"
+source = "git+https://github.com/astriaorg/astria?rev=53244b59be27f80a1b4062a8e96f452be98977c0#53244b59be27f80a1b4062a8e96f452be98977c0"
 dependencies = [
  "astria-core",
  "async-trait",

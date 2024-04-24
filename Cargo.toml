@@ -36,8 +36,8 @@ tendermint-rpc = "0.34.0"
 tendermint-testgen = "0.34.0"
 
 # Astria dependencies
-astria-core = { git = "https://github.com/astriaorg/astria", rev = "1684774dfc66af2bf49b01899e7b299089f47e58" }
-astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "1684774dfc66af2bf49b01899e7b299089f47e58", features = [
+astria-core = { git = "https://github.com/astriaorg/astria", rev = "53244b59be27f80a1b4062a8e96f452be98977c0" }
+astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "53244b59be27f80a1b4062a8e96f452be98977c0", features = [
     "http",
 ] }
 

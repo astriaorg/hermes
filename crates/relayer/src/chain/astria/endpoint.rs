@@ -184,11 +184,13 @@ impl AstriaEndpoint {
 
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
         use astria_core::{
-            generated::sequencer::v1::Ics20Withdrawal as RawIcs20Withdrawal,
-            sequencer::v1::{
-                transaction::{action::Ics20Withdrawal, Action},
-                Address, UnsignedTransaction,
+            generated::protocol::transaction::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
+            protocol::transaction::v1alpha1::{
+                action::Ics20Withdrawal, Action,
+                TransactionParams,
+                UnsignedTransaction,
             },
+            primitive::v1::Address,
         };
         use astria_sequencer_client::SequencerClientExt as _;
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
@@ -227,7 +229,10 @@ impl AstriaEndpoint {
             .map_err(|e| Error::other(Box::new(e)))?;
 
         let unsigned_tx = UnsignedTransaction {
-            nonce: nonce.nonce,
+            params: TransactionParams {
+                nonce: nonce.nonce,
+                chain_id: self.config.id().to_string(),
+            },
             actions,
         };
 
@@ -535,7 +540,7 @@ impl ChainEndpoint for AstriaEndpoint {
         _key_name: Option<&str>,
         denom: Option<&str>,
     ) -> Result<Balance, Error> {
-        use astria_core::sequencer::v1::account::AssetBalance;
+        use astria_core::protocol::account::v1alpha1::AssetBalance;
         use astria_sequencer_client::{Address, SequencerClientExt as _};
 
         let signing_key: ed25519_consensus::SigningKey =
@@ -545,7 +550,7 @@ impl ChainEndpoint for AstriaEndpoint {
             .block_on(self.sequencer_client.get_latest_balance(address))
             .map_err(|e| Error::other(Box::new(e)))?;
 
-        let denom = denom.unwrap_or(astria_core::sequencer::v1::asset::DEFAULT_NATIVE_ASSET_DENOM);
+        let denom = denom.unwrap_or(astria_core::primitive::v1::asset::DEFAULT_NATIVE_ASSET_DENOM);
 
         let balance: Vec<AssetBalance> = balance
             .balances

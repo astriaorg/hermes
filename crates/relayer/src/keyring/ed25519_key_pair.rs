@@ -139,7 +139,7 @@ impl SigningKeyPair for Ed25519KeyPair {
                 bs58::encode(&self.signing_key.verifying_key()).into_string()
             }
             Ed25519AddressType::Astria => {
-                hex::encode(astria_core::sequencer::v1::Address::from_verification_key(
+                hex::encode(astria_core::primitive::v1::Address::from_verification_key(
                     ed25519_consensus::VerificationKey::try_from(
                         self.signing_key.verifying_key().to_bytes(),
                     )
