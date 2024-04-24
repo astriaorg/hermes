@@ -5,8 +5,10 @@
 //! <https://github.com/cosmos/ibc/tree/master/spec/core/ics-002-client-semantics#create>.
 
 use crate::core::ics02_client::msgs::{
-    create_client::MsgCreateClient, misbehaviour::MsgSubmitMisbehaviour,
-    update_client::MsgUpdateClient, upgrade_client::MsgUpgradeClient,
+    create_client::MsgCreateClient,
+    misbehaviour::MsgSubmitMisbehaviour,
+    update_client::MsgUpdateClient,
+    upgrade_client::MsgUpgradeClient,
 };
 
 pub mod create_client;

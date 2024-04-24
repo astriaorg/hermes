@@ -13,9 +13,22 @@
 */
 
 use core::{
-    cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
-    fmt::{self, Debug, Display},
-    iter::{IntoIterator, Iterator},
+    cmp::{
+        Eq,
+        Ord,
+        Ordering,
+        PartialEq,
+        PartialOrd,
+    },
+    fmt::{
+        self,
+        Debug,
+        Display,
+    },
+    iter::{
+        IntoIterator,
+        Iterator,
+    },
     marker::PhantomData,
 };
 

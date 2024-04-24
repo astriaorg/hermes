@@ -1,8 +1,14 @@
 use alloc::sync::Arc;
-use std::{str::FromStr as _, time::Duration};
+use std::{
+    str::FromStr as _,
+    time::Duration,
+};
 
 use ibc_proto::ibc::{
-    apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
+    apps::fee::v1::{
+        QueryIncentivizedPacketRequest,
+        QueryIncentivizedPacketResponse,
+    },
     core::{
         channel::v1::query_client::QueryClient as IbcChannelQueryClient,
         client::v1::query_client::QueryClient as IbcClientQueryClient,
@@ -13,17 +19,36 @@ use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     clients::ics07_tendermint::{
         client_state::ClientState as TendermintClientState,
-        consensus_state::ConsensusState as TendermintConsensusState, header::Header,
+        consensus_state::ConsensusState as TendermintConsensusState,
+        header::Header,
     },
     core::{
-        ics02_client::{client_type::ClientType, events::UpdateClient},
-        ics03_connection::connection::{ConnectionEnd, IdentifiedConnectionEnd},
+        ics02_client::{
+            client_type::ClientType,
+            events::UpdateClient,
+        },
+        ics03_connection::connection::{
+            ConnectionEnd,
+            IdentifiedConnectionEnd,
+        },
         ics04_channel::{
-            channel::{ChannelEnd, IdentifiedChannelEnd},
+            channel::{
+                ChannelEnd,
+                IdentifiedChannelEnd,
+            },
             packet::Sequence,
         },
-        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
-        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
+        ics23_commitment::{
+            commitment::CommitmentPrefix,
+            merkle::MerkleProof,
+        },
+        ics24_host::identifier::{
+            ChainId,
+            ChannelId,
+            ClientId,
+            ConnectionId,
+            PortId,
+        },
     },
     signer::Signer,
     Height as ICSHeight,
@@ -33,8 +58,12 @@ use tendermint::time::Time as TmTime;
 use tendermint_light_client::verifier::types::LightBlock;
 use tendermint_rpc::{
     client::CompatMode,
-    endpoint::{broadcast::tx_sync::Response as TxResponse, status},
-    Client as _, HttpClient,
+    endpoint::{
+        broadcast::tx_sync::Response as TxResponse,
+        status,
+    },
+    Client as _,
+    HttpClient,
 };
 use tokio::runtime::Runtime as TokioRuntime;
 use tonic::IntoRequest;
@@ -43,25 +72,47 @@ use tracing::warn;
 use crate::{
     account::Balance,
     chain::{
-        astria::utils::{decode_merkle_proof, response_to_tx_sync_result},
+        astria::utils::{
+            decode_merkle_proof,
+            response_to_tx_sync_result,
+        },
         client::ClientSettings,
-        cosmos::{version::Specs, wait::wait_for_block_commits},
-        endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
+        cosmos::{
+            version::Specs,
+            wait::wait_for_block_commits,
+        },
+        endpoint::{
+            ChainEndpoint,
+            ChainStatus,
+            HealthCheck,
+        },
         handle::Subscription,
         requests::*,
         tracking::TrackedMsgs,
     },
-    client_state::{AnyClientState, IdentifiedAnyClientState},
+    client_state::{
+        AnyClientState,
+        IdentifiedAnyClientState,
+    },
     config::ChainConfig,
     consensus_state::AnyConsensusState,
     denom::DenomTrace,
     error::Error,
     event::{
-        source::{EventSource, TxEventSourceCmd},
+        source::{
+            EventSource,
+            TxEventSourceCmd,
+        },
         IbcEventWithHeight,
     },
-    keyring::{Ed25519KeyPair, KeyRing},
-    light_client::{tendermint::LightClient, LightClient as _},
+    keyring::{
+        Ed25519KeyPair,
+        KeyRing,
+    },
+    light_client::{
+        tendermint::LightClient,
+        LightClient as _,
+    },
     misbehaviour::MisbehaviourEvidence,
 };
 
@@ -186,14 +237,18 @@ impl AstriaEndpoint {
         use astria_core::{
             generated::sequencer::v1::Ics20Withdrawal as RawIcs20Withdrawal,
             sequencer::v1::{
-                transaction::{action::Ics20Withdrawal, Action},
-                Address, UnsignedTransaction,
+                transaction::{
+                    action::Ics20Withdrawal,
+                    Action,
+                },
+                Address,
+                UnsignedTransaction,
             },
         };
         use astria_sequencer_client::SequencerClientExt as _;
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
-        use penumbra_ibc_astria::IbcRelay;
-        use penumbra_proto_astria::core::component::ibc::v1::IbcRelay as RawIbcRelay;
+        use penumbra_ibc::IbcRelay;
+        use penumbra_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
 
         let msg_len = tracked_msgs.msgs.len();
         let mut actions: Vec<Action> = Vec::with_capacity(msg_len);
@@ -536,7 +591,10 @@ impl ChainEndpoint for AstriaEndpoint {
         denom: Option<&str>,
     ) -> Result<Balance, Error> {
         use astria_core::sequencer::v1::account::AssetBalance;
-        use astria_sequencer_client::{Address, SequencerClientExt as _};
+        use astria_sequencer_client::{
+            Address,
+            SequencerClientExt as _,
+        };
 
         let signing_key: ed25519_consensus::SigningKey =
             (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
@@ -603,7 +661,10 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryClientStatesRequest,
     ) -> Result<Vec<IdentifiedAnyClientState>, Error> {
-        use crate::{chain::cosmos::client_id_suffix, util::pretty::PrettyIdentifiedClientState};
+        use crate::{
+            chain::cosmos::client_id_suffix,
+            util::pretty::PrettyIdentifiedClientState,
+        };
 
         let mut client = self.ibc_client_grpc_client.clone();
 
@@ -1270,7 +1331,10 @@ impl ChainEndpoint for AstriaEndpoint {
         mut request: QueryPacketEventDataRequest,
     ) -> Result<Vec<IbcEventWithHeight>, Error> {
         use crate::chain::cosmos::{
-            query::tx::{query_packets_from_block, query_packets_from_txs},
+            query::tx::{
+                query_packets_from_block,
+                query_packets_from_txs,
+            },
             sort_events_by_sequence,
         };
 

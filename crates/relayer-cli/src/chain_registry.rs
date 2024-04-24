@@ -1,7 +1,10 @@
 //! Contains functions to generate a relayer config for a given chain
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{
+        BTreeMap,
+        HashMap,
+    },
     fmt::Display,
     marker::Send,
 };
@@ -13,7 +16,10 @@ use ibc_chain_registry::{
     chain::ChainData,
     error::RegistryError,
     fetchable::Fetchable,
-    formatter::{SimpleGrpcFormatter, UriFormatter},
+    formatter::{
+        SimpleGrpcFormatter,
+        UriFormatter,
+    },
     paths::IBCPath,
     querier::*,
 };
@@ -22,17 +28,33 @@ use ibc_relayer::{
     config::{
         default,
         dynamic_gas::DynamicGasPrice,
-        filter::{FilterPattern, PacketFilter},
+        filter::{
+            FilterPattern,
+            PacketFilter,
+        },
         gas_multiplier::GasMultiplier,
-        types::{MaxMsgNum, MaxTxSize, Memo, TrustThreshold},
-        AddressType, ChainConfig, EventSourceMode, GasPrice,
+        types::{
+            MaxMsgNum,
+            MaxTxSize,
+            Memo,
+            TrustThreshold,
+        },
+        AddressType,
+        ChainConfig,
+        EventSourceMode,
+        GasPrice,
     },
     keyring::Store,
 };
-
 use tendermint_rpc::Url;
-use tokio::task::{JoinError, JoinHandle};
-use tracing::{error, trace};
+use tokio::task::{
+    JoinError,
+    JoinHandle,
+};
+use tracing::{
+    error,
+    trace,
+};
 
 const MAX_HEALTHY_QUERY_RETRIES: u8 = 5;
 
@@ -376,7 +398,10 @@ mod tests {
     use std::str::FromStr;
 
     use ibc_relayer::config::filter::ChannelPolicy;
-    use ibc_relayer_types::core::ics24_host::identifier::{ChannelId, PortId};
+    use ibc_relayer_types::core::ics24_host::identifier::{
+        ChannelId,
+        PortId,
+    };
     use serial_test::serial;
 
     use super::*;

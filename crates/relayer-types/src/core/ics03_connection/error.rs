@@ -6,7 +6,10 @@ use crate::{
         ics03_connection::version::Version,
         ics24_host::{
             error::ValidationError,
-            identifier::{ClientId, ConnectionId},
+            identifier::{
+                ClientId,
+                ConnectionId,
+            },
         },
     },
     proofs::ProofError,

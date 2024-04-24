@@ -11,7 +11,9 @@ use tokio::runtime::Runtime;
 
 use super::chain_type::ChainType;
 use crate::{
-    chain::driver::ChainDriver, error::Error, types::config::TestConfig,
+    chain::driver::ChainDriver,
+    error::Error,
+    types::config::TestConfig,
     util::random::random_unused_tcp_port,
 };
 

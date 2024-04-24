@@ -14,9 +14,11 @@
 //! order to ensure that the first IBC transfer will cost more if dynamic
 //! gas is disabled.
 
-use ibc_relayer::config::dynamic_gas::DynamicGasPrice;
-use ibc_relayer::config::ChainConfig;
-use ibc_relayer::config::GasPrice;
+use ibc_relayer::config::{
+    dynamic_gas::DynamicGasPrice,
+    ChainConfig,
+    GasPrice,
+};
 use ibc_test_framework::prelude::*;
 
 #[test]

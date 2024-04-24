@@ -1,14 +1,22 @@
 use core::time::Duration;
-use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::{
+    collections::BTreeMap,
+    path::PathBuf,
+};
 
 use byte_unit::Byte;
 use ibc_relayer_types::core::{
     ics04_channel::packet::Sequence,
     ics23_commitment::specs::ProofSpecs,
-    ics24_host::identifier::{ChainId, ChannelId},
+    ics24_host::identifier::{
+        ChainId,
+        ChannelId,
+    },
 };
-use serde_derive::{Deserialize, Serialize};
+use serde_derive::{
+    Deserialize,
+    Serialize,
+};
 use tendermint_rpc::Url;
 
 use crate::{
@@ -19,8 +27,18 @@ use crate::{
         default,
         dynamic_gas::DynamicGasPrice,
         gas_multiplier::GasMultiplier,
-        types::{MaxMsgNum, MaxTxSize, Memo, TrustThreshold},
-        AddressType, EventSourceMode, ExtensionOption, GasPrice, GenesisRestart, PacketFilter,
+        types::{
+            MaxMsgNum,
+            MaxTxSize,
+            Memo,
+            TrustThreshold,
+        },
+        AddressType,
+        EventSourceMode,
+        ExtensionOption,
+        GasPrice,
+        GenesisRestart,
+        PacketFilter,
         RefreshRate,
     },
     keyring::Store,

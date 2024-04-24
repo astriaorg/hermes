@@ -1,8 +1,13 @@
 use std::thread;
 
-use ibc_relayer::{chain::counterparty::pending_packet_summary, config::ChainConfig};
+use ibc_relayer::{
+    chain::counterparty::pending_packet_summary,
+    config::ChainConfig,
+};
 use ibc_test_framework::{
-    prelude::*, relayer::channel::query_identified_channel_end, util::random::random_u128_range,
+    prelude::*,
+    relayer::channel::query_identified_channel_end,
+    util::random::random_u128_range,
 };
 
 #[test]
@@ -436,7 +441,10 @@ impl TestOverrides for ClearPacketSequencesTest {
     }
 }
 
-use ibc_relayer::link::{Link, LinkParameters};
+use ibc_relayer::link::{
+    Link,
+    LinkParameters,
+};
 
 impl BinaryChannelTest for ClearPacketSequencesTest {
     fn run<ChainA: ChainHandle, ChainB: ChainHandle>(

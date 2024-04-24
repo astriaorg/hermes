@@ -4,20 +4,30 @@
 
 use core::time::Duration;
 
-use eyre::{eyre, Report as Error};
+use eyre::{
+    eyre,
+    Report as Error,
+};
 use ibc_relayer::{
     chain::handle::ChainHandle,
     config::default::connection_delay as default_connection_delay,
-    connection::{Connection, ConnectionSide},
+    connection::{
+        Connection,
+        ConnectionSide,
+    },
 };
 use ibc_relayer_types::timestamp::ZERO_DURATION;
-use tracing::{debug, info};
+use tracing::{
+    debug,
+    info,
+};
 
 use crate::{
     relayer::connection::TaggedConnectionExt,
     types::{
         binary::{
-            client::ClientIdPair, connection::ConnectedConnection,
+            client::ClientIdPair,
+            connection::ConnectedConnection,
             foreign_client::ForeignClientPair,
         },
         id::TaggedClientIdRef,

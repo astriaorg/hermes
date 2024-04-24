@@ -2,12 +2,19 @@
    Types for information about a chain wallet.
 */
 
-use core::fmt::{self, Display};
+use core::fmt::{
+    self,
+    Display,
+};
 
 use ibc_relayer::keyring::Secp256k1KeyPair;
 
 use crate::types::{
-    env::{prefix_writer, EnvWriter, ExportEnv},
+    env::{
+        prefix_writer,
+        EnvWriter,
+        ExportEnv,
+    },
     tagged::*,
 };
 

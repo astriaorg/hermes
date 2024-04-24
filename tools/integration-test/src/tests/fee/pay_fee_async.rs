@@ -20,8 +20,14 @@
 
 use std::cmp::max;
 
-use ibc_relayer_types::{core::ics04_channel::version::Version, events::IbcEvent};
-use ibc_test_framework::{prelude::*, util::random::random_u128_range};
+use ibc_relayer_types::{
+    core::ics04_channel::version::Version,
+    events::IbcEvent,
+};
+use ibc_test_framework::{
+    prelude::*,
+    util::random::random_u128_range,
+};
 
 #[test]
 fn test_pay_packet_fee_async() -> Result<(), Error> {

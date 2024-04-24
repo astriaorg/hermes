@@ -2,7 +2,10 @@
 Helper functions for bootstrapping a consumer full node.
 */
 use std::{
-    sync::{Arc, RwLock},
+    sync::{
+        Arc,
+        RwLock,
+    },
     thread,
     time::Duration,
 };
@@ -12,9 +15,19 @@ use toml;
 use tracing::info;
 
 use crate::{
-    chain::{builder::ChainBuilder, config, ext::bootstrap::ChainBootstrapMethodsExt},
+    chain::{
+        builder::ChainBuilder,
+        config,
+        ext::bootstrap::ChainBootstrapMethodsExt,
+    },
     error::Error,
-    prelude::{ChainDriver, Denom, FullNode, TestWallets, Token},
+    prelude::{
+        ChainDriver,
+        Denom,
+        FullNode,
+        TestWallets,
+        Token,
+    },
     util::random::random_u128_range,
 };
 

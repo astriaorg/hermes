@@ -1,21 +1,36 @@
 use std::{
-    fmt::{Display, Error as FmtError, Formatter},
+    fmt::{
+        Display,
+        Error as FmtError,
+        Formatter,
+    },
     str::FromStr,
 };
 
 use ibc_proto::{
     ibc::core::channel::v1::{
-        Channel as RawChannel, Counterparty as RawCounterparty,
+        Channel as RawChannel,
+        Counterparty as RawCounterparty,
         IdentifiedChannel as RawIdentifiedChannel,
     },
     Protobuf,
 };
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 use crate::{
     core::{
-        ics04_channel::{error::Error, version::Version},
-        ics24_host::identifier::{ChannelId, ConnectionId, PortId},
+        ics04_channel::{
+            error::Error,
+            version::Version,
+        },
+        ics24_host::identifier::{
+            ChannelId,
+            ConnectionId,
+            PortId,
+        },
     },
     utils::pretty::PrettySlice,
 };
@@ -452,10 +467,15 @@ impl Display for State {
 #[cfg(test)]
 pub mod test_util {
     use ibc_proto::ibc::core::channel::v1::{
-        Channel as RawChannel, Counterparty as RawCounterparty,
+        Channel as RawChannel,
+        Counterparty as RawCounterparty,
     };
 
-    use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
+    use crate::core::ics24_host::identifier::{
+        ChannelId,
+        ConnectionId,
+        PortId,
+    };
 
     /// Returns a dummy `RawCounterparty`, for testing only!
     /// Can be optionally parametrized with a specific channel identifier.
@@ -487,7 +507,10 @@ mod tests {
     use ibc_proto::ibc::core::channel::v1::Channel as RawChannel;
     use test_log::test;
 
-    use crate::core::ics04_channel::channel::{test_util::get_dummy_raw_channel_end, ChannelEnd};
+    use crate::core::ics04_channel::channel::{
+        test_util::get_dummy_raw_channel_end,
+        ChannelEnd,
+    };
 
     #[test]
     fn channel_end_try_from_raw() {

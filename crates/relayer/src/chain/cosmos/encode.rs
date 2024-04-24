@@ -1,15 +1,30 @@
 use core::str::FromStr;
 
-use bech32::{ToBase32, Variant};
+use bech32::{
+    ToBase32,
+    Variant,
+};
 use ibc_proto::{
     cosmos::tx::v1beta1::{
-        mode_info::{Single, Sum},
-        AuthInfo, Fee, ModeInfo, SignDoc, SignerInfo, TxBody, TxRaw,
+        mode_info::{
+            Single,
+            Sum,
+        },
+        AuthInfo,
+        Fee,
+        ModeInfo,
+        SignDoc,
+        SignerInfo,
+        TxBody,
+        TxRaw,
     },
     google::protobuf::Any,
 };
 use ibc_relayer_types::{
-    core::{ics02_client::error::Error as ClientError, ics24_host::identifier::ChainId},
+    core::{
+        ics02_client::error::Error as ClientError,
+        ics24_host::identifier::ChainId,
+    },
     signer::Signer,
 };
 use prost::Message;
@@ -17,13 +32,23 @@ use tendermint::account::Id as AccountId;
 
 use crate::{
     chain::cosmos::types::{
-        account::{Account, AccountNumber, AccountSequence},
+        account::{
+            Account,
+            AccountNumber,
+            AccountSequence,
+        },
         config::TxConfig,
         tx::SignedTx,
     },
-    config::{types::Memo, AddressType},
+    config::{
+        types::Memo,
+        AddressType,
+    },
     error::Error,
-    keyring::{Secp256k1KeyPair, SigningKeyPair},
+    keyring::{
+        Secp256k1KeyPair,
+        SigningKeyPair,
+    },
 };
 
 pub fn sign_and_encode_tx(

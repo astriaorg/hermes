@@ -1,10 +1,19 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
+use abscissa_core::{
+    clap::Parser,
+    Command,
+    Runnable,
+};
 use console::style;
 use dialoguer::Confirm;
 use ibc_relayer::{
     chain::{
         handle::ChainHandle,
-        requests::{IncludeProof, QueryClientStateRequest, QueryConnectionRequest, QueryHeight},
+        requests::{
+            IncludeProof,
+            QueryClientStateRequest,
+            QueryConnectionRequest,
+            QueryHeight,
+        },
     },
     channel::Channel,
     config::default::connection_delay,
@@ -13,13 +22,26 @@ use ibc_relayer::{
 };
 use ibc_relayer_types::core::{
     ics03_connection::connection::IdentifiedConnectionEnd,
-    ics04_channel::{channel::Ordering, version::Version},
-    ics24_host::identifier::{ChainId, ConnectionId, PortId},
+    ics04_channel::{
+        channel::Ordering,
+        version::Version,
+    },
+    ics24_host::identifier::{
+        ChainId,
+        ConnectionId,
+        PortId,
+    },
 };
 
 use crate::{
-    cli_utils::{spawn_chain_runtime, ChainHandlePair},
-    conclude::{exit_with_unrecoverable_error, Output},
+    cli_utils::{
+        spawn_chain_runtime,
+        ChainHandlePair,
+    },
+    conclude::{
+        exit_with_unrecoverable_error,
+        Output,
+    },
     prelude::*,
 };
 
@@ -275,8 +297,15 @@ mod tests {
 
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::{
-        ics04_channel::{channel::Ordering, version::Version},
-        ics24_host::identifier::{ChainId, ConnectionId, PortId},
+        ics04_channel::{
+            channel::Ordering,
+            version::Version,
+        },
+        ics24_host::identifier::{
+            ChainId,
+            ConnectionId,
+            PortId,
+        },
     };
 
     use super::CreateChannelCommand;

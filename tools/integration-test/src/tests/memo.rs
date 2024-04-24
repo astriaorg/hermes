@@ -5,11 +5,18 @@
 //! `tools/test-framework/src/docs/walkthroughs/memo.rs`.
 
 const OVERWRITE_MEMO: &str = "Overwritten memo";
-use ibc_relayer::config::{types::Memo, ChainConfig, Config};
+use ibc_relayer::config::{
+    types::Memo,
+    ChainConfig,
+    Config,
+};
 use ibc_test_framework::{
     ibc::denom::derive_ibc_denom,
     prelude::*,
-    util::random::{random_string, random_u128_range},
+    util::random::{
+        random_string,
+        random_u128_range,
+    },
 };
 use serde_json as json;
 

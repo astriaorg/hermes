@@ -14,7 +14,10 @@ use ibc_proto::{
 use crate::{
     core::{
         ics02_client::error::Error,
-        ics23_commitment::{commitment::CommitmentProofBytes, error::Error as Ics23Error},
+        ics23_commitment::{
+            commitment::CommitmentProofBytes,
+            error::Error as Ics23Error,
+        },
         ics24_host::identifier::ClientId,
     },
     signer::Signer,
@@ -126,11 +129,19 @@ pub mod test_util {
 
     use super::MsgUpgradeClient;
     use crate::{
-        core::{ics02_client::height::Height, ics24_host::identifier::ClientId},
-        mock::{
-            client_state::MockClientState, consensus_state::MockConsensusState, header::MockHeader,
+        core::{
+            ics02_client::height::Height,
+            ics24_host::identifier::ClientId,
         },
-        test_utils::{get_dummy_bech32_account, get_dummy_proof},
+        mock::{
+            client_state::MockClientState,
+            consensus_state::MockConsensusState,
+            header::MockHeader,
+        },
+        test_utils::{
+            get_dummy_bech32_account,
+            get_dummy_proof,
+        },
     };
 
     /// Extends the implementation with additional helper methods.
@@ -161,12 +172,17 @@ mod tests {
 
     use crate::{
         core::{
-            ics02_client::{height::Height, msgs::upgrade_client::MsgUpgradeClient},
+            ics02_client::{
+                height::Height,
+                msgs::upgrade_client::MsgUpgradeClient,
+            },
             ics23_commitment::commitment::test_util::get_dummy_merkle_proof,
             ics24_host::identifier::ClientId,
         },
         mock::{
-            client_state::MockClientState, consensus_state::MockConsensusState, header::MockHeader,
+            client_state::MockClientState,
+            consensus_state::MockConsensusState,
+            header::MockHeader,
         },
         test_utils::get_dummy_account_id,
     };

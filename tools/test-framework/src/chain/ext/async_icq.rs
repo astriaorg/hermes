@@ -1,6 +1,9 @@
 use crate::{
     chain::{
-        cli::async_icq::{async_icq, update_oracle},
+        cli::async_icq::{
+            async_icq,
+            update_oracle,
+        },
         driver::ChainDriver,
     },
     error::Error,

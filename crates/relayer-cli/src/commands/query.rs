@@ -1,10 +1,16 @@
 //! `query` subcommand
 
-use abscissa_core::{clap::Parser, Command, Runnable};
+use abscissa_core::{
+    clap::Parser,
+    Command,
+    Runnable,
+};
 
 use crate::commands::query::{
-    channel_client::QueryChannelClientCmd, channel_ends::QueryChannelEndsCmd,
-    channels::QueryChannelsCmd, packet::QueryPacketCmds,
+    channel_client::QueryChannelClientCmd,
+    channel_ends::QueryChannelEndsCmd,
+    channels::QueryChannelsCmd,
+    packet::QueryPacketCmds,
 };
 
 mod channel;

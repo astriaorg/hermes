@@ -1,8 +1,14 @@
 use std::{
-    fs::{File, OpenOptions},
+    fs::{
+        File,
+        OpenOptions,
+    },
     path::Path,
     sync::{
-        atomic::{AtomicUsize, Ordering::Relaxed},
+        atomic::{
+            AtomicUsize,
+            Ordering::Relaxed,
+        },
         Mutex,
     },
 };

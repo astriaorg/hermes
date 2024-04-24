@@ -1,6 +1,9 @@
 use std::{
     collections::HashMap,
-    ops::{ControlFlow, Deref},
+    ops::{
+        ControlFlow,
+        Deref,
+    },
     sync::Arc,
     thread::sleep,
     time::Duration,
@@ -10,11 +13,21 @@ use ibc_relayer::{
     chain::{
         cosmos::CosmosSdkChain,
         endpoint::ChainEndpoint,
-        handle::{BaseChainHandle, ChainHandle},
-        requests::{IncludeProof, PageRequest, QueryHeight},
+        handle::{
+            BaseChainHandle,
+            ChainHandle,
+        },
+        requests::{
+            IncludeProof,
+            PageRequest,
+            QueryHeight,
+        },
         tracking::TrackedMsgs,
     },
-    config::{ChainConfig, Config},
+    config::{
+        ChainConfig,
+        Config,
+    },
     foreign_client::ForeignClient,
     spawn::spawn_chain_runtime_with_modified_config,
 };
@@ -24,24 +37,40 @@ use ibc_relayer_types::{
         ccv_misbehaviour::MsgSubmitIcsConsumerMisbehaviour,
     },
     clients::ics07_tendermint::{
-        header::Header as TendermintHeader, misbehaviour::Misbehaviour as TendermintMisbehaviour,
+        header::Header as TendermintHeader,
+        misbehaviour::Misbehaviour as TendermintMisbehaviour,
     },
     core::{
-        ics02_client::{height::Height, msgs::misbehaviour::MsgSubmitMisbehaviour},
-        ics24_host::identifier::{ChainId, ClientId},
+        ics02_client::{
+            height::Height,
+            msgs::misbehaviour::MsgSubmitMisbehaviour,
+        },
+        ics24_host::identifier::{
+            ChainId,
+            ClientId,
+        },
     },
     events::IbcEvent,
     tx_msg::Msg,
 };
 use tendermint::{
     block::Height as TendermintHeight,
-    evidence::{DuplicateVoteEvidence, LightClientAttackEvidence},
+    evidence::{
+        DuplicateVoteEvidence,
+        LightClientAttackEvidence,
+    },
     validator,
 };
-use tendermint_rpc::{Client, Paging};
+use tendermint_rpc::{
+    Client,
+    Paging,
+};
 use tokio::runtime::Runtime as TokioRuntime;
 
-use crate::{conclude::Output, prelude::*};
+use crate::{
+    conclude::Output,
+    prelude::*,
+};
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct EvidenceCmd {
@@ -707,7 +736,10 @@ fn fetch_all_counterparty_clients(
     config: &Config,
     chain: &CosmosSdkChain,
 ) -> eyre::Result<Vec<(ChainId, ClientId)>> {
-    use ibc_relayer::chain::requests::{QueryClientStateRequest, QueryConnectionsRequest};
+    use ibc_relayer::chain::requests::{
+        QueryClientStateRequest,
+        QueryConnectionsRequest,
+    };
 
     let connections = chain.query_connections(QueryConnectionsRequest {
         pagination: Some(PageRequest::all()),

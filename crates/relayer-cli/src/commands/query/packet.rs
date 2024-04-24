@@ -1,4 +1,8 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
+use abscissa_core::{
+    clap::Parser,
+    Command,
+    Runnable,
+};
 
 mod ack;
 mod acks;

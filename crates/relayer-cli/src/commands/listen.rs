@@ -1,6 +1,10 @@
 use alloc::sync::Arc;
 use core::{
-    fmt::{Display, Error as FmtError, Formatter},
+    fmt::{
+        Display,
+        Error as FmtError,
+        Formatter,
+    },
     str::FromStr,
 };
 use std::thread;
@@ -9,15 +13,29 @@ use abscissa_core::application::fatal_error;
 use eyre::eyre;
 use ibc_relayer::{
     chain::handle::Subscription,
-    config::{ChainConfig, EventSourceMode},
+    config::{
+        ChainConfig,
+        EventSourceMode,
+    },
     event::source::EventSource,
     util::compat_mode::compat_mode_from_version,
 };
-use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent};
+use ibc_relayer_types::{
+    core::ics24_host::identifier::ChainId,
+    events::IbcEvent,
+};
 use itertools::Itertools;
-use tendermint_rpc::{client::CompatMode, Client, HttpClient};
+use tendermint_rpc::{
+    client::CompatMode,
+    Client,
+    HttpClient,
+};
 use tokio::runtime::Runtime as TokioRuntime;
-use tracing::{error, info, instrument};
+use tracing::{
+    error,
+    info,
+    instrument,
+};
 
 use crate::prelude::*;
 
@@ -233,7 +251,10 @@ mod tests {
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 
-    use super::{EventFilter, ListenCmd};
+    use super::{
+        EventFilter,
+        ListenCmd,
+    };
 
     #[test]
     fn test_listen_required_only() {

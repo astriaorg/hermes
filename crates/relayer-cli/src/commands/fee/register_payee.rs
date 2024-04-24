@@ -1,17 +1,31 @@
 use core::str::FromStr;
 
-use abscissa_core::{clap::Parser, Command, Runnable};
-use ibc_relayer::chain::{handle::ChainHandle, tracking::TrackedMsgs};
+use abscissa_core::{
+    clap::Parser,
+    Command,
+    Runnable,
+};
+use ibc_relayer::chain::{
+    handle::ChainHandle,
+    tracking::TrackedMsgs,
+};
 use ibc_relayer_types::{
     applications::ics29_fee::msgs::register_payee::build_register_payee_message,
-    core::ics24_host::identifier::{ChainId, ChannelId, PortId},
+    core::ics24_host::identifier::{
+        ChainId,
+        ChannelId,
+        PortId,
+    },
     signer::Signer,
 };
 
 use crate::{
     application::app_config,
     cli_utils::spawn_chain_runtime,
-    conclude::{exit_with_unrecoverable_error, Output},
+    conclude::{
+        exit_with_unrecoverable_error,
+        Output,
+    },
     error::Error,
 };
 
@@ -101,7 +115,11 @@ mod tests {
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+    use ibc_relayer_types::core::ics24_host::identifier::{
+        ChainId,
+        ChannelId,
+        PortId,
+    };
 
     use super::RegisterPayeeCmd;
 

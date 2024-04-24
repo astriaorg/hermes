@@ -1,11 +1,23 @@
 use std::fmt;
 
 use ibc_proto::ibc::core::commitment::v1::MerkleProof as RawMerkleProof;
-use serde::{Deserialize, Serialize};
-use subtle_encoding::{Encoding, Hex};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use subtle_encoding::{
+    Encoding,
+    Hex,
+};
 
-use super::{error::Error, merkle::MerkleProof};
-use crate::{proofs::ProofError, tx_msg::encode_message};
+use super::{
+    error::Error,
+    merkle::MerkleProof,
+};
+use crate::{
+    proofs::ProofError,
+    tx_msg::encode_message,
+};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -171,7 +183,8 @@ impl Serialize for CommitmentPrefix {
 pub mod test_util {
 
     use ibc_proto::{
-        ibc::core::commitment::v1::MerkleProof as RawMerkleProof, ics23::CommitmentProof,
+        ibc::core::commitment::v1::MerkleProof as RawMerkleProof,
+        ics23::CommitmentProof,
     };
 
     /// Returns a dummy `RawMerkleProof`, for testing only!

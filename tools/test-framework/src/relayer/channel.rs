@@ -4,12 +4,26 @@ use eyre::eyre;
 use ibc_relayer::{
     chain::{
         handle::ChainHandle,
-        requests::{IncludeProof, QueryChannelRequest, QueryHeight},
+        requests::{
+            IncludeProof,
+            QueryChannelRequest,
+            QueryHeight,
+        },
     },
-    channel::{extract_channel_id, version::Version, Channel, ChannelSide},
+    channel::{
+        extract_channel_id,
+        version::Version,
+        Channel,
+        ChannelSide,
+    },
 };
 use ibc_relayer_types::core::{
-    ics04_channel::channel::{ChannelEnd, IdentifiedChannelEnd, Ordering, State as ChannelState},
+    ics04_channel::channel::{
+        ChannelEnd,
+        IdentifiedChannelEnd,
+        Ordering,
+        State as ChannelState,
+    },
     ics24_host::identifier::ConnectionId,
 };
 
@@ -17,8 +31,12 @@ use crate::{
     error::Error,
     types::{
         id::{
-            TaggedChannelId, TaggedChannelIdRef, TaggedClientIdRef, TaggedConnectionIdRef,
-            TaggedPortId, TaggedPortIdRef,
+            TaggedChannelId,
+            TaggedChannelIdRef,
+            TaggedClientIdRef,
+            TaggedConnectionIdRef,
+            TaggedPortId,
+            TaggedPortIdRef,
         },
         tagged::DualTagged,
     },

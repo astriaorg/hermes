@@ -1,26 +1,49 @@
-use core::fmt::{Display, Error as FmtError, Formatter};
+use core::fmt::{
+    Display,
+    Error as FmtError,
+    Formatter,
+};
 use std::{
     ops::Range,
     sync::Mutex,
-    time::{Duration, Instant},
+    time::{
+        Duration,
+        Instant,
+    },
 };
 
-use dashmap::{DashMap, DashSet};
+use dashmap::{
+    DashMap,
+    DashSet,
+};
 use ibc_relayer_types::{
     applications::transfer::Coin,
-    core::ics24_host::identifier::{ChainId, ChannelId, ClientId, PortId},
+    core::ics24_host::identifier::{
+        ChainId,
+        ChannelId,
+        ClientId,
+        PortId,
+    },
     signer::Signer,
 };
 use opentelemetry::{
     global,
-    metrics::{Counter, ObservableGauge, UpDownCounter},
-    Context, KeyValue,
+    metrics::{
+        Counter,
+        ObservableGauge,
+        UpDownCounter,
+    },
+    Context,
+    KeyValue,
 };
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::proto::MetricFamily;
 use tendermint::Time;
 
-use crate::{broadcast_error::BroadcastError, path_identifier::PathIdentifier};
+use crate::{
+    broadcast_error::BroadcastError,
+    path_identifier::PathIdentifier,
+};
 
 const EMPTY_BACKLOG_SYMBOL: u64 = 0;
 const BACKLOG_CAPACITY: usize = 1000;
@@ -224,7 +247,10 @@ impl TelemetryState {
     ) -> Self {
         use opentelemetry::sdk::{
             export::metrics::aggregation,
-            metrics::{controllers, processors},
+            metrics::{
+                controllers,
+                processors,
+            },
         };
 
         let controller = controllers::basic(processors::factory(
@@ -1245,7 +1271,12 @@ use opentelemetry::{
     sdk::{
         export::metrics::AggregatorSelector,
         metrics::{
-            aggregators::{histogram, last_value, sum, Aggregator},
+            aggregators::{
+                histogram,
+                last_value,
+                sum,
+                Aggregator,
+            },
             sdk_api::Descriptor,
         },
     },

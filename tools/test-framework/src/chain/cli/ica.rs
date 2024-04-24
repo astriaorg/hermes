@@ -3,7 +3,10 @@ use serde_json as json;
 
 use crate::{
     chain::exec::simple_exec,
-    error::{handle_generic_error, Error},
+    error::{
+        handle_generic_error,
+        Error,
+    },
 };
 
 /// Register a new interchain account controlled by the given account

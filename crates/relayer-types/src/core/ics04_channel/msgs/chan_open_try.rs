@@ -1,13 +1,23 @@
 use core::str::FromStr;
 
-use ibc_proto::{ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, Protobuf};
+use ibc_proto::{
+    ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry,
+    Protobuf,
+};
 
 use crate::{
     core::{
-        ics04_channel::{channel::ChannelEnd, error::Error as ChannelError, version::Version},
+        ics04_channel::{
+            channel::ChannelEnd,
+            error::Error as ChannelError,
+            version::Version,
+        },
         ics24_host::{
             error::ValidationError,
-            identifier::{ChannelId, PortId},
+            identifier::{
+                ChannelId,
+                PortId,
+            },
         },
     },
     proofs::Proofs,
@@ -139,15 +149,22 @@ impl From<MsgChannelOpenTry> for RawMsgChannelOpenTry {
 pub mod test_util {
 
     use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, client::v1::Height,
+        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry,
+        client::v1::Height,
     };
 
     use crate::{
         core::{
             ics04_channel::channel::test_util::get_dummy_raw_channel_end,
-            ics24_host::identifier::{ChannelId, PortId},
+            ics24_host::identifier::{
+                ChannelId,
+                PortId,
+            },
         },
-        test_utils::{get_dummy_bech32_account, get_dummy_proof},
+        test_utils::{
+            get_dummy_bech32_account,
+            get_dummy_proof,
+        },
     };
 
     /// Returns a dummy `RawMsgChannelOpenTry`, for testing only!
@@ -171,12 +188,14 @@ pub mod test_util {
 #[cfg(test)]
 mod tests {
     use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, client::v1::Height,
+        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry,
+        client::v1::Height,
     };
     use test_log::test;
 
     use crate::core::ics04_channel::msgs::chan_open_try::{
-        test_util::get_dummy_raw_msg_chan_open_try, MsgChannelOpenTry,
+        test_util::get_dummy_raw_msg_chan_open_try,
+        MsgChannelOpenTry,
     };
 
     #[test]

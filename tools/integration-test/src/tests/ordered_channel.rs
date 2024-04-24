@@ -14,7 +14,9 @@
 //! `tools/test-framework/src/docs/walkthroughs/ordered_channel.rs`.
 
 use ibc_test_framework::{
-    ibc::denom::derive_ibc_denom, prelude::*, util::random::random_u128_range,
+    ibc::denom::derive_ibc_denom,
+    prelude::*,
+    util::random::random_u128_range,
 };
 
 #[test]

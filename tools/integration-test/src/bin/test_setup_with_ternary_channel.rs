@@ -25,9 +25,15 @@
     ```
 */
 
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::PathBuf,
+};
 
-use ibc_relayer::{config::ChainConfig, keyring::Store};
+use ibc_relayer::{
+    config::ChainConfig,
+    keyring::Store,
+};
 use ibc_test_framework::prelude::*;
 
 struct Test {

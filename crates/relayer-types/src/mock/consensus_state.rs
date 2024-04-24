@@ -1,11 +1,20 @@
 use ibc_proto::{
-    google::protobuf::Any, ibc::mock::ConsensusState as RawMockConsensusState, Protobuf,
+    google::protobuf::Any,
+    ibc::mock::ConsensusState as RawMockConsensusState,
+    Protobuf,
 };
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 use crate::{
     core::{
-        ics02_client::{client_type::ClientType, consensus_state::ConsensusState, error::Error},
+        ics02_client::{
+            client_type::ClientType,
+            consensus_state::ConsensusState,
+            error::Error,
+        },
         ics23_commitment::commitment::CommitmentRoot,
     },
     mock::header::MockHeader,

@@ -1,6 +1,9 @@
 //! Data structures and logic to set up IBC client's parameters.
 
-use crate::{config::ChainConfig, foreign_client::CreateOptions};
+use crate::{
+    config::ChainConfig,
+    foreign_client::CreateOptions,
+};
 
 /// Client parameters for the `build_create_client` operation.
 ///

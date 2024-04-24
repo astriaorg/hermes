@@ -1,9 +1,15 @@
 use eyre::eyre;
 use ibc_relayer::{
     chain::{
-        handle::{BaseChainHandle, ChainHandle},
+        handle::{
+            BaseChainHandle,
+            ChainHandle,
+        },
         requests::{
-            IncludeProof, QueryChannelRequest, QueryClientStateRequest, QueryConnectionRequest,
+            IncludeProof,
+            QueryChannelRequest,
+            QueryClientStateRequest,
+            QueryConnectionRequest,
             QueryHeight,
         },
     },
@@ -13,15 +19,30 @@ use ibc_relayer::{
 use ibc_relayer_types::{
     core::{
         ics03_connection::connection::ConnectionEnd,
-        ics04_channel::channel::{ChannelEnd, State},
-        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
+        ics04_channel::channel::{
+            ChannelEnd,
+            State,
+        },
+        ics24_host::identifier::{
+            ChainId,
+            ChannelId,
+            ClientId,
+            ConnectionId,
+            PortId,
+        },
     },
     Height,
 };
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 use crate::{
-    conclude::{exit_with_unrecoverable_error, Output},
+    conclude::{
+        exit_with_unrecoverable_error,
+        Output,
+    },
     prelude::*,
 };
 
@@ -264,7 +285,11 @@ mod tests {
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+    use ibc_relayer_types::core::ics24_host::identifier::{
+        ChainId,
+        ChannelId,
+        PortId,
+    };
 
     use super::QueryChannelEndsCmd;
 

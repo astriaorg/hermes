@@ -1,6 +1,9 @@
 use ibc_relayer_types::{
     applications::ics29_fee::events::IncentivizedPacket,
-    events::{IbcEvent, IbcEventType},
+    events::{
+        IbcEvent,
+        IbcEventType,
+    },
 };
 use tendermint::abci::Event as AbciEvent;
 

@@ -1,7 +1,10 @@
 use core::time::Duration;
 use std::{
     fs,
-    process::{Command, Stdio},
+    process::{
+        Command,
+        Stdio,
+    },
     str,
     thread::sleep,
 };
@@ -9,7 +12,10 @@ use std::{
 use eyre::eyre;
 
 use crate::{
-    chain::exec::simple_exec, error::Error, types::process::ChildProcess, util::file::pipe_to_file,
+    chain::exec::simple_exec,
+    error::Error,
+    types::process::ChildProcess,
+    util::file::pipe_to_file,
 };
 
 pub fn initialize(chain_id: &str, command_path: &str, home_path: &str) -> Result<(), Error> {

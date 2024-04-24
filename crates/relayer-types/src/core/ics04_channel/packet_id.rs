@@ -3,8 +3,14 @@ use std::str::FromStr;
 use ibc_proto::ibc::core::channel::v1::PacketId as ProtoPacketId;
 
 use crate::core::{
-    ics04_channel::{error::Error, packet::Sequence},
-    ics24_host::identifier::{ChannelId, PortId},
+    ics04_channel::{
+        error::Error,
+        packet::Sequence,
+    },
+    ics24_host::identifier::{
+        ChannelId,
+        PortId,
+    },
 };
 
 #[derive(Debug, Clone)]

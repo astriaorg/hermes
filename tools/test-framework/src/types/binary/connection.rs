@@ -2,11 +2,17 @@
    Type definitions for connection that is connected between two chains.
 */
 
-use ibc_relayer::{chain::handle::ChainHandle, connection::Connection};
+use ibc_relayer::{
+    chain::handle::ChainHandle,
+    connection::Connection,
+};
 
 use super::client::ClientIdPair;
 use crate::types::{
-    env::{EnvWriter, ExportEnv},
+    env::{
+        EnvWriter,
+        ExportEnv,
+    },
     id::TaggedConnectionId,
 };
 

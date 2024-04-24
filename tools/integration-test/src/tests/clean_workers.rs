@@ -1,9 +1,14 @@
 use ibc_relayer::{
-    config::{self, ModeConfig},
+    config::{
+        self,
+        ModeConfig,
+    },
     object::ObjectType,
 };
 use ibc_test_framework::{
-    prelude::*, relayer::channel::init_channel, util::random::random_u128_range,
+    prelude::*,
+    relayer::channel::init_channel,
+    util::random::random_u128_range,
 };
 
 #[test]

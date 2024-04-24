@@ -1,7 +1,11 @@
-use serde::de::Error as DeserializeError;
-use serde::de::Unexpected;
-use serde::Deserialize;
-use serde::Deserializer;
+use serde::{
+    de::{
+        Error as DeserializeError,
+        Unexpected,
+    },
+    Deserialize,
+    Deserializer,
+};
 use serde_derive::Serialize;
 
 flex_error::define_error! {
@@ -101,10 +105,10 @@ impl<'de> Deserialize<'de> for DynamicGasPrice {
 #[cfg(test)]
 #[allow(dead_code)] // the field of the struct `DummyConfig` defined below is never accessed
 mod tests {
-    use super::*;
-
     use serde::Deserialize;
     use test_log::test;
+
+    use super::*;
 
     #[test]
     fn parse_invalid_gas_multiplier() {

@@ -36,30 +36,24 @@ tendermint-rpc = "0.34.0"
 tendermint-testgen = "0.34.0"
 
 # Astria dependencies
-astria-core = { git = "https://github.com/astriaorg/astria", rev = "b8c981796cba3a2fd89bc659e00161d682734e62" }
-astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "b8c981796cba3a2fd89bc659e00161d682734e62", features = [
+astria-core = { git = "https://github.com/astriaorg/astria", rev = "1684774dfc66af2bf49b01899e7b299089f47e58" }
+astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "1684774dfc66af2bf49b01899e7b299089f47e58", features = [
     "http",
 ] }
 
 # Penumbra dependencies.
-penumbra-asset = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-custody = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-fee = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-ibc = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-keys = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0", features = [
+penumbra-asset = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-custody = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-fee = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-ibc = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-keys = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489", features = [
     "box-grpc",
     "rpc",
 ] }
-penumbra-transaction = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-wallet = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-penumbra-view = { git = "https://github.com/penumbra-zone/penumbra", tag = "v0.71.0" }
-# Penumbra dependencies, specifically for Astria support. Renamespaced, to avoid conflicts with Penumbra support.
-penumbra-ibc-astria = { git = "https://github.com/penumbra-zone/penumbra", package = "penumbra-ibc", tag = "v0.69.1" }
-penumbra-proto-astria = { git = "https://github.com/penumbra-zone/penumbra", package = "penumbra-proto", tag = "v0.69.1", features = [
-    "box-grpc",
-    "rpc",
-] }
+penumbra-transaction = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-wallet = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
+penumbra-view = { git = "https://github.com/penumbra-zone/penumbra", rev = "8b06546af43bf073fd99f3f9d82b8afb51872489" }
 
 # Other dependencies
 abscissa_core = "=0.6.0"
@@ -96,8 +90,8 @@ hex = "0.4.3"
 http = "0.2.9"
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
-ibc-proto = "0.42.2"
-ibc-types = "0.13.0"
+ibc-proto = "0.42"
+ibc-types = "0.13"
 ics23 = "0.11.1"
 itertools = "0.10.5"
 jmt = "0.6"

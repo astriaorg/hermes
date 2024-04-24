@@ -162,7 +162,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use futures::{executor::block_on, stream, StreamExt};
+    use futures::{
+        executor::block_on,
+        stream,
+        StreamExt,
+    };
     use test_log::test;
 
     use super::*;

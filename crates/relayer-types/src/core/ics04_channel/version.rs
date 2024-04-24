@@ -4,11 +4,18 @@
 
 use std::{
     convert::Infallible,
-    fmt::{Display, Error as FmtError, Formatter},
+    fmt::{
+        Display,
+        Error as FmtError,
+        Formatter,
+    },
     str::FromStr,
 };
 
-use serde_derive::{Deserialize, Serialize};
+use serde_derive::{
+    Deserialize,
+    Serialize,
+};
 use serde_json as json;
 
 use crate::applications::transfer;

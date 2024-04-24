@@ -6,7 +6,8 @@ use ibc_test_framework::{
     prelude::*,
     util::{
         interchain_security::{
-            update_genesis_for_consumer_chain, update_relayer_config_for_consumer_chain,
+            update_genesis_for_consumer_chain,
+            update_relayer_config_for_consumer_chain,
         },
         random::random_u128_range,
     },

@@ -1,4 +1,8 @@
-use crate::{components::default_directive, prelude::*, tracing_handle::send_command};
+use crate::{
+    components::default_directive,
+    prelude::*,
+    tracing_handle::send_command,
+};
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct ResetCmd {}

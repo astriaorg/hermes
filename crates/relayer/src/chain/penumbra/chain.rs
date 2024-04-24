@@ -1,95 +1,169 @@
-use anyhow::Context;
-use bytes::{Buf, Bytes};
-use futures::{FutureExt, StreamExt, TryStreamExt};
-use http::Uri;
-use ibc_proto::ics23;
-use ibc_relayer_types::core::ics23_commitment::commitment::CommitmentProofBytes;
-use ibc_relayer_types::core::ics24_host::path::{
-    AcksPath, ChannelEndsPath, ClientConsensusStatePath, ClientStatePath, CommitmentsPath,
-    ReceiptsPath, SeqRecvsPath,
+use std::{
+    str::FromStr,
+    sync::Arc,
+    thread,
+    time::Duration,
 };
-use ibc_relayer_types::core::ics24_host::Path;
-use once_cell::sync::Lazy;
-use penumbra_proto::core::app::v1::AppParametersRequest;
-use penumbra_proto::core::component::ibc::v1::IbcRelay as ProtoIbcRelay;
-use penumbra_proto::DomainType as _;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
-use tendermint_proto::Protobuf;
-use tracing::info;
 
-use crate::chain::client::ClientSettings;
-use crate::chain::cosmos::query::{abci_query, QueryResponse};
-use crate::chain::endpoint::ChainStatus;
-use crate::chain::requests::*;
-use crate::chain::tracking::TrackedMsgs;
-use crate::client_state::{AnyClientState, IdentifiedAnyClientState};
-use crate::consensus_state::AnyConsensusState;
-use crate::event::source::{EventSource, TxEventSourceCmd};
-use crate::event::{ibc_event_try_from_abci_event, IbcEventWithHeight};
-use crate::keyring::KeyRing;
-use crate::light_client::tendermint::LightClient as TmLightClient;
-use crate::light_client::LightClient;
-use crate::util::pretty::{
-    PrettyIdentifiedChannel, PrettyIdentifiedClientState, PrettyIdentifiedConnection,
+use anyhow::Context;
+use bytes::{
+    Buf,
+    Bytes,
 };
-use ibc_proto::ibc::core::commitment::v1::MerkleProof as RawMerkleProof;
-use ibc_proto::ibc::core::{
-    channel::v1::query_client::QueryClient as IbcChannelQueryClient,
-    client::v1::query_client::QueryClient as IbcClientQueryClient,
-    connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
+use futures::{
+    FutureExt,
+    StreamExt,
+    TryStreamExt,
 };
-use ibc_relayer_types::clients::ics07_tendermint::client_state::ClientState as TmClientState;
-use ibc_relayer_types::clients::ics07_tendermint::consensus_state::ConsensusState as TmConsensusState;
-use ibc_relayer_types::clients::ics07_tendermint::header::Header as TmHeader;
-use ibc_relayer_types::core::ics02_client::client_type::ClientType;
-use ibc_relayer_types::core::ics03_connection::connection::{
-    ConnectionEnd, IdentifiedConnectionEnd,
+use http::Uri;
+use ibc_proto::{
+    ibc::core::{
+        channel::v1::query_client::QueryClient as IbcChannelQueryClient,
+        client::v1::query_client::QueryClient as IbcClientQueryClient,
+        commitment::v1::MerkleProof as RawMerkleProof,
+        connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
+    },
+    ics23,
 };
-use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, IdentifiedChannelEnd};
-use ibc_relayer_types::core::ics04_channel::packet::Sequence;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
-use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
-use ibc_relayer_types::Height as ICSHeight;
+use ibc_relayer_types::{
+    clients::ics07_tendermint::{
+        client_state::ClientState as TmClientState,
+        consensus_state::ConsensusState as TmConsensusState,
+        header::Header as TmHeader,
+    },
+    core::{
+        ics02_client::client_type::ClientType,
+        ics03_connection::connection::{
+            ConnectionEnd,
+            IdentifiedConnectionEnd,
+        },
+        ics04_channel::{
+            channel::{
+                ChannelEnd,
+                IdentifiedChannelEnd,
+            },
+            packet::Sequence,
+        },
+        ics23_commitment::{
+            commitment::CommitmentProofBytes,
+            merkle::MerkleProof,
+        },
+        ics24_host::{
+            identifier::{
+                ChainId,
+                ClientId,
+            },
+            path::{
+                AcksPath,
+                ChannelEndsPath,
+                ClientConsensusStatePath,
+                ClientStatePath,
+                CommitmentsPath,
+                ReceiptsPath,
+                SeqRecvsPath,
+            },
+            Path,
+        },
+    },
+    Height as ICSHeight,
+};
+use once_cell::sync::Lazy;
 use penumbra_fee::FeeTier;
 use penumbra_ibc::IbcRelay;
 use penumbra_keys::keys::AddressIndex;
-use penumbra_proto::box_grpc_svc::{self, BoxGrpcService};
 use penumbra_proto::{
-    core::app::v1::query_service_client::QueryServiceClient as AppQueryClient,
+    box_grpc_svc::{
+        self,
+        BoxGrpcService,
+    },
+    core::{
+        app::v1::{
+            query_service_client::QueryServiceClient as AppQueryClient,
+            AppParametersRequest,
+        },
+        component::ibc::v1::IbcRelay as ProtoIbcRelay,
+    },
     custody::v1::{
-        custody_service_client::CustodyServiceClient, custody_service_server::CustodyServiceServer,
+        custody_service_client::CustodyServiceClient,
+        custody_service_server::CustodyServiceServer,
     },
     view::v1::{
         broadcast_transaction_response::Status as BroadcastStatus,
-        view_service_client::ViewServiceClient, view_service_server::ViewServiceServer,
+        view_service_client::ViewServiceClient,
+        view_service_server::ViewServiceServer,
         GasPricesRequest,
     },
+    DomainType as _,
 };
-use penumbra_view::{ViewClient, ViewServer};
+use penumbra_view::{
+    ViewClient,
+    ViewServer,
+};
 use penumbra_wallet::plan::Planner;
 use signature::rand_core::OsRng;
-
 use tendermint::time::Time as TmTime;
 use tendermint_light_client::verifier::types::LightBlock as TmLightBlock;
-use tendermint_rpc::{Client as _, HttpClient};
-use tokio::runtime::Runtime as TokioRuntime;
-use tokio::sync::Mutex;
-use tonic::IntoRequest;
-
-use crate::{
-    chain::{
-        endpoint::{ChainEndpoint, HealthCheck},
-        handle::Subscription,
-    },
-    config::{ChainConfig, Error as ConfigError},
-    error::Error,
-    keyring::Secp256k1KeyPair,
+use tendermint_proto::Protobuf;
+use tendermint_rpc::{
+    Client as _,
+    HttpClient,
 };
+use tokio::{
+    runtime::Runtime as TokioRuntime,
+    sync::Mutex,
+};
+use tonic::IntoRequest;
+use tracing::info;
 
 use super::config::PenumbraConfig;
+use crate::{
+    chain::{
+        client::ClientSettings,
+        cosmos::query::{
+            abci_query,
+            QueryResponse,
+        },
+        endpoint::{
+            ChainEndpoint,
+            ChainStatus,
+            HealthCheck,
+        },
+        handle::Subscription,
+        requests::*,
+        tracking::TrackedMsgs,
+    },
+    client_state::{
+        AnyClientState,
+        IdentifiedAnyClientState,
+    },
+    config::{
+        ChainConfig,
+        Error as ConfigError,
+    },
+    consensus_state::AnyConsensusState,
+    error::Error,
+    event::{
+        ibc_event_try_from_abci_event,
+        source::{
+            EventSource,
+            TxEventSourceCmd,
+        },
+        IbcEventWithHeight,
+    },
+    keyring::{
+        KeyRing,
+        Secp256k1KeyPair,
+    },
+    light_client::{
+        tendermint::LightClient as TmLightClient,
+        LightClient,
+    },
+    util::pretty::{
+        PrettyIdentifiedChannel,
+        PrettyIdentifiedClientState,
+        PrettyIdentifiedConnection,
+    },
+};
 
 pub struct PenumbraChain {
     config: PenumbraConfig,
@@ -1381,7 +1455,10 @@ impl ChainEndpoint for PenumbraChain {
         mut request: QueryPacketEventDataRequest,
     ) -> Result<Vec<IbcEventWithHeight>, Error> {
         use crate::chain::cosmos::{
-            query::tx::{query_packets_from_block, query_packets_from_txs},
+            query::tx::{
+                query_packets_from_block,
+                query_packets_from_txs,
+            },
             sort_events_by_sequence,
         };
 

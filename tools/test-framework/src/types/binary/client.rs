@@ -3,7 +3,10 @@
 */
 
 use crate::types::{
-    env::{EnvWriter, ExportEnv},
+    env::{
+        EnvWriter,
+        ExportEnv,
+    },
     id::TaggedClientId,
 };
 

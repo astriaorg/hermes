@@ -1,6 +1,12 @@
 use serde::{
-    de::{Error as _, Unexpected},
-    Deserialize, Deserializer, Serialize, Serializer,
+    de::{
+        Error as _,
+        Unexpected,
+    },
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
 };
 
 flex_error::define_error! {
