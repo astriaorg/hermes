@@ -1,54 +1,28 @@
 use core::time::Duration;
-use std::{
-    ops::Add,
-    str::FromStr,
-};
+use std::{ops::Add, str::FromStr};
 
 use astria_core::sequencer::v1::asset::default_native_asset_id;
-use flex_error::{
-    define_error,
-    DetailOnly,
-};
-use ibc_proto::{
-    cosmos::base::v1beta1::Coin,
-    google::protobuf::Any,
-};
+use flex_error::{define_error, DetailOnly};
+use ibc_proto::{cosmos::base::v1beta1::Coin, google::protobuf::Any};
 use ibc_relayer_types::{
     applications::transfer::{
         error::Error as Ics20Error,
-        msgs::{
-            transfer::MsgTransfer,
-            ASTRIA_WITHDRAWAL_TYPE_URL,
-        },
+        msgs::{transfer::MsgTransfer, ASTRIA_WITHDRAWAL_TYPE_URL},
         Amount,
     },
     core::{
         ics04_channel::timeout::TimeoutHeight,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     },
     events::IbcEvent,
-    signer::{
-        Signer,
-        SignerError,
-    },
-    timestamp::{
-        Timestamp,
-        TimestampOverflowError,
-    },
+    signer::{Signer, SignerError},
+    timestamp::{Timestamp, TimestampOverflowError},
     tx_msg::Msg,
 };
 use prost::Message;
 
 use crate::{
-    chain::{
-        endpoint::ChainStatus,
-        handle::ChainHandle,
-        tracking::TrackedMsgs,
-    },
+    chain::{endpoint::ChainStatus, handle::ChainHandle, tracking::TrackedMsgs},
     error::Error,
     event::IbcEventWithHeight,
 };

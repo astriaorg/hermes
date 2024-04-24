@@ -12,20 +12,13 @@ pub mod types;
 use alloc::collections::BTreeMap;
 use core::{
     cmp::Ordering,
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
+    fmt::{Display, Error as FmtError, Formatter},
     str::FromStr,
     time::Duration,
 };
 use std::{
     borrow::Cow,
-    fs::{
-        self,
-        File,
-    },
+    fs::{self, File},
     io::Write,
     ops::Range,
     path::Path,
@@ -38,43 +31,22 @@ use ibc_proto::google::protobuf::Any;
 use ibc_relayer_types::{
     core::{
         ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     },
     timestamp::ZERO_DURATION,
 };
 pub use refresh_rate::RefreshRate;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use tendermint::block::Height as BlockHeight;
-use tendermint_rpc::{
-    Url,
-    WebSocketClientUrl,
-};
+use tendermint_rpc::{Url, WebSocketClientUrl};
 
 pub use crate::config::Error as ConfigError;
 use crate::{
-    chain::{
-        cosmos::config::CosmosSdkConfig,
-        penumbra::config::PenumbraConfig,
-    },
-    config::types::{
-        ics20_field_size_limit::Ics20FieldSizeLimit,
-        TrustThreshold,
-    },
+    chain::{cosmos::config::CosmosSdkConfig, penumbra::config::PenumbraConfig},
+    config::types::{ics20_field_size_limit::Ics20FieldSizeLimit, TrustThreshold},
     error::Error as RelayerError,
     extension_options::ExtensionOptionDynamicFeeTx,
-    keyring::{
-        self,
-        AnySigningKeyPair,
-        KeyRing,
-        Store,
-    },
+    keyring::{self, AnySigningKeyPair, KeyRing, Store},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -950,11 +922,7 @@ mod tests {
 
     use test_log::test;
 
-    use super::{
-        load,
-        parse_gas_prices,
-        store_writer,
-    };
+    use super::{load, parse_gas_prices, store_writer};
     use crate::config::GasPrice;
 
     #[test]

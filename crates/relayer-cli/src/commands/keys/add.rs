@@ -1,41 +1,23 @@
 use core::str::FromStr;
 use std::{
     fs,
-    path::{
-        Path,
-        PathBuf,
-    },
+    path::{Path, PathBuf},
 };
 
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
+use abscissa_core::{clap::Parser, Command, Runnable};
 use eyre::eyre;
 use hdpath::StandardHDPath;
 use ibc_relayer::{
-    config::{
-        ChainConfig,
-        Config,
-    },
+    config::{ChainConfig, Config},
     keyring::{
-        AnySigningKeyPair,
-        Ed25519KeyPair,
-        KeyRing,
-        Secp256k1KeyPair,
-        SigningKeyPair,
-        SigningKeyPairSized,
-        Store,
+        AnySigningKeyPair, Ed25519KeyPair, KeyRing, Secp256k1KeyPair, SigningKeyPair,
+        SigningKeyPairSized, Store,
     },
 };
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 use tracing::warn;
 
-use crate::{
-    application::app_config,
-    conclude::Output,
-};
+use crate::{application::app_config, conclude::Output};
 
 /// The data structure that represents the arguments when invoking the `keys add` CLI command.
 ///

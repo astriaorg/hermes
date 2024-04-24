@@ -1,50 +1,25 @@
+use eyre::eyre;
 use std::ops::RangeInclusive;
 
-use abscissa_core::{
-    clap::Parser,
-    config::Override,
-    Command,
-    FrameworkErrorKind,
-    Runnable,
-};
-use eyre::eyre;
+use abscissa_core::{clap::Parser, config::Override, Command, FrameworkErrorKind, Runnable};
 use ibc_relayer::{
     chain::{
-        handle::{
-            BaseChainHandle,
-            ChainHandle,
-        },
-        requests::{
-            IncludeProof,
-            QueryChannelRequest,
-            QueryHeight,
-        },
+        handle::{BaseChainHandle, ChainHandle},
+        requests::{IncludeProof, QueryChannelRequest, QueryHeight},
     },
     config::Config,
-    link::{
-        error::LinkError,
-        Link,
-        LinkParameters,
-    },
+    link::{error::LinkError, Link, LinkParameters},
     util::seq_range::parse_seq_range,
 };
 use ibc_relayer_types::{
     core::{
         ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     },
     events::IbcEvent,
 };
 
-use crate::{
-    application::app_config,
-    cli_utils::spawn_chain_counterparty,
-    conclude::Output,
-};
+use crate::{application::app_config, cli_utils::spawn_chain_counterparty, conclude::Output};
 
 /// `clear` subcommands
 #[derive(Command, Debug, Parser, Runnable)]
@@ -297,11 +272,7 @@ mod tests {
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::{
         ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     };
 
     use crate::commands::clear::ClearPacketsCmd;

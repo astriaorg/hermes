@@ -1,22 +1,12 @@
-use ibc_relayer::{
-    chain::tracking::TrackedMsgs,
-    config::ChainConfig,
-    event::IbcEventWithHeight,
-};
+use ibc_relayer::{chain::tracking::TrackedMsgs, config::ChainConfig, event::IbcEventWithHeight};
 use ibc_relayer_types::{
-    applications::ics27_ica::{
-        msgs::send_tx::MsgSendTx,
-        packet_data::InterchainAccountPacketData,
-    },
+    applications::ics27_ica::{msgs::send_tx::MsgSendTx, packet_data::InterchainAccountPacketData},
     signer::Signer,
     timestamp::Timestamp,
     tx_msg::Msg as _,
 };
 
-use crate::{
-    chain::config::set_voting_period,
-    prelude::*,
-};
+use crate::{chain::config::set_voting_period, prelude::*};
 
 pub fn update_genesis_for_consumer_chain(genesis: &mut serde_json::Value) -> Result<(), Error> {
     // Consumer chain doesn't have a gov key.

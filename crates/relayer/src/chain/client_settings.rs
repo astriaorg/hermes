@@ -4,11 +4,7 @@ use core::time::Duration;
 use ibc_relayer_types::core::ics02_client::trust_threshold::TrustThreshold;
 use tracing::warn;
 
-use crate::{
-    config::ChainConfig,
-    foreign_client::CreateOptions,
-    util::pretty::PrettyDuration,
-};
+use crate::{config::ChainConfig, foreign_client::CreateOptions, util::pretty::PrettyDuration};
 
 /// Tendermint-specific client parameters for the `build_client_state` operation.
 #[derive(Clone, Debug, Default)]

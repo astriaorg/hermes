@@ -20,10 +20,7 @@ use std::collections::BTreeMap;
 use ibc_relayer::config::ChainConfig;
 use ibc_test_framework::{
     prelude::*,
-    relayer::channel::{
-        assert_eventually_channel_established,
-        init_channel,
-    },
+    relayer::channel::{assert_eventually_channel_established, init_channel},
 };
 
 #[test]

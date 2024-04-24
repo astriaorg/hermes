@@ -1,14 +1,8 @@
 use ibc_proto::cosmos::tx::v1beta1::Fee;
 
 use crate::{
-    chain::cosmos::{
-        calculate_fee,
-        config::CosmosSdkConfig,
-    },
-    config::{
-        dynamic_gas::DynamicGasPrice,
-        GasPrice,
-    },
+    chain::cosmos::{calculate_fee, config::CosmosSdkConfig},
+    config::{dynamic_gas::DynamicGasPrice, GasPrice},
 };
 
 /// Default gas limit when submitting a transaction.

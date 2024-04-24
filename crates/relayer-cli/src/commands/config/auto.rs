@@ -1,29 +1,11 @@
-use std::{
-    collections::HashSet,
-    path::PathBuf,
-};
+use std::{collections::HashSet, path::PathBuf};
 
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
-use ibc_relayer::config::{
-    store,
-    ChainConfig,
-    Config,
-};
+use abscissa_core::{clap::Parser, Command, Runnable};
+use ibc_relayer::config::{store, ChainConfig, Config};
 use itertools::Itertools;
-use tracing::{
-    error,
-    info,
-    warn,
-};
+use tracing::{error, info, warn};
 
-use crate::{
-    chain_registry::get_configs,
-    conclude::Output,
-};
+use crate::{chain_registry::get_configs, conclude::Output};
 
 fn find_key(chain_config: &ChainConfig) -> Option<String> {
     let keys = chain_config.list_keys().ok()?;

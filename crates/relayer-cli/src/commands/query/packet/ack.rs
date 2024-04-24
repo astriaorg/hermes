@@ -1,33 +1,19 @@
 use ibc_relayer::chain::{
     handle::ChainHandle,
-    requests::{
-        IncludeProof,
-        QueryHeight,
-        QueryPacketAcknowledgementRequest,
-    },
+    requests::{IncludeProof, QueryHeight, QueryPacketAcknowledgementRequest},
 };
 use ibc_relayer_types::{
     core::{
         ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     },
     Height,
 };
-use subtle_encoding::{
-    Encoding,
-    Hex,
-};
+use subtle_encoding::{Encoding, Hex};
 
 use crate::{
     cli_utils::spawn_chain_runtime,
-    conclude::{
-        exit_with_unrecoverable_error,
-        Output,
-    },
+    conclude::{exit_with_unrecoverable_error, Output},
     error::Error,
     prelude::*,
 };
@@ -126,11 +112,7 @@ mod tests {
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::{
         ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     };
 
     use super::QueryPacketAcknowledgmentCmd;
