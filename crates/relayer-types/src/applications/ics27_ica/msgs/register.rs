@@ -66,6 +66,7 @@ impl From<MsgRegisterInterchainAccount> for RawMsgRegisterInterchainAccount {
             owner: value.owner.to_string(),
             connection_id: value.connection_id.to_string(),
             version: value.version.to_string(),
+            ordering,
         }
     }
 }

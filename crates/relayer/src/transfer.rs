@@ -195,21 +195,27 @@ fn build_transfer_message_astria(
     timeout_height: TimeoutHeight,
     timeout_timestamp: Timestamp,
 ) -> Any {
-    use astria_core::sequencer::v1::asset::default_native_asset_id;
+    use astria_core::{
+        generated::protocol::transaction::v1alpha1::{
+            IbcHeight,
+            Ics20Withdrawal,
+        },
+        primitive::v1::asset::default_native_asset_id,
+    };
 
     let timeout_height = match timeout_height {
         // TODO: update astria IbcHeight to support optional?
-        TimeoutHeight::At(height) => astria_core::generated::sequencer::v1::IbcHeight {
+        TimeoutHeight::At(height) => IbcHeight {
             revision_number: height.revision_number(),
             revision_height: height.revision_height(),
         },
-        TimeoutHeight::Never => astria_core::generated::sequencer::v1::IbcHeight {
+        TimeoutHeight::Never => IbcHeight {
             revision_number: 0,
             revision_height: u64::MAX,
         },
     };
 
-    let msg = astria_core::generated::sequencer::v1::Ics20Withdrawal {
+    let msg = Ics20Withdrawal {
         source_channel: src_channel_id.to_string(),
         denom: denom,
         amount: Some(
