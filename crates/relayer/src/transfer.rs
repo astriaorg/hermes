@@ -228,6 +228,7 @@ fn build_transfer_message_astria(
         timeout_height: Some(timeout_height),
         timeout_time: timeout_timestamp.nanoseconds(),
         fee_asset_id: default_native_asset_id().as_ref().to_vec(),
+        memo: "".to_string(),
     };
 
     Any {

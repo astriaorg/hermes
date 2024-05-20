@@ -267,7 +267,7 @@ impl AstriaEndpoint {
             actions.push(Action::Ibc(non_raw));
         }
 
-        let signing_key: ed25519_consensus::SigningKey =
+        let signing_key: astria_core::crypto::SigningKey =
             (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
         let address = Address::from_verification_key(signing_key.verification_key());
         let nonce = self
