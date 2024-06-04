@@ -13,7 +13,7 @@ COPY . .
 RUN cargo build --release
 
 FROM ubuntu:latest
-LABEL maintainer="hello@informal.systems"
+LABEL maintainer="jesse@astria.org"
 ARG UID=1001
 ARG GID=1001
 
