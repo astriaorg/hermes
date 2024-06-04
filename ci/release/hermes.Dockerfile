@@ -14,12 +14,13 @@ RUN cargo build --release
 
 FROM ubuntu:latest
 LABEL maintainer="hello@informal.systems"
-ARG UID=1000
-ARG GID=1000
+ARG UID=1001
+ARG GID=1001
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN update-ca-certificates
-RUN groupadd -g ${GID} hermes && useradd -l -m hermes -s /bin/bash -u ${UID} -g ${GID}
+RUN groupadd -g ${GID} hermes
+RUN useradd -l -m hermes -s /bin/bash -u ${UID} -g ${GID}
 
 WORKDIR /home/hermes
 USER hermes:hermes
