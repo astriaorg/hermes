@@ -273,7 +273,8 @@ impl AstriaEndpoint {
 
         let signing_key: ed25519_consensus::SigningKey =
             (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
-        let verification_key = VerificationKey::from(signing_key.verification_key());
+        let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
+            .map_err(|e| Error::other(e.into()))?;
         let address = Address::builder()
             .verification_key(&verification_key)
             .prefix("astria")
@@ -293,7 +294,7 @@ impl AstriaEndpoint {
             actions,
         };
 
-        let signed_tx = unsigned_tx.into_signed(&SigningKey::from(signing_key));
+        let signed_tx = unsigned_tx.into_signed(&SigningKey::from(signing_key.to_bytes()));
         let tx_bytes = signed_tx.into_raw().encode_to_vec();
 
         let resp = self
@@ -608,7 +609,8 @@ impl ChainEndpoint for AstriaEndpoint {
 
         let signing_key: ed25519_consensus::SigningKey =
             (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
-        let verification_key = VerificationKey::from(signing_key.verification_key());
+        let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
+            .map_err(|e| Error::other(e.into()))?;
         let address = Address::builder()
             .verification_key(&verification_key)
             .prefix("astria")
