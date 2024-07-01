@@ -195,9 +195,13 @@ fn build_transfer_message_astria(
     timeout_height: TimeoutHeight,
     timeout_timestamp: Timestamp,
 ) -> Any {
-    use astria_core::primitive::v1::Address;
+    use astria_core::primitive::v1::{
+        asset::Denom,
+        Address,
+    };
+
     let sender: Address = sender
-        .to_string()
+        .as_ref()
         .parse()
         .expect("can parse astria bech32m sender address");
 
@@ -229,7 +233,11 @@ fn build_transfer_message_astria(
         return_address: Some(sender.to_raw()),
         timeout_height: Some(timeout_height),
         timeout_time: timeout_timestamp.nanoseconds(),
-        fee_asset: "nria".to_string(), // TODO: make this configurable
+        // TODO: make this configurable
+        fee_asset: "nria"
+            .parse::<Denom>()
+            .expect("nria is a valid denom")
+            .to_string(),
         memo: String::new(),
         bridge_address: None,
     };

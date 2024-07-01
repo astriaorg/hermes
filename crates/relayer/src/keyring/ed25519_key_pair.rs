@@ -183,3 +183,18 @@ impl SigningKeyPair for Ed25519KeyPair {
         self
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn ed25519_keypair_astria_account() {
+        let signing_key = ed25519_dalek::SigningKey::from_bytes(&[99u8; 32]);
+        let keypair = Ed25519KeyPair {
+            signing_key,
+            address_type: Ed25519AddressType::Astria,
+        };
+        let _address = keypair.account();
+    }
+}
