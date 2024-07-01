@@ -620,7 +620,7 @@ impl ChainEndpoint for AstriaEndpoint {
             .block_on(self.sequencer_client.get_latest_balance(address))
             .map_err(|e| Error::other(Box::new(e)))?;
 
-        // TODO: fetch this from the sequencer node via abci query
+        // TODO: set this via the config
         let denom = denom.unwrap_or("nria");
 
         let balance: Vec<AssetBalance> = balance
