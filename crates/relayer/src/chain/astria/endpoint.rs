@@ -732,11 +732,12 @@ impl ChainEndpoint for AstriaEndpoint {
         .into_request();
 
         let height = match request.height {
-            QueryHeight::Latest => 0,
-            QueryHeight::Specific(h) => h.revision_height(),
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
         };
+
         req.metadata_mut()
-            .insert("height", height.to_string().parse().expect("valid ascii"));
+            .insert("height", height.parse().expect("valid ascii"));
 
         let response = self
             .block_on(client.client_state(req))
@@ -1177,14 +1178,14 @@ impl ChainEndpoint for AstriaEndpoint {
         };
 
         let height = match request.height {
-            QueryHeight::Latest => 0,
-            QueryHeight::Specific(h) => h.revision_height(),
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
         };
 
         let mut request = tonic::Request::new(req);
         request
             .metadata_mut()
-            .insert("height", height.to_string().parse().expect("valid ascii"));
+            .insert("height", height.parse().expect("valid ascii"));
 
         let response = self
             .block_on(client.packet_receipt(request))
@@ -1248,14 +1249,14 @@ impl ChainEndpoint for AstriaEndpoint {
         };
 
         let height = match request.height {
-            QueryHeight::Latest => 0,
-            QueryHeight::Specific(h) => h.revision_height(),
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
         };
 
         let mut request = tonic::Request::new(req);
         request
             .metadata_mut()
-            .insert("height", height.to_string().parse().expect("valid ascii"));
+            .insert("height", height.parse().expect("valid ascii"));
 
         let response = self
             .block_on(client.packet_acknowledgement(request))
