@@ -235,7 +235,7 @@ impl AstriaEndpoint {
                 SigningKey,
                 VerificationKey,
             },
-            generated::protocol::transaction::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
+            generated::protocol::transactions::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
             primitive::v1::Address,
             protocol::transaction::v1alpha1::{
                 action::Ics20Withdrawal,
@@ -248,6 +248,7 @@ impl AstriaEndpoint {
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
         use penumbra_ibc::IbcRelay;
         use penumbra_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
+        use astria_core::Protobuf as _;
 
         let msg_len = tracked_msgs.msgs.len();
         let mut actions: Vec<Action> = Vec::with_capacity(msg_len);
