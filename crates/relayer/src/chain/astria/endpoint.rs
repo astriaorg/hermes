@@ -1428,14 +1428,9 @@ impl ChainEndpoint for AstriaEndpoint {
         use ibc_relayer_types::clients::ics07_tendermint::client_state::AllowUpdate;
 
         let ClientSettings::Tendermint(settings) = settings;
-
-        // two hour duration
-        // TODO what is this?
-        let two_hours = Duration::from_secs(2 * 60 * 60);
-        let unbonding_period = two_hours;
-        let trusting_period_default = 2 * unbonding_period / 3;
-        let trusting_period = settings.trusting_period.unwrap_or(trusting_period_default);
-
+        // This is a hack to set the trusting and unbonding periods.
+        let unbonding_period = self.config.trusting_period();
+        let trusting_period = 2 * unbonding_period / 3;
         let proof_specs = crate::chain::astria::proof_specs::proof_spec_with_prehash();
 
         Self::ClientState::new(

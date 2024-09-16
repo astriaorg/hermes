@@ -237,6 +237,10 @@ pub mod default {
         TrustThreshold::TWO_THIRDS
     }
 
+    pub fn trusting_period() -> Option<Duration> {
+        Some(Duration::from_secs(60 * 60 * 24)) // 1 day
+    }
+
     pub fn client_refresh_rate() -> RefreshRate {
         // Refresh the client three times per trusting period
         RefreshRate::new(1, 3)
@@ -660,6 +664,12 @@ pub enum ChainConfig {
 }
 
 impl ChainConfig {
+    pub fn trusting_period(&self) -> Duration {
+        match self {
+            Self::CosmosSdk(config) => config.trusting_period.unwrap_or_default(),
+            Self::Astria(config) => config.trusting_period.unwrap_or_default(),
+        }
+    }
     pub fn id(&self) -> &ChainId {
         match self {
             Self::CosmosSdk(config) => &config.id,
