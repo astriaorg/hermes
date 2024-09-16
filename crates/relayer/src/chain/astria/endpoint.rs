@@ -1115,9 +1115,19 @@ impl ChainEndpoint for AstriaEndpoint {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
             sequence: request.sequence.into(),
+            // TODO: height is ignored
         };
 
-        let request = tonic::Request::new(req);
+        let height = match request.height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
+        };
+
+        let mut request = tonic::Request::new(req);
+        request
+            .metadata_mut()
+            .insert("height", height.parse().expect("valid ascii"));
+
         let response = self
             .block_on(client.packet_commitment(request))
             .map_err(|e| Error::grpc_status(e, "query_packet_commitment".to_owned()))?
