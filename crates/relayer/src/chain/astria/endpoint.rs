@@ -243,12 +243,12 @@ impl AstriaEndpoint {
                 TransactionParams,
                 UnsignedTransaction,
             },
+            Protobuf as _,
         };
         use astria_sequencer_client::SequencerClientExt as _;
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
         use penumbra_ibc::IbcRelay;
         use penumbra_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
-        use astria_core::Protobuf as _;
 
         let msg_len = tracked_msgs.msgs.len();
         let mut actions: Vec<Action> = Vec::with_capacity(msg_len);
@@ -731,12 +731,13 @@ impl ChainEndpoint for AstriaEndpoint {
         }
         .into_request();
 
-        let map = req.metadata_mut();
-        let height_str: String = match request.height {
+        let height = match request.height {
             QueryHeight::Latest => 0.to_string(),
             QueryHeight::Specific(h) => h.to_string(),
         };
-        map.insert("height", height_str.parse().expect("valid ascii string"));
+
+        req.metadata_mut()
+            .insert("height", height.parse().expect("valid ascii"));
 
         let response = self
             .block_on(client.client_state(req))
@@ -1114,9 +1115,19 @@ impl ChainEndpoint for AstriaEndpoint {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
             sequence: request.sequence.into(),
+            // TODO: height is ignored
         };
 
-        let request = tonic::Request::new(req);
+        let height = match request.height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
+        };
+
+        let mut request = tonic::Request::new(req);
+        request
+            .metadata_mut()
+            .insert("height", height.parse().expect("valid ascii"));
+
         let response = self
             .block_on(client.packet_commitment(request))
             .map_err(|e| Error::grpc_status(e, "query_packet_commitment".to_owned()))?
@@ -1176,7 +1187,16 @@ impl ChainEndpoint for AstriaEndpoint {
             // TODO: height is ignored
         };
 
-        let request = tonic::Request::new(req);
+        let height = match request.height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
+        };
+
+        let mut request = tonic::Request::new(req);
+        request
+            .metadata_mut()
+            .insert("height", height.parse().expect("valid ascii"));
+
         let response = self
             .block_on(client.packet_receipt(request))
             .map_err(|e| Error::grpc_status(e, "query_packet_receipt".to_owned()))?
@@ -1238,7 +1258,16 @@ impl ChainEndpoint for AstriaEndpoint {
             // TODO: height is ignored
         };
 
-        let request = tonic::Request::new(req);
+        let height = match request.height {
+            QueryHeight::Latest => 0.to_string(),
+            QueryHeight::Specific(h) => h.to_string(),
+        };
+
+        let mut request = tonic::Request::new(req);
+        request
+            .metadata_mut()
+            .insert("height", height.parse().expect("valid ascii"));
+
         let response = self
             .block_on(client.packet_acknowledgement(request))
             .map_err(|e| Error::grpc_status(e, "query_packet_acknowledgement".to_owned()))?
