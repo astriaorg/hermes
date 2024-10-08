@@ -59,6 +59,10 @@ clear_interval = 100
 # Whether or not to clear packets on start. [Default: true]
 clear_on_start = true
 
+# Set the maximum number of packets to clear each time packet clearing is triggered.
+# [Default: 50]
+#clear_limit = 50
+
 # Toggle the transaction confirmation mechanism.
 # The tx confirmation mechanism periodically queries the `/tx_search` RPC
 # endpoint to check that previously-submitted transactions
@@ -154,7 +158,8 @@ port = 5555
 # Specify the chain ID. Required
 id = 'ibc-0'
 
-# Specify the chain type, currently only `"CosmosSdk"` is supported.
+# Specify the chain type, currently only `CosmosSdk` is supported.
+# Default: CosmosSdk
 type = "CosmosSdk"
 
 # Whether or not this is a CCV consumer chain. Default: false
@@ -188,11 +193,12 @@ grpc_addr = 'http://127.0.0.1:9090'
 
 # b) Pull: for polling for IBC events via the `/block_results` RPC endpoint.
 #
-#     `{ mode = 'pull', interval = '1s' }`
+#     `{ mode = 'pull', interval = '1s', max_retries = 4 }`
 #
 #    where
 #
 #    - `interval` is the interval at which to poll for blocks. Default: 1s
+#    - `max_retries` is the maximum number of retries to collect events for each block. Default: 4
 #
 #    This mode should only be used in situations where Hermes misses events that it should be
 #    receiving, such as when relaying for CosmWasm-enabled chains which emit IBC events without
@@ -302,6 +308,19 @@ gas_price = { price = 0.025, denom = 'stake' }
 # Minimum value: 1.0
 gas_multiplier = 1.1
 
+# Query the current gas price from the chain instead of using the static `gas_price` from the config.
+# Useful for chains which have [EIP-1559][eip]-like dynamic gas price. 
+#
+# At the moment, only chains which support the `osmosis.txfees.v1beta1.Query/GetEipBaseFee`
+# query or have enabled Skip's `x/feemarket` module https://github.com/skip-mev/feemarket
+# can be used with dynamic gas price enabled.
+#
+# See this page in the Hermes guide for more information:
+# https://hermes.informal.systems/documentation/configuration/dynamic-gas-fees.html
+# 
+# Default: { enabled = false, multiplier = 1.1, max = 0.6 }
+dynamic_gas_price = { enabled = false, multiplier = 1.1, max = 0.6 }
+
 # Specify how many IBC messages at most to include in a single transaction.
 # Default: 30
 max_msg_num = 30
@@ -355,6 +374,13 @@ trust_threshold = '2/3'
 # Note: Hermes will append to the string defined here additional
 # operational debugging information, e.g., relayer build version.
 memo_prefix = ''
+
+# If this is set to a string, it will overwrite the memo used by Hermes for each transaction
+# it submits to this chain.
+# Default: not set.
+# This is used for chains which have a very small character limit for the memo,
+# and the additional information appended by Hermes would overflow that limit.
+# memo_overwrite = ''
 
 # This section specifies the filters for policy based relaying.
 #
@@ -420,9 +446,27 @@ memo_prefix = ''
 # This will override the global clear interval for this chain only, allowing different intervals for each chain.
 # clear_interval = 50
 
+# Specify packet sequences which should not be cleared, per channel.
+#
+# For each channel, specify a list of sequences which should not be cleared. Acceptable value
+# include range of sequences with separator "-", eg.
+#
+#   [chains.excluded_sequences]
+#   channel-0 = [1, 2, "3-7", 9, 11],
+#   channel-1 = [4, 5, 6],
+#
+# Default: No filter
+# excluded_sequences = {}
+
+# Enable or disable relaying of ICS31 Cross Chain Query packets.
+# If this configuration is set to false, Hermes will skip ICS31
+# Cross Chain Query packets.
+#
+# Default: true
+# allow_ccq = true
+
 [[chains]]
 id = 'ibc-1'
-type = "CosmosSdk"
 rpc_addr = 'http://127.0.0.1:26557'
 grpc_addr = 'http://127.0.0.1:9091'
 event_source = { mode = 'push', url = 'ws://127.0.0.1:26557/websocket', batch_delay = '500ms' }

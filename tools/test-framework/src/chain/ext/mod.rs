@@ -1,4 +1,5 @@
 pub mod async_icq;
+pub mod authz;
 pub mod bootstrap;
 pub mod crosschainquery;
 pub mod fee;
@@ -9,3 +10,4 @@ pub mod proposal;
 pub mod transfer;
 pub mod version;
 pub mod wait_chain;
+pub mod wasm_client;

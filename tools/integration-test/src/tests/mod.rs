@@ -10,10 +10,11 @@ pub mod client_expiration;
 pub mod client_filter;
 pub mod client_refresh;
 pub mod client_settings;
-#[cfg(not(any(feature = "celestia", feature = "juno")))]
+#[cfg(not(feature = "celestia"))]
 pub mod client_upgrade;
 pub mod connection_delay;
 pub mod consensus_states;
+#[cfg(not(feature = "no-denom-trace"))]
 pub mod denom_trace;
 pub mod error_events;
 pub mod execute_schedule;
@@ -22,6 +23,8 @@ pub mod ics20_filter;
 pub mod memo;
 pub mod python;
 pub mod query_packet;
+#[cfg(not(feature = "celestia"))]
+pub mod sequence_filter;
 pub mod supervisor;
 pub mod tendermint;
 #[cfg(not(feature = "celestia"))]
@@ -30,6 +33,12 @@ pub mod transfer;
 
 #[cfg(any(doc, feature = "async-icq"))]
 pub mod async_icq;
+
+#[cfg(any(doc, feature = "authz"))]
+pub mod authz;
+
+#[cfg(any(doc, feature = "channel-upgrade"))]
+pub mod channel_upgrade;
 
 #[cfg(any(doc, feature = "ics29-fee"))]
 pub mod fee;
@@ -63,3 +72,9 @@ pub mod fee_grant;
 
 #[cfg(any(doc, feature = "interchain-security"))]
 pub mod interchain_security;
+
+#[cfg(any(doc, feature = "dynamic-gas-fee"))]
+pub mod dynamic_gas_fee;
+
+#[cfg(any(doc, feature = "benchmark"))]
+pub mod benchmark;

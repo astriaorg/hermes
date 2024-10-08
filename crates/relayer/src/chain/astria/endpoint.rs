@@ -165,10 +165,11 @@ impl AstriaEndpoint {
                 *batch_delay,
                 self.rt.clone(),
             ),
-            Mode::Pull { interval } => EventSource::rpc(
+            Mode::Pull { interval, max_retries } => EventSource::rpc(
                 self.id().clone(),
                 self.sequencer_client.clone(),
                 *interval,
+                *max_retries,
                 self.rt.clone(),
             ),
         }
@@ -192,6 +193,7 @@ impl AstriaEndpoint {
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
         use penumbra_ibc::IbcRelay;
         use penumbra_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
+        use penumbra_proto::Message as _;
 
         let msg_len = tracked_msgs.msgs.len();
         let mut actions: Vec<Action> = Vec::with_capacity(msg_len);

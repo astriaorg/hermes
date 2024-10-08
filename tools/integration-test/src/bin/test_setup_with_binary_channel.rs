@@ -25,10 +25,11 @@
     ```
 */
 
-use std::{env, path::PathBuf};
-
-use ibc_relayer::{config::ChainConfig, keyring::Store};
+use ibc_relayer::config::ChainConfig;
+use ibc_relayer::keyring::Store;
 use ibc_test_framework::prelude::*;
+use std::env;
+use std::path::PathBuf;
 
 struct Test {
     store_dir: PathBuf,
@@ -36,13 +37,13 @@ struct Test {
 
 impl TestOverrides for Test {
     fn modify_test_config(&self, config: &mut TestConfig) {
-        config.chain_store_dir = self.store_dir.clone();
+        config.chain_store_dir.clone_from(&self.store_dir);
     }
 
     fn modify_relayer_config(&self, config: &mut Config) {
         for chain in config.chains.iter_mut() {
             match chain {
-                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Astria(chain_config) => {
+                ChainConfig::CosmosSdk(chain_config) => {
                     // Modify the key store type to `Store::Test` so that the wallet
                     // keys are stored to ~/.hermes/keys so that we can use them
                     // with external relayer commands.

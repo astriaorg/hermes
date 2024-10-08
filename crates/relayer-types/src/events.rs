@@ -1,37 +1,28 @@
-use std::{
-    borrow::Cow,
-    convert::TryFrom,
-    fmt::{Display, Error as FmtError, Formatter},
-    str::FromStr,
-};
+use std::borrow::Cow;
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
 
 use flex_error::{define_error, TraceError};
 use serde_derive::{Deserialize, Serialize};
 use tendermint::abci;
 
-use crate::{
-    applications::{
-        ics29_fee::{
-            error::Error as FeeError,
-            events::{DistributeFeePacket, IncentivizedPacket},
-        },
-        ics31_icq::{error::Error as QueryPacketError, events::CrossChainQueryPacket},
-    },
-    core::{
-        ics02_client::{error as client_error, events as ClientEvents, events::NewBlock},
-        ics03_connection::{
-            error as connection_error, events as ConnectionEvents,
-            events::Attributes as ConnectionAttributes,
-        },
-        ics04_channel::{
-            error as channel_error, events as ChannelEvents,
-            events::Attributes as ChannelAttributes, packet::Packet,
-        },
-        ics24_host::error::ValidationError,
-    },
-    timestamp::ParseTimestampError,
-    utils::pretty::PrettySlice,
-};
+use crate::applications::ics29_fee::error::Error as FeeError;
+use crate::applications::ics29_fee::events::{DistributeFeePacket, IncentivizedPacket};
+use crate::applications::ics31_icq::error::Error as QueryPacketError;
+use crate::applications::ics31_icq::events::CrossChainQueryPacket;
+use crate::core::ics02_client::error as client_error;
+use crate::core::ics02_client::events as ClientEvents;
+use crate::core::ics02_client::events::NewBlock;
+use crate::core::ics03_connection::error as connection_error;
+use crate::core::ics03_connection::events as ConnectionEvents;
+use crate::core::ics03_connection::events::Attributes as ConnectionAttributes;
+use crate::core::ics04_channel::error as channel_error;
+use crate::core::ics04_channel::events::Attributes as ChannelAttributes;
+use crate::core::ics04_channel::events::{self as ChannelEvents, UpgradeAttributes};
+use crate::core::ics04_channel::packet::Packet;
+use crate::core::ics24_host::error::ValidationError;
+use crate::timestamp::ParseTimestampError;
+use crate::utils::pretty::PrettySlice;
 
 define_error! {
     Error {
@@ -74,9 +65,13 @@ define_error! {
             [ TraceError<prost::DecodeError> ]
             | _ | { "error decoding protobuf" },
 
-        SubtleEncoding
-            [ TraceError<subtle_encoding::Error> ]
-            | _ | { "error decoding hex" },
+        InvalidPacketData
+            { data: String }
+            | e | { format_args!("error decoding hex-encoded packet data: {}", e.data) },
+
+        InvalidPacketAck
+            { ack: String }
+            | e | { format_args!("error decoding hex-encoded packet ack: {}", e.ack) },
 
         MissingActionString
             | _ | { "missing action string" },
@@ -137,6 +132,15 @@ const CHANNEL_OPEN_ACK_EVENT: &str = "channel_open_ack";
 const CHANNEL_OPEN_CONFIRM_EVENT: &str = "channel_open_confirm";
 const CHANNEL_CLOSE_INIT_EVENT: &str = "channel_close_init";
 const CHANNEL_CLOSE_CONFIRM_EVENT: &str = "channel_close_confirm";
+/// Channel upgrade event types
+const CHANNEL_UPGRADE_INIT_EVENT: &str = "channel_upgrade_init";
+const CHANNEL_UPGRADE_TRY_EVENT: &str = "channel_upgrade_try";
+const CHANNEL_UPGRADE_ACK_EVENT: &str = "channel_upgrade_ack";
+const CHANNEL_UPGRADE_CONFIRM_EVENT: &str = "channel_upgrade_confirm";
+const CHANNEL_UPGRADE_OPEN_EVENT: &str = "channel_upgrade_open";
+const CHANNEL_UPGRADE_CANCEL_EVENT: &str = "channel_upgrade_cancelled";
+const CHANNEL_UPGRADE_TIMEOUT_EVENT: &str = "channel_upgrade_timeout";
+const CHANNEL_UPGRADE_ERROR_EVENT: &str = "channel_upgrade_error";
 /// Packet event types
 const SEND_PACKET_EVENT: &str = "send_packet";
 const RECEIVE_PACKET_EVENT: &str = "receive_packet";
@@ -168,6 +172,14 @@ pub enum IbcEventType {
     OpenConfirmChannel,
     CloseInitChannel,
     CloseConfirmChannel,
+    UpgradeInitChannel,
+    UpgradeTryChannel,
+    UpgradeAckChannel,
+    UpgradeConfirmChannel,
+    UpgradeOpenChannel,
+    UpgradeCancelChannel,
+    UpgradeTimeoutChannel,
+    UpgradeErrorChannel,
     SendPacket,
     ReceivePacket,
     WriteAck,
@@ -200,6 +212,14 @@ impl IbcEventType {
             IbcEventType::OpenConfirmChannel => CHANNEL_OPEN_CONFIRM_EVENT,
             IbcEventType::CloseInitChannel => CHANNEL_CLOSE_INIT_EVENT,
             IbcEventType::CloseConfirmChannel => CHANNEL_CLOSE_CONFIRM_EVENT,
+            IbcEventType::UpgradeInitChannel => CHANNEL_UPGRADE_INIT_EVENT,
+            IbcEventType::UpgradeTryChannel => CHANNEL_UPGRADE_TRY_EVENT,
+            IbcEventType::UpgradeAckChannel => CHANNEL_UPGRADE_ACK_EVENT,
+            IbcEventType::UpgradeConfirmChannel => CHANNEL_UPGRADE_CONFIRM_EVENT,
+            IbcEventType::UpgradeOpenChannel => CHANNEL_UPGRADE_OPEN_EVENT,
+            IbcEventType::UpgradeCancelChannel => CHANNEL_UPGRADE_CANCEL_EVENT,
+            IbcEventType::UpgradeTimeoutChannel => CHANNEL_UPGRADE_TIMEOUT_EVENT,
+            IbcEventType::UpgradeErrorChannel => CHANNEL_UPGRADE_ERROR_EVENT,
             IbcEventType::SendPacket => SEND_PACKET_EVENT,
             IbcEventType::ReceivePacket => RECEIVE_PACKET_EVENT,
             IbcEventType::WriteAck => WRITE_ACK_EVENT,
@@ -236,6 +256,14 @@ impl FromStr for IbcEventType {
             CHANNEL_OPEN_CONFIRM_EVENT => Ok(IbcEventType::OpenConfirmChannel),
             CHANNEL_CLOSE_INIT_EVENT => Ok(IbcEventType::CloseInitChannel),
             CHANNEL_CLOSE_CONFIRM_EVENT => Ok(IbcEventType::CloseConfirmChannel),
+            CHANNEL_UPGRADE_INIT_EVENT => Ok(IbcEventType::UpgradeInitChannel),
+            CHANNEL_UPGRADE_TRY_EVENT => Ok(IbcEventType::UpgradeTryChannel),
+            CHANNEL_UPGRADE_ACK_EVENT => Ok(IbcEventType::UpgradeAckChannel),
+            CHANNEL_UPGRADE_CONFIRM_EVENT => Ok(IbcEventType::UpgradeConfirmChannel),
+            CHANNEL_UPGRADE_OPEN_EVENT => Ok(IbcEventType::UpgradeOpenChannel),
+            CHANNEL_UPGRADE_CANCEL_EVENT => Ok(IbcEventType::UpgradeCancelChannel),
+            CHANNEL_UPGRADE_TIMEOUT_EVENT => Ok(IbcEventType::UpgradeTimeoutChannel),
+            CHANNEL_UPGRADE_ERROR_EVENT => Ok(IbcEventType::UpgradeErrorChannel),
             SEND_PACKET_EVENT => Ok(IbcEventType::SendPacket),
             RECEIVE_PACKET_EVENT => Ok(IbcEventType::ReceivePacket),
             WRITE_ACK_EVENT => Ok(IbcEventType::WriteAck),
@@ -274,6 +302,14 @@ pub enum IbcEvent {
     OpenConfirmChannel(ChannelEvents::OpenConfirm),
     CloseInitChannel(ChannelEvents::CloseInit),
     CloseConfirmChannel(ChannelEvents::CloseConfirm),
+    UpgradeInitChannel(ChannelEvents::UpgradeInit),
+    UpgradeTryChannel(ChannelEvents::UpgradeTry),
+    UpgradeAckChannel(ChannelEvents::UpgradeAck),
+    UpgradeConfirmChannel(ChannelEvents::UpgradeConfirm),
+    UpgradeOpenChannel(ChannelEvents::UpgradeOpen),
+    UpgradeCancelChannel(ChannelEvents::UpgradeCancel),
+    UpgradeTimeoutChannel(ChannelEvents::UpgradeTimeout),
+    UpgradeErrorChannel(ChannelEvents::UpgradeError),
 
     SendPacket(ChannelEvents::SendPacket),
     ReceivePacket(ChannelEvents::ReceivePacket),
@@ -313,6 +349,14 @@ impl Display for IbcEvent {
             IbcEvent::OpenConfirmChannel(ev) => write!(f, "OpenConfirmChannel({ev})"),
             IbcEvent::CloseInitChannel(ev) => write!(f, "CloseInitChannel({ev})"),
             IbcEvent::CloseConfirmChannel(ev) => write!(f, "CloseConfirmChannel({ev})"),
+            IbcEvent::UpgradeInitChannel(ev) => write!(f, "UpgradeInitChannel({ev})"),
+            IbcEvent::UpgradeTryChannel(ev) => write!(f, "UpgradeTryChannel({ev})"),
+            IbcEvent::UpgradeAckChannel(ev) => write!(f, "UpgradeAckChannel({ev})"),
+            IbcEvent::UpgradeConfirmChannel(ev) => write!(f, "UpgradeConfirmChannel({ev})"),
+            IbcEvent::UpgradeOpenChannel(ev) => write!(f, "UpgradeOpenChannel({ev})"),
+            IbcEvent::UpgradeCancelChannel(ev) => write!(f, "UpgradeCancelChannel({ev})"),
+            IbcEvent::UpgradeTimeoutChannel(ev) => write!(f, "UpgradeTimeoutChannel({ev})"),
+            IbcEvent::UpgradeErrorChannel(ev) => write!(f, "UpgradeErrorChannel({ev})"),
 
             IbcEvent::SendPacket(ev) => write!(f, "SendPacket({ev})"),
             IbcEvent::ReceivePacket(ev) => write!(f, "ReceivePacket({ev})"),
@@ -358,6 +402,14 @@ impl IbcEvent {
             IbcEvent::OpenConfirmChannel(_) => IbcEventType::OpenConfirmChannel,
             IbcEvent::CloseInitChannel(_) => IbcEventType::CloseInitChannel,
             IbcEvent::CloseConfirmChannel(_) => IbcEventType::CloseConfirmChannel,
+            IbcEvent::UpgradeInitChannel(_) => IbcEventType::UpgradeInitChannel,
+            IbcEvent::UpgradeTryChannel(_) => IbcEventType::UpgradeTryChannel,
+            IbcEvent::UpgradeAckChannel(_) => IbcEventType::UpgradeAckChannel,
+            IbcEvent::UpgradeConfirmChannel(_) => IbcEventType::UpgradeConfirmChannel,
+            IbcEvent::UpgradeOpenChannel(_) => IbcEventType::UpgradeOpenChannel,
+            IbcEvent::UpgradeCancelChannel(_) => IbcEventType::UpgradeCancelChannel,
+            IbcEvent::UpgradeTimeoutChannel(_) => IbcEventType::UpgradeTimeoutChannel,
+            IbcEvent::UpgradeErrorChannel(_) => IbcEventType::UpgradeErrorChannel,
             IbcEvent::SendPacket(_) => IbcEventType::SendPacket,
             IbcEvent::ReceivePacket(_) => IbcEventType::ReceivePacket,
             IbcEvent::WriteAcknowledgement(_) => IbcEventType::WriteAck,
@@ -378,6 +430,20 @@ impl IbcEvent {
             IbcEvent::OpenTryChannel(ev) => Some(ev.into()),
             IbcEvent::OpenAckChannel(ev) => Some(ev.into()),
             IbcEvent::OpenConfirmChannel(ev) => Some(ev.into()),
+            _ => None,
+        }
+    }
+
+    pub fn channel_upgrade_attributes(self) -> Option<UpgradeAttributes> {
+        match self {
+            IbcEvent::UpgradeInitChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeTryChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeAckChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeConfirmChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeOpenChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeCancelChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeTimeoutChannel(ev) => Some(ev.into()),
+            IbcEvent::UpgradeErrorChannel(ev) => Some(ev.into()),
             _ => None,
         }
     }

@@ -2,9 +2,12 @@
 //! Contains struct to build a `tendermint_rpc::Url` representing a
 //! WebSocket URL from a RPC URL and to parse or build a valid `http::Uri`
 //! from an (in)complete GRPC URL.
+
 use std::str::FromStr;
 
-use http::{uri::Scheme, Uri};
+use http::uri::Scheme;
+use http::Uri;
+
 use tendermint_rpc::Url;
 
 use crate::error::RegistryError;
@@ -98,7 +101,7 @@ impl UriFormatter for SimpleGrpcFormatter {
 mod tests {
     use std::{cmp::PartialEq, fmt::Debug};
 
-    use super::*;
+    use std::fmt::Debug;
 
     struct FormatterTest<T> {
         input: &'static str,

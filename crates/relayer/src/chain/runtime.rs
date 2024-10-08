@@ -2,8 +2,12 @@ use alloc::sync::Arc;
 use std::thread;
 
 use crossbeam_channel as channel;
-use ibc_proto::ibc::apps::fee::v1::{
-    QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse,
+use tokio::runtime::Runtime as TokioRuntime;
+use tracing::{error, Span};
+
+use ibc_proto::ibc::{
+    apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
+    core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest},
 };
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
@@ -16,6 +20,7 @@ use ibc_relayer_types::{
         ics04_channel::{
             channel::{ChannelEnd, IdentifiedChannelEnd},
             packet::{PacketMsgType, Sequence},
+            upgrade::{ErrorReceipt, Upgrade},
         },
         ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
         ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
@@ -24,8 +29,6 @@ use ibc_relayer_types::{
     signer::Signer,
     Height,
 };
-use tokio::runtime::Runtime as TokioRuntime;
-use tracing::{error, Span};
 
 use super::{
     client::ClientSettings,
@@ -37,7 +40,6 @@ use super::{
 };
 use crate::{
     account::Balance,
-    chain::requests::QueryPacketEventDataRequest,
     client_state::{AnyClientState, IdentifiedAnyClientState},
     config::ChainConfig,
     connection::ConnectionMsgType,
@@ -350,6 +352,14 @@ where
 
                         ChainRequest::QueryConsumerChains { reply_to } => {
                             self.query_consumer_chains(reply_to)?
+                        },
+
+                        ChainRequest::QueryUpgrade { request, height, include_proof, reply_to } => {
+                            self.query_upgrade(request, height, include_proof, reply_to)?
+                        },
+
+                        ChainRequest::QueryUpgradeError { request, height, include_proof, reply_to } => {
+                            self.query_upgrade_error(request, height, include_proof, reply_to)?
                         },
                     }
                 },
@@ -858,6 +868,34 @@ where
         reply_to: ReplyTo<Vec<(ChainId, ClientId)>>,
     ) -> Result<(), Error> {
         let result = self.chain.query_consumer_chains();
+        reply_to.send(result).map_err(Error::send)?;
+
+        Ok(())
+    }
+
+    fn query_upgrade(
+        &self,
+        request: QueryUpgradeRequest,
+        height: Height,
+        include_proof: IncludeProof,
+        reply_to: ReplyTo<(Upgrade, Option<MerkleProof>)>,
+    ) -> Result<(), Error> {
+        let result = self.chain.query_upgrade(request, height, include_proof);
+        reply_to.send(result).map_err(Error::send)?;
+
+        Ok(())
+    }
+
+    fn query_upgrade_error(
+        &self,
+        request: QueryUpgradeErrorRequest,
+        height: Height,
+        include_proof: IncludeProof,
+        reply_to: ReplyTo<(ErrorReceipt, Option<MerkleProof>)>,
+    ) -> Result<(), Error> {
+        let result = self
+            .chain
+            .query_upgrade_error(request, height, include_proof);
         reply_to.send(result).map_err(Error::send)?;
 
         Ok(())

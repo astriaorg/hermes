@@ -12,8 +12,10 @@
 //! later found in the pending queue), but all of the subsequent messages should
 //! exist in the pending queue.
 
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::util::random::random_u128_range;
+
 use ibc_relayer::link::{Link, LinkParameters};
-use ibc_test_framework::{prelude::*, util::random::random_u128_range};
 
 /// The number of messages to be sent in a batch contained in a piece of operational data.
 const BATCH_SIZE: usize = 10;
@@ -47,6 +49,7 @@ impl BinaryChannelTest for ExecuteScheduleTest {
             src_channel_id: channel.channel_id_a.clone().into_value(),
             max_memo_size: packet_config.ics20_max_memo_size,
             max_receiver_size: packet_config.ics20_max_receiver_size,
+            exclude_src_sequences: vec![],
         };
 
         let chain_a_link = Link::new_from_opts(
@@ -69,7 +72,8 @@ impl BinaryChannelTest for ExecuteScheduleTest {
                 &chains.node_a.denom().with_amount(amount1).as_ref(),
             )?;
 
-            relay_path_a_to_b.schedule_packet_clearing(None)?;
+            relay_path_a_to_b
+                .schedule_packet_clearing(None, relayer.config.mode.packets.clear_limit)?;
 
             info!("Performing IBC send packet with a token transfer #{} from chain A to be received by chain B", i);
         }

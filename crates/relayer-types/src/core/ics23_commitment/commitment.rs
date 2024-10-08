@@ -1,11 +1,10 @@
-use std::{convert::TryFrom, fmt};
-
-use ibc_proto::ibc::core::commitment::v1::MerkleProof as RawMerkleProof;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use subtle_encoding::{Encoding, Hex};
 
 use super::{error::Error, merkle::MerkleProof};
 use crate::{proofs::ProofError, tx_msg::encode_message};
+use ibc_proto::ibc::core::commitment::v1::MerkleProof as RawMerkleProof;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]

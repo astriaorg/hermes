@@ -6,40 +6,8 @@ use std::{
     time::Duration,
 };
 
-use abscissa_core::{clap::Parser, Command, Runnable};
-use ibc_relayer::{
-    chain::{
-        cosmos::CosmosSdkChain,
-        endpoint::ChainEndpoint,
-        handle::{BaseChainHandle, ChainHandle},
-        requests::{IncludeProof, PageRequest, QueryHeight},
-        tracking::TrackedMsgs,
-    },
-    config::{ChainConfig, Config},
-    foreign_client::ForeignClient,
-    spawn::spawn_chain_runtime_with_modified_config,
-};
-use ibc_relayer_types::{
-    applications::ics28_ccv::msgs::{
-        ccv_double_voting::MsgSubmitIcsConsumerDoubleVoting,
-        ccv_misbehaviour::MsgSubmitIcsConsumerMisbehaviour,
-    },
-    clients::ics07_tendermint::{
-        header::Header as TendermintHeader, misbehaviour::Misbehaviour as TendermintMisbehaviour,
-    },
-    core::{
-        ics02_client::{height::Height, msgs::misbehaviour::MsgSubmitMisbehaviour},
-        ics24_host::identifier::{ChainId, ClientId},
-    },
-    events::IbcEvent,
-    tx_msg::Msg,
-};
-use tendermint::{
-    block::Height as TendermintHeight,
-    evidence::{DuplicateVoteEvidence, LightClientAttackEvidence},
-    validator,
-};
-use tendermint_rpc::{Client, Paging};
+use abscissa_core::clap::Parser;
+use ibc_relayer::config::{ChainConfig, Config};
 use tokio::runtime::Runtime as TokioRuntime;
 
 use crate::{conclude::Output, prelude::*};
@@ -340,11 +308,12 @@ fn submit_duplicate_vote_evidence(
     // ie. retrieve the consensus state at the highest height smaller than the infraction height.
     //
     // Note: The consensus state heights are sorted in increasing order.
-    let consensus_state_heights =
-        chain.query_consensus_state_heights(QueryConsensusStateHeightsRequest {
+    let consensus_state_heights = counterparty_chain_handle.query_consensus_state_heights(
+        QueryConsensusStateHeightsRequest {
             client_id: counterparty_client_id.clone(),
             pagination: Some(PageRequest::all()),
-        })?;
+        },
+    )?;
 
     // Retrieve the consensus state at the highest height smaller than the infraction height.
     let consensus_state_height_before_infraction_height = consensus_state_heights

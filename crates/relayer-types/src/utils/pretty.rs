@@ -81,7 +81,7 @@ impl<'a, T: Display> Display for PrettySlice<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use std::{string::String, vec};
+    use std::vec;
 
     use super::*;
 

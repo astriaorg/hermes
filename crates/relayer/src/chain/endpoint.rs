@@ -1,56 +1,53 @@
 use alloc::sync::Arc;
-use core::convert::TryFrom;
+
+use ibc_proto::ibc::core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest};
+use ibc_relayer_types::core::ics02_client::height::Height;
+use tokio::runtime::Runtime as TokioRuntime;
 
 use ibc_proto::ibc::apps::fee::v1::{
     QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse,
 };
-use ibc_relayer_types::{
-    applications::ics31_icq::response::CrossChainQueryResponse,
-    core::{
-        ics02_client::{
-            client_state::ClientState,
-            consensus_state::ConsensusState,
-            events::UpdateClient,
-            header::{AnyHeader, Header},
-        },
-        ics03_connection::{
-            connection::{ConnectionEnd, IdentifiedConnectionEnd, State},
-            version::{get_compatible_versions, Version},
-        },
-        ics04_channel::{
-            channel::{ChannelEnd, IdentifiedChannelEnd},
-            packet::{PacketMsgType, Sequence},
-        },
-        ics23_commitment::{
-            commitment::{CommitmentPrefix, CommitmentProofBytes},
-            merkle::MerkleProof,
-        },
-        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
-    },
-    proofs::{ConsensusProof, Proofs},
-    signer::Signer,
-    timestamp::Timestamp,
-    Height as ICSHeight,
+use ibc_relayer_types::applications::ics31_icq::response::CrossChainQueryResponse;
+use ibc_relayer_types::core::ics02_client::client_state::ClientState;
+use ibc_relayer_types::core::ics02_client::consensus_state::ConsensusState;
+use ibc_relayer_types::core::ics02_client::events::UpdateClient;
+use ibc_relayer_types::core::ics02_client::header::{AnyHeader, Header};
+use ibc_relayer_types::core::ics03_connection::connection::{
+    ConnectionEnd, IdentifiedConnectionEnd, State,
 };
-use tendermint_rpc::endpoint::broadcast::tx_sync::Response as TxResponse;
-use tokio::runtime::Runtime as TokioRuntime;
+use ibc_relayer_types::core::ics03_connection::version::{get_compatible_versions, Version};
+use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, IdentifiedChannelEnd};
+use ibc_relayer_types::core::ics04_channel::packet::{PacketMsgType, Sequence};
+use ibc_relayer_types::core::ics04_channel::upgrade::{ErrorReceipt, Upgrade};
+use ibc_relayer_types::core::ics23_commitment::commitment::{
+    CommitmentPrefix, CommitmentProofBytes,
+};
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics24_host::identifier::{
+    ChainId, ChannelId, ClientId, ConnectionId, PortId,
+};
+use ibc_relayer_types::proofs::{ConsensusProof, Proofs};
+use ibc_relayer_types::signer::Signer;
+use ibc_relayer_types::timestamp::Timestamp;
+use ibc_relayer_types::Height as ICSHeight;
 
-use crate::{
-    account::Balance,
-    chain::{
-        client::ClientSettings, cosmos::version::Specs, handle::Subscription, requests::*,
-        tracking::TrackedMsgs,
-    },
-    client_state::{AnyClientState, IdentifiedAnyClientState},
-    config::ChainConfig,
-    connection::ConnectionMsgType,
-    consensus_state::AnyConsensusState,
-    denom::DenomTrace,
-    error::Error,
-    event::IbcEventWithHeight,
-    keyring::{AnySigningKeyPair, KeyRing, SigningKeyPairSized},
-    misbehaviour::MisbehaviourEvidence,
-};
+use tendermint_rpc::endpoint::broadcast::tx_sync::Response as TxResponse;
+
+use crate::account::Balance;
+use crate::chain::client::ClientSettings;
+use crate::chain::cosmos::version::Specs;
+use crate::chain::handle::Subscription;
+use crate::chain::requests::*;
+use crate::chain::tracking::TrackedMsgs;
+use crate::client_state::{AnyClientState, IdentifiedAnyClientState};
+use crate::config::ChainConfig;
+use crate::connection::ConnectionMsgType;
+use crate::consensus_state::AnyConsensusState;
+use crate::denom::DenomTrace;
+use crate::error::Error;
+use crate::event::IbcEventWithHeight;
+use crate::keyring::{AnySigningKeyPair, KeyRing, SigningKeyPairSized};
+use crate::misbehaviour::MisbehaviourEvidence;
 
 /// The result of a health check.
 #[derive(Debug)]
@@ -692,4 +689,18 @@ pub trait ChainEndpoint: Sized {
     ) -> Result<QueryIncentivizedPacketResponse, Error>;
 
     fn query_consumer_chains(&self) -> Result<Vec<(ChainId, ClientId)>, Error>;
+
+    fn query_upgrade(
+        &self,
+        request: QueryUpgradeRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(Upgrade, Option<MerkleProof>), Error>;
+
+    fn query_upgrade_error(
+        &self,
+        request: QueryUpgradeErrorRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error>;
 }

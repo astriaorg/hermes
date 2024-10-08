@@ -20,9 +20,9 @@ use crate::{
         },
         handle::ChainHandle,
         requests::{
-            IncludeProof, PageRequest, QueryChannelRequest, QueryClientConnectionsRequest,
-            QueryClientStateRequest, QueryClientStatesRequest, QueryConnectionChannelsRequest,
-            QueryConnectionRequest, QueryHeight,
+            IncludeProof, PageRequest, Paginate, QueryChannelRequest,
+            QueryClientConnectionsRequest, QueryClientStateRequest, QueryClientStatesRequest,
+            QueryConnectionChannelsRequest, QueryConnectionRequest, QueryHeight,
         },
     },
     client_state::IdentifiedAnyClientState,
@@ -234,9 +234,17 @@ impl ChannelScan {
             .as_ref()
             .and_then(|c| PathIdentifiers::from_channel_end(c.clone()))
             .map(|ids| {
-                unreceived_packets(counterparty_chain, chain, &ids)
-                    .map(|(seq, _)| seq)
-                    .unwrap_or_default()
+                unreceived_packets(
+                    counterparty_chain,
+                    chain,
+                    &ids,
+                    Paginate::PerPage {
+                        per_page: 1,
+                        total: 1,
+                    },
+                )
+                .map(|(seq, _)| seq)
+                .unwrap_or_default()
             })
     }
 
@@ -250,9 +258,17 @@ impl ChannelScan {
             .as_ref()
             .and_then(|c| PathIdentifiers::from_channel_end(c.clone()))?;
 
-        let acks = unreceived_acknowledgements(counterparty_chain, chain, &ids)
-            .map(|sns| sns.map_or(vec![], |(sns, _)| sns))
-            .unwrap_or_default();
+        let acks = unreceived_acknowledgements(
+            counterparty_chain,
+            chain,
+            &ids,
+            Paginate::PerPage {
+                per_page: 1,
+                total: 1,
+            },
+        )
+        .map(|sns| sns.map_or(vec![], |(sns, _)| sns))
+        .unwrap_or_default();
 
         Some(acks)
     }

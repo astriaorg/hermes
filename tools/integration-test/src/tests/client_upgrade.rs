@@ -12,28 +12,27 @@
 //! - The `test_height_too_low_client_upgrade`tests the case where the client
 //!   fails to upgrade because a height too small is given as input.
 
+use http::Uri;
 use std::str::FromStr;
 
-use http::Uri;
-use ibc_relayer::{
-    chain::requests::{IncludeProof, QueryClientStateRequest, QueryHeight},
-    client_state::AnyClientState,
-    upgrade_chain::{build_and_send_ibc_upgrade_proposal, UpgradePlanOptions},
-};
+use ibc_relayer::chain::requests::IncludeProof;
+use ibc_relayer::chain::requests::QueryClientStateRequest;
+use ibc_relayer::chain::requests::QueryHeight;
+use ibc_relayer::client_state::AnyClientState;
+use ibc_relayer::upgrade_chain::{build_and_send_ibc_upgrade_proposal, UpgradePlanOptions};
 use ibc_relayer_types::core::ics02_client::height::Height;
-use ibc_test_framework::{
-    chain::{
-        config::{set_max_deposit_period, set_min_deposit_amount, set_voting_period},
-        ext::bootstrap::ChainBootstrapMethodsExt,
-    },
-    prelude::*,
-    util::proposal_status::ProposalStatus,
+use ibc_test_framework::chain::config::{
+    set_max_deposit_period, set_min_deposit_amount, set_voting_period,
 };
+use ibc_test_framework::chain::ext::bootstrap::ChainBootstrapMethodsExt;
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::util::proposal_status::ProposalStatus;
 
 const MAX_DEPOSIT_PERIOD: &str = "10s";
 const VOTING_PERIOD: u64 = 10;
 const DELTA_HEIGHT: u64 = 15;
 const WAIT_CHAIN_UPGRADE: Duration = Duration::from_secs(4);
+const WAIT_CHAIN_HEIGHT: Duration = Duration::from_secs(3);
 const MIN_DEPOSIT: u64 = 10000000u64;
 
 #[test]
@@ -84,7 +83,7 @@ impl BinaryChainTest for ClientUpgradeTest {
     ) -> Result<(), ibc_test_framework::prelude::Error> {
         let upgraded_chain_id = ChainId::new("upgradedibc".to_owned(), 1);
         let fee_denom_a: MonoTagged<ChainA, Denom> =
-            MonoTagged::new(Denom::base(&config.native_tokens[0]));
+            MonoTagged::new(Denom::base(config.native_token(0)));
         let foreign_clients = chains.clone().foreign_clients;
 
         // Create and send an chain upgrade proposal
@@ -123,7 +122,7 @@ impl BinaryChainTest for ClientUpgradeTest {
         .map_err(handle_generic_error)?;
 
         // Vote on the proposal so the chain will upgrade
-        driver.vote_proposal(&fee_denom_a.with_amount(381000000u64).to_string())?;
+        driver.vote_proposal(&fee_denom_a.with_amount(381000000u64).to_string(), "1")?;
 
         info!("Assert that the chain upgrade proposal is eventually passed");
 
@@ -136,15 +135,28 @@ impl BinaryChainTest for ClientUpgradeTest {
             "1",
         )?;
 
-        // Wait for the chain to upgrade
-        std::thread::sleep(WAIT_CHAIN_UPGRADE);
+        let halt_height = (client_upgrade_height - 1).unwrap();
+
+        // Wait for the chain to get to the halt height
+        loop {
+            let latest_height = chains.handle_a().query_latest_height()?;
+            info!("latest height: {latest_height}");
+
+            if latest_height >= halt_height {
+                break;
+            }
+            std::thread::sleep(WAIT_CHAIN_HEIGHT);
+        }
+        // Wait for an additional height which is required to fetch
+        // the header
+        std::thread::sleep(WAIT_CHAIN_HEIGHT);
 
         // Trigger the client upgrade
         // The error is ignored as the client state will be asserted afterwards.
         let _ = foreign_clients.client_a_to_b.upgrade(client_upgrade_height);
 
         // Wait to seconds before querying the client state
-        std::thread::sleep(Duration::from_secs(2));
+        std::thread::sleep(WAIT_CHAIN_UPGRADE);
 
         let (state, _) = chains.handle_b().query_client_state(
             QueryClientStateRequest {
@@ -230,7 +242,7 @@ impl BinaryChainTest for HeightTooHighClientUpgradeTest {
     ) -> Result<(), ibc_test_framework::prelude::Error> {
         let upgraded_chain_id = ChainId::new("upgradedibc".to_owned(), 1);
         let fee_denom_a: MonoTagged<ChainA, Denom> =
-            MonoTagged::new(Denom::base(&config.native_tokens[0]));
+            MonoTagged::new(Denom::base(config.native_token(0)));
         let foreign_clients = chains.clone().foreign_clients;
 
         // Create and send an chain upgrade proposal
@@ -269,7 +281,7 @@ impl BinaryChainTest for HeightTooHighClientUpgradeTest {
         .map_err(handle_generic_error)?;
 
         // Vote on the proposal so the chain will upgrade
-        driver.vote_proposal(&fee_denom_a.with_amount(381000000u64).to_string())?;
+        driver.vote_proposal(&fee_denom_a.with_amount(381000000u64).to_string(), "1")?;
 
         // The application height reports a height of 1 less than the height according to Tendermint
         client_upgrade_height.increment();
@@ -328,7 +340,7 @@ impl BinaryChainTest for HeightTooLowClientUpgradeTest {
     ) -> Result<(), ibc_test_framework::prelude::Error> {
         let upgraded_chain_id = ChainId::new("upgradedibc".to_owned(), 1);
         let fee_denom_a: MonoTagged<ChainA, Denom> =
-            MonoTagged::new(Denom::base(&config.native_tokens[0]));
+            MonoTagged::new(Denom::base(config.native_token(0)));
         let foreign_clients = chains.clone().foreign_clients;
 
         let opts = create_upgrade_plan(config, &chains, &upgraded_chain_id)?;
@@ -366,7 +378,7 @@ impl BinaryChainTest for HeightTooLowClientUpgradeTest {
         .map_err(handle_generic_error)?;
 
         // Vote on the proposal so the chain will upgrade
-        driver.vote_proposal(&fee_denom_a.with_amount(381000000u64).to_string())?;
+        driver.vote_proposal(&fee_denom_a.with_amount(381000000u64).to_string(), "1")?;
 
         // The application height reports a height of 1 less than the height according to Tendermint
         client_upgrade_height
@@ -421,7 +433,7 @@ fn create_upgrade_plan<ChainA: ChainHandle, ChainB: ChainHandle>(
     upgraded_chain_id: &ChainId,
 ) -> Result<UpgradePlanOptions, Error> {
     let fee_denom_a: MonoTagged<ChainA, Denom> =
-        MonoTagged::new(Denom::base(&config.native_tokens[0]));
+        MonoTagged::new(Denom::base(config.native_token(0)));
     let foreign_clients = chains.clone().foreign_clients;
 
     let src_client_id = foreign_clients.client_id_b().0.clone();

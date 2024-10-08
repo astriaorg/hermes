@@ -70,7 +70,7 @@ impl TryFrom<QueryHeight> for AsciiMetadataValue {
 }
 
 impl Display for QueryHeight {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             QueryHeight::Latest => write!(f, "latest height"),
             QueryHeight::Specific(height) => write!(f, "{height}"),
@@ -97,7 +97,7 @@ pub struct PageRequest {
     /// key is a value returned in PageResponse.next_key to begin
     /// querying the next page most efficiently. Only one of offset or key
     /// should be set.
-    pub key: ::prost::alloc::vec::Vec<u8>,
+    pub key: Vec<u8>,
     /// offset is a numeric offset that can be used when key is unavailable.
     /// It is less efficient than using key. Only one of offset or key should
     /// be set.
@@ -119,8 +119,12 @@ impl PageRequest {
         // Note: do not use u64::MAX as the limit, as it may have unintended consequences
         // See https://github.com/informalsystems/hermes/pull/2950#issuecomment-1373733744
 
+        Self::per_page(u32::MAX as u64)
+    }
+
+    pub fn per_page(limit: u64) -> Self {
         PageRequest {
-            limit: u32::MAX as u64,
+            limit,
             ..Default::default()
         }
     }
@@ -134,6 +138,39 @@ impl From<PageRequest> for RawPageRequest {
             limit: request.limit,
             count_total: request.count_total,
             reverse: request.reverse,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub enum Paginate {
+    #[default]
+    All,
+
+    PerPage {
+        per_page: u64,
+        total: u64,
+    },
+}
+
+impl Paginate {
+    pub fn is_enabled(&self) -> bool {
+        !matches!(self, Self::All)
+    }
+
+    pub fn get_values(&self) -> (u64, u64) {
+        match self {
+            Paginate::PerPage { total, per_page } => (*per_page, *total),
+            _ => (0, 0),
+        }
+    }
+}
+
+impl From<Paginate> for PageRequest {
+    fn from(value: Paginate) -> Self {
+        match value {
+            Paginate::All => PageRequest::all(),
+            Paginate::PerPage { per_page, .. } => PageRequest::per_page(per_page),
         }
     }
 }
@@ -307,7 +344,7 @@ pub struct QueryPacketCommitmentRequest {
 pub struct QueryPacketCommitmentsRequest {
     pub port_id: PortId,
     pub channel_id: ChannelId,
-    pub pagination: Option<PageRequest>,
+    pub pagination: Paginate,
 }
 
 impl From<QueryPacketCommitmentsRequest> for RawQueryPacketCommitmentsRequest {
@@ -315,7 +352,7 @@ impl From<QueryPacketCommitmentsRequest> for RawQueryPacketCommitmentsRequest {
         RawQueryPacketCommitmentsRequest {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
-            pagination: request.pagination.map(|pagination| pagination.into()),
+            pagination: Some(PageRequest::from(request.pagination).into()),
         }
     }
 }
@@ -363,7 +400,7 @@ pub struct QueryPacketAcknowledgementRequest {
 pub struct QueryPacketAcknowledgementsRequest {
     pub port_id: PortId,
     pub channel_id: ChannelId,
-    pub pagination: Option<PageRequest>,
+    pub pagination: Paginate,
     pub packet_commitment_sequences: Vec<Sequence>,
 }
 
@@ -372,7 +409,7 @@ impl From<QueryPacketAcknowledgementsRequest> for RawQueryPacketAcknowledgements
         RawQueryPacketAcknowledgementsRequest {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
-            pagination: request.pagination.map(|pagination| pagination.into()),
+            pagination: Some(PageRequest::from(request.pagination).into()),
             packet_commitment_sequences: request
                 .packet_commitment_sequences
                 .into_iter()

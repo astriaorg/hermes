@@ -12,7 +12,7 @@ use serde_derive::Serialize;
 use serde_json::Value;
 
 std::thread_local! {
-    pub static DEPTH: AtomicUsize = AtomicUsize::new(0);
+    pub static DEPTH: AtomicUsize = const { AtomicUsize::new(0) };
 }
 
 static FILE: OnceCell<Mutex<File>> = OnceCell::new();
@@ -102,7 +102,6 @@ impl Drop for Timer {
 
 pub fn open_or_create_profile_file(file_name: &Path) {
     let file = OpenOptions::new()
-        .write(true)
         .append(true)
         .create(true)
         .open(file_name)

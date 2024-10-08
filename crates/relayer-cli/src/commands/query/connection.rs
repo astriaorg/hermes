@@ -1,17 +1,7 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
-use ibc_relayer::chain::{
-    handle::ChainHandle,
-    requests::{
-        IncludeProof, PageRequest, QueryConnectionChannelsRequest, QueryConnectionRequest,
-        QueryHeight,
-    },
-};
-use ibc_relayer_types::{
-    core::{
-        ics03_connection::connection::State,
-        ics24_host::identifier::{ChainId, ConnectionId, PortChannelId},
-    },
-    Height,
+use abscissa_core::clap::Parser;
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{
+    IncludeProof, PageRequest, QueryConnectionChannelsRequest, QueryConnectionRequest, QueryHeight,
 };
 
 use crate::{

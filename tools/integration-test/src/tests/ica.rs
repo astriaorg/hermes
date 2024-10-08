@@ -1,13 +1,30 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
+use std::str::FromStr;
 
-use ibc_test_framework::{
-    chain::ext::ica::register_interchain_account,
-    ibc::denom::Denom,
-    prelude::*,
-    relayer::channel::{
-        assert_eventually_channel_closed, assert_eventually_channel_established, query_channel_end,
-    },
+use ibc_relayer::config::{
+    filter::{ChannelFilters, ChannelPolicy, FilterPattern},
+    ChainConfig, PacketFilter,
 };
+use ibc_relayer_types::applications::ics27_ica::packet_data::InterchainAccountPacketData;
+use ibc_relayer_types::applications::{
+    ics27_ica::cosmos_tx::CosmosTx,
+    transfer::{msgs::send::MsgSend, Amount, Coin},
+};
+use ibc_relayer_types::bigint::U256;
+use ibc_relayer_types::core::ics04_channel::channel::State;
+use ibc_relayer_types::signer::Signer;
+use ibc_relayer_types::timestamp::Timestamp;
+use ibc_relayer_types::tx_msg::Msg;
+
+use ibc_test_framework::chain::{
+    config::add_allow_message_interchainaccounts,
+    ext::ica::{register_ordered_interchain_account, register_unordered_interchain_account},
+};
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::relayer::channel::{
+    assert_eventually_channel_closed, assert_eventually_channel_established, query_channel_end,
+};
+use ibc_test_framework::util::interchain_security::interchain_send_tx;
 
 #[test]
 fn test_ica_filter_default() -> Result<(), Error> {
@@ -30,6 +47,7 @@ fn test_ica_filter_deny() -> Result<(), Error> {
     run_binary_connection_test(&IcaFilterTestDeny)
 }
 
+#[cfg(any(doc, feature = "new-register-interchain-account"))]
 #[test]
 fn test_ica_close_channel() -> Result<(), Error> {
     run_binary_connection_test(&ICACloseChannelTest)
@@ -49,6 +67,7 @@ impl TestOverrides for IcaFilterTestAllow {
     // Enable channel workers and allow relaying on ICA channels
     fn modify_relayer_config(&self, config: &mut Config) {
         config.mode.channels.enabled = true;
+        config.mode.clients.misbehaviour = false;
 
         for chain in &mut config.chains {
             match chain {
@@ -61,37 +80,26 @@ impl TestOverrides for IcaFilterTestAllow {
 
     // Allow MsgSend messages over ICA
     fn modify_genesis_file(&self, genesis: &mut serde_json::Value) -> Result<(), Error> {
-        use serde_json::Value;
+        add_allow_message_interchainaccounts(genesis, "/cosmos.bank.v1beta1.MsgSend")?;
 
-        let allow_messages = genesis
-            .get_mut("app_state")
-            .and_then(|app_state| app_state.get_mut("interchainaccounts"))
-            .and_then(|ica| ica.get_mut("host_genesis_state"))
-            .and_then(|state| state.get_mut("params"))
-            .and_then(|params| params.get_mut("allow_messages"))
-            .and_then(|allow_messages| allow_messages.as_array_mut());
-
-        if let Some(allow_messages) = allow_messages {
-            allow_messages.push(Value::String("/cosmos.bank.v1beta1.MsgSend".to_string()));
-            Ok(())
-        } else {
-            Err(Error::generic(eyre!("failed to update genesis file")))
-        }
+        Ok(())
     }
 }
 
 impl BinaryConnectionTest for IcaFilterTestAllow {
     fn run<Controller: ChainHandle, Host: ChainHandle>(
         &self,
-        _config: &TestConfig,
+        config: &TestConfig,
         _relayer: RelayerDriver,
         chains: ConnectedChains<Controller, Host>,
         connection: ConnectedConnection<Controller, Host>,
     ) -> Result<(), Error> {
+        let fee_denom_host: MonoTagged<Host, Denom> =
+            MonoTagged::new(Denom::base(config.native_token(1)));
         // Register an interchain account on behalf of
         // controller wallet `user1` where the counterparty chain is the interchain accounts host.
         let (wallet, channel_id, port_id) =
-            register_interchain_account(&chains.node_a, chains.handle_a(), &connection)?;
+            register_unordered_interchain_account(&chains.node_a, chains.handle_a(), &connection)?;
 
         // Check that the corresponding ICA channel is eventually established.
         let _counterparty_channel_id = assert_eventually_channel_established(
@@ -121,6 +129,7 @@ impl BinaryConnectionTest for IcaFilterTestAllow {
             &chains.node_b.wallets().user1(),
             &ica_address.as_ref(),
             &stake_denom.with_amount(ica_fund).as_ref(),
+            &fee_denom_host.with_amount(381000000u64).as_ref(),
         )?;
 
         chains.node_b.chain_driver().assert_eventual_wallet_amount(
@@ -169,6 +178,7 @@ impl BinaryConnectionTest for IcaFilterTestAllow {
         Ok(())
     }
 }
+
 pub struct IcaFilterTestDeny;
 
 impl TestOverrides for IcaFilterTestDeny {
@@ -201,7 +211,7 @@ impl BinaryConnectionTest for IcaFilterTestDeny {
         // Register an interchain account on behalf of controller wallet `user1`
         // where the counterparty chain is the interchain accounts host.
         let (_, channel_id, port_id) =
-            register_interchain_account(&chains.node_a, chains.handle_a(), &connection)?;
+            register_unordered_interchain_account(&chains.node_a, chains.handle_a(), &connection)?;
 
         // Wait a bit, the relayer will refuse to complete the channel handshake
         // because the port is explicitly disallowed by the filter.
@@ -236,18 +246,24 @@ impl TestOverrides for ICACloseChannelTest {
 impl BinaryConnectionTest for ICACloseChannelTest {
     fn run<Controller: ChainHandle, Host: ChainHandle>(
         &self,
-        _config: &TestConfig,
+        config: &TestConfig,
         relayer: RelayerDriver,
         chains: ConnectedChains<Controller, Host>,
         connection: ConnectedConnection<Controller, Host>,
     ) -> Result<(), Error> {
+        let fee_denom_host: MonoTagged<Host, Denom> =
+            MonoTagged::new(Denom::base(config.native_token(1)));
         let stake_denom: MonoTagged<Host, Denom> = MonoTagged::new(Denom::base("stake"));
         let (wallet, ica_address, controller_channel_id, controller_port_id) = relayer
             .with_supervisor(|| {
                 // Register an interchain account on behalf of
                 // controller wallet `user1` where the counterparty chain is the interchain accounts host.
                 let (wallet, controller_channel_id, controller_port_id) =
-                    register_interchain_account(&chains.node_a, chains.handle_a(), &connection)?;
+                    register_ordered_interchain_account(
+                        &chains.node_a,
+                        chains.handle_a(),
+                        &connection,
+                    )?;
 
                 // Check that the corresponding ICA channel is eventually established.
                 let _counterparty_channel_id = assert_eventually_channel_established(
@@ -283,6 +299,7 @@ impl BinaryConnectionTest for ICACloseChannelTest {
             &chains.node_b.wallets().user1(),
             &ica_address.as_ref(),
             &stake_denom.with_amount(ica_fund).as_ref(),
+            &fee_denom_host.with_amount(381000000u64).as_ref(),
         )?;
 
         chains.node_b.chain_driver().assert_eventual_wallet_amount(
@@ -354,27 +371,4 @@ impl BinaryConnectionTest for ICACloseChannelTest {
             Ok(())
         })
     }
-}
-
-fn interchain_send_tx<ChainA: ChainHandle>(
-    chain: &ChainA,
-    from: &Signer,
-    connection: &ConnectionId,
-    msg: InterchainAccountPacketData,
-    relative_timeout: Timestamp,
-) -> Result<Vec<IbcEventWithHeight>, Error> {
-    let msg = MsgSendTx {
-        owner: from.clone(),
-        connection_id: connection.clone(),
-        packet_data: msg,
-        relative_timeout,
-    };
-
-    let msg_any = msg.to_any();
-
-    let tm = TrackedMsgs::new_static(vec![msg_any], "SendTx");
-
-    chain
-        .send_messages_and_wait_commit(tm)
-        .map_err(Error::relayer)
 }

@@ -3,10 +3,11 @@
    session.
 */
 
-use std::{env, fs, sync::Once};
-
 use eyre::Report as Error;
 use ibc_relayer_cli::components::enable_ansi;
+use std::env;
+use std::fs;
+use std::sync::Once;
 use tracing_subscriber::{
     self as ts,
     filter::{EnvFilter, LevelFilter},
@@ -14,7 +15,8 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 
-use crate::{types::config::TestConfig, util::random::random_u32};
+use crate::types::config::TestConfig;
+use crate::util::random::random_u32;
 
 static INIT: Once = Once::new();
 

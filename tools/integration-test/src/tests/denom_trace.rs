@@ -1,4 +1,4 @@
-use ibc_test_framework::{ibc::denom::derive_ibc_denom, prelude::*};
+use ibc_test_framework::prelude::*;
 
 #[test]
 fn test_ibc_denom_trace() -> Result<(), Error> {

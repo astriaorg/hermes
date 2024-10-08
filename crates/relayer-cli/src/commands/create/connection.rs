@@ -1,14 +1,11 @@
 use core::time::Duration;
 
-use abscissa_core::{clap::Parser, Command, Runnable};
-use ibc_relayer::{
-    chain::{
-        handle::ChainHandle,
-        requests::{IncludeProof, QueryClientStateRequest, QueryHeight},
-    },
-    connection::Connection,
-    foreign_client::ForeignClient,
-};
+use abscissa_core::clap::Parser;
+
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{IncludeProof, QueryClientStateRequest, QueryHeight};
+use ibc_relayer::connection::Connection;
+use ibc_relayer::foreign_client::ForeignClient;
 use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
 
 use crate::{

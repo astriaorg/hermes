@@ -2,11 +2,8 @@
 //! represented as a fraction with valid values in the
 //! range `[0, 1)`.
 
-use std::{
-    convert::TryFrom,
-    fmt::{Display, Error as FmtError, Formatter},
-    str::FromStr,
-};
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
 
 use ibc_proto::{ibc::lightclients::tendermint::v1::Fraction, Protobuf};
 use num_rational::Ratio;

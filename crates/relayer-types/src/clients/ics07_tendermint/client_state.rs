@@ -1,7 +1,4 @@
-use std::{
-    convert::{TryFrom, TryInto},
-    time::Duration,
-};
+use std::time::Duration;
 
 use ibc_proto::{
     google::protobuf::Any,
@@ -15,19 +12,18 @@ use prost::Message;
 use serde::{Deserialize, Serialize};
 use tendermint_light_client_verifier::options::Options;
 
-use crate::{
-    clients::ics07_tendermint::{error::Error, header::Header as TmHeader},
-    core::{
-        ics02_client::{
-            client_state::ClientState as Ics2ClientState, client_type::ClientType,
-            error::Error as Ics02Error, trust_threshold::TrustThreshold,
-        },
-        ics23_commitment::specs::ProofSpecs,
-        ics24_host::identifier::ChainId,
-    },
-    timestamp::{Timestamp, ZERO_DURATION},
-    Height,
+use crate::clients::ics07_tendermint::error::Error;
+use crate::clients::ics07_tendermint::header::Header as TmHeader;
+use crate::core::ics02_client::client_state::{
+    ClientState as Ics2ClientState, UpgradableClientState,
 };
+use crate::core::ics02_client::client_type::ClientType;
+use crate::core::ics02_client::error::Error as Ics02Error;
+use crate::core::ics02_client::trust_threshold::TrustThreshold;
+use crate::core::ics23_commitment::specs::ProofSpecs;
+use crate::core::ics24_host::identifier::ChainId;
+use crate::timestamp::{Timestamp, ZERO_DURATION};
+use crate::Height;
 
 pub const TENDERMINT_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.tendermint.v1.ClientState";
 
@@ -200,8 +196,6 @@ pub struct UpgradeOptions {
 }
 
 impl Ics2ClientState for ClientState {
-    type UpgradeOptions = UpgradeOptions;
-
     fn chain_id(&self) -> ChainId {
         self.chain_id.clone()
     }
@@ -217,6 +211,14 @@ impl Ics2ClientState for ClientState {
     fn frozen_height(&self) -> Option<Height> {
         self.frozen_height
     }
+
+    fn expired(&self, elapsed: Duration) -> bool {
+        elapsed > self.trusting_period
+    }
+}
+
+impl UpgradableClientState for ClientState {
+    type UpgradeOptions = UpgradeOptions;
 
     fn upgrade(
         &mut self,
@@ -236,10 +238,6 @@ impl Ics2ClientState for ClientState {
         self.latest_height = upgrade_height;
         self.unbonding_period = upgrade_options.unbonding_period;
         self.chain_id = chain_id;
-    }
-
-    fn expired(&self, elapsed: Duration) -> bool {
-        elapsed > self.trusting_period
     }
 }
 
@@ -669,39 +667,5 @@ mod tests {
                 res.err(),
             );
         }
-    }
-}
-
-#[cfg(any(test, feature = "mocks"))]
-pub mod test_util {
-    use core::time::Duration;
-
-    use tendermint::block::Header;
-
-    use crate::{
-        clients::ics07_tendermint::client_state::{AllowUpdate, ClientState},
-        core::{ics02_client::height::Height, ics24_host::identifier::ChainId},
-    };
-
-    pub fn get_dummy_tendermint_client_state(tm_header: Header) -> ClientState {
-        ClientState::new(
-            ChainId::from(tm_header.chain_id.clone()),
-            Default::default(),
-            Duration::from_secs(64000),
-            Duration::from_secs(128000),
-            Duration::from_millis(3000),
-            Height::new(
-                ChainId::chain_version(tm_header.chain_id.as_str()),
-                u64::from(tm_header.height),
-            )
-            .unwrap(),
-            Default::default(),
-            vec!["".to_string()],
-            AllowUpdate {
-                after_expiry: false,
-                after_misbehaviour: false,
-            },
-        )
-        .unwrap()
     }
 }

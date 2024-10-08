@@ -1,9 +1,6 @@
-use std::{
-    fmt::{Display, Error as FmtError, Formatter},
-    str::FromStr,
-    time::Duration,
-    u64,
-};
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
+use std::time::Duration;
 
 use ibc_proto::{
     ibc::core::connection::v1::{
@@ -394,6 +391,6 @@ impl TryFrom<i32> for State {
 
 impl From<State> for i32 {
     fn from(value: State) -> Self {
-        value.into()
+        value as i32
     }
 }

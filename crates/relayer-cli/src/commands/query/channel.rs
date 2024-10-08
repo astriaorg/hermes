@@ -1,15 +1,5 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
-use ibc_relayer::chain::{
-    handle::ChainHandle,
-    requests::{IncludeProof, QueryChannelRequest, QueryHeight},
-};
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::channel::State,
-        ics24_host::identifier::{ChainId, ChannelId, PortId},
-    },
-    Height,
-};
+use abscissa_core::clap::Parser;
+use ibc_relayer::chain::handle::ChainHandle;
 
 use crate::{
     cli_utils::spawn_chain_runtime,

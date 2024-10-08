@@ -1,9 +1,8 @@
-use abscissa_core::{clap::Parser, Runnable};
-use ibc_relayer::chain::{
-    handle::ChainHandle,
-    requests::{
-        IncludeProof, PageRequest, QueryClientStateRequest, QueryConnectionsRequest, QueryHeight,
-    },
+use abscissa_core::clap::Parser;
+
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{
+    IncludeProof, PageRequest, QueryClientStateRequest, QueryConnectionsRequest, QueryHeight,
 };
 use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ConnectionId};
 

@@ -6,7 +6,7 @@
 //! - The `AtomicIbcForwardHopTransferTest` tests the case where the
 //!   hop between chain C and D fails. In this case the sender is still refunded.
 
-use ibc_relayer::config::{self, Config, ModeConfig};
+use ibc_relayer::config::{self, ModeConfig};
 use ibc_test_framework::prelude::*;
 
 use crate::tests::forward::memo::HopMemoField;
@@ -53,7 +53,7 @@ impl NaryChannelTest<4> for IbcForwardHopTransferTest {
         chains: NaryConnectedChains<Handle, 4>,
         channels: NaryConnectedChannels<Handle, 4>,
     ) -> Result<(), Error> {
-        let connected_chains = chains.connected_chains_at::<0, 3>()?;
+        let connected_chains = chains.connected_chains_at::<0, 1>()?;
 
         let node_a = chains.full_node_at::<0>()?;
         let node_b = chains.full_node_at::<1>()?;
@@ -174,7 +174,7 @@ impl NaryChannelTest<4> for AtomicIbcForwardHopTransferTest {
         chains: NaryConnectedChains<Handle, 4>,
         channels: NaryConnectedChannels<Handle, 4>,
     ) -> Result<(), Error> {
-        let connected_chains = chains.connected_chains_at::<0, 3>()?;
+        let connected_chains = chains.connected_chains_at::<0, 1>()?;
 
         let node_a = chains.full_node_at::<0>()?;
         let node_b = chains.full_node_at::<1>()?;

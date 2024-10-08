@@ -10,13 +10,7 @@
 // Tip: Deny warnings with `RUSTFLAGS="-D warnings"` environment variable in CI
 
 #![forbid(unsafe_code)]
-#![warn(
-    missing_docs,
-    rust_2018_idioms,
-    trivial_casts,
-    unused_lifetimes,
-    unused_qualifications
-)]
+#![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_lifetimes)]
 
 use abscissa_core::testing::prelude::*;
 use once_cell::sync::Lazy;
@@ -30,7 +24,6 @@ use once_cell::sync::Lazy;
 pub static RUNNER: Lazy<CmdRunner> = Lazy::new(CmdRunner::default);
 
 /// Use `Config::default()` value if no config or args
-#[cfg(not(tarpaulin))]
 #[test]
 fn start_no_args() {
     let mut runner = RUNNER.clone();
@@ -46,7 +39,6 @@ fn start_no_args() {
     cmd.wait().unwrap().expect_success();
 }
 
-#[cfg(not(tarpaulin))]
 #[test]
 fn example_configuration_is_valid() {
     let mut runner = RUNNER.clone();

@@ -1,20 +1,22 @@
 use core::fmt::{Debug, Display, Error as FmtError, Formatter};
 
 use crossbeam_channel as channel;
-use ibc_proto::ibc::apps::fee::v1::{
-    QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse,
+use tracing::Span;
+
+use ibc_proto::ibc::{
+    apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
+    core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest},
 };
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     core::{
         ics02_client::{events::UpdateClient, header::AnyHeader},
-        ics03_connection::{
-            connection::{ConnectionEnd, IdentifiedConnectionEnd},
-            version::Version,
-        },
+        ics03_connection::connection::{ConnectionEnd, IdentifiedConnectionEnd},
+        ics03_connection::version::Version,
+        ics04_channel::channel::{ChannelEnd, IdentifiedChannelEnd},
         ics04_channel::{
-            channel::{ChannelEnd, IdentifiedChannelEnd},
             packet::{PacketMsgType, Sequence},
+            upgrade::{ErrorReceipt, Upgrade},
         },
         ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
         ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
@@ -23,7 +25,6 @@ use ibc_relayer_types::{
     signer::Signer,
     Height,
 };
-use tracing::Span;
 
 use super::{reply_channel, ChainHandle, ChainRequest, HealthCheck, ReplyTo, Subscription};
 use crate::{
@@ -520,5 +521,33 @@ impl ChainHandle for BaseChainHandle {
 
     fn query_consumer_chains(&self) -> Result<Vec<(ChainId, ClientId)>, Error> {
         self.send(|reply_to| ChainRequest::QueryConsumerChains { reply_to })
+    }
+
+    fn query_upgrade(
+        &self,
+        request: QueryUpgradeRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+        self.send(|reply_to| ChainRequest::QueryUpgrade {
+            request,
+            height,
+            include_proof,
+            reply_to,
+        })
+    }
+
+    fn query_upgrade_error(
+        &self,
+        request: QueryUpgradeErrorRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+        self.send(|reply_to| ChainRequest::QueryUpgradeError {
+            request,
+            height,
+            include_proof,
+            reply_to,
+        })
     }
 }

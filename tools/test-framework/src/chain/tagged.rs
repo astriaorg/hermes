@@ -3,30 +3,22 @@
 */
 
 use ibc_proto::google::protobuf::Any;
-use ibc_relayer::{
-    chain::cosmos::{tx::simple_send_tx, types::config::TxConfig},
-    event::IbcEventWithHeight,
-    util::compat_mode::compat_mode_from_version,
-};
+use ibc_relayer::chain::cosmos::tx::simple_send_tx;
+use ibc_relayer::chain::cosmos::types::config::TxConfig;
+use ibc_relayer::event::IbcEventWithHeight;
+use ibc_relayer::util::compat_mode::compat_mode_from_version;
 use serde_json as json;
 use tendermint_rpc::client::{Client, HttpClient};
 
-use crate::{
-    chain::{
-        cli::query::{query_auth_module, query_recipient_transactions},
-        driver::ChainDriver,
-    },
-    error::{handle_generic_error, Error},
-    ibc::{
-        denom::Denom,
-        token::{TaggedDenomExt, TaggedToken, TaggedTokenRef},
-    },
-    types::{
-        id::TaggedChainIdRef,
-        tagged::*,
-        wallet::{Wallet, WalletAddress},
-    },
-};
+use crate::chain::cli::query::query_auth_module;
+use crate::chain::cli::query::query_recipient_transactions;
+use crate::chain::driver::ChainDriver;
+use crate::error::{handle_generic_error, Error};
+use crate::ibc::denom::Denom;
+use crate::ibc::token::{TaggedDenomExt, TaggedToken, TaggedTokenRef};
+use crate::types::id::TaggedChainIdRef;
+use crate::types::tagged::*;
+use crate::types::wallet::{Wallet, WalletAddress};
 
 /**
    A [`ChainDriver`] may be tagged with a `Chain` tag in the form
@@ -77,6 +69,23 @@ pub trait TaggedChainDriverExt<Chain> {
         &self,
         user: &MonoTagged<Chain, &WalletAddress>,
         token: &TaggedTokenRef<Chain>,
+    ) -> Result<(), Error>;
+
+    /**
+       Tagged version of [`ChainDriver::assert_eventual_escrowed_amount_ics29`].
+
+       Assert that a wallet should eventually have escrowed the amount for ICS29
+       fees of a given denomination.
+       Legacy ICS29 will escrow recv_fee + ack_fee + timeout_fee while more recent
+       versions will escrow max(recv_fee + ack_fee, timeout_fee).
+    */
+    fn assert_eventual_escrowed_amount_ics29(
+        &self,
+        user: &MonoTagged<Chain, &WalletAddress>,
+        token: &TaggedTokenRef<Chain>,
+        recv_fee: u128,
+        ack_fee: u128,
+        timeout_fee: u128,
     ) -> Result<(), Error>;
 
     /**
@@ -157,6 +166,23 @@ impl<'a, Chain: Send> TaggedChainDriverExt<Chain> for MonoTagged<Chain, &'a Chai
     ) -> Result<(), Error> {
         self.value()
             .assert_eventual_wallet_amount(user.value(), token.value())
+    }
+
+    fn assert_eventual_escrowed_amount_ics29(
+        &self,
+        user: &MonoTagged<Chain, &WalletAddress>,
+        token: &TaggedTokenRef<Chain>,
+        recv_fee: u128,
+        ack_fee: u128,
+        timeout_fee: u128,
+    ) -> Result<(), Error> {
+        self.value().assert_eventual_escrowed_amount_ics29(
+            user.value(),
+            token.value(),
+            recv_fee,
+            ack_fee,
+            timeout_fee,
+        )
     }
 
     fn query_recipient_transactions(

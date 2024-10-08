@@ -2,30 +2,31 @@
    Type definition for a single running full node.
 */
 
-use core::{str::FromStr, time::Duration};
-use std::sync::{Arc, RwLock};
-
-use eyre::{eyre, Report as Error};
-use ibc_relayer::{
-    chain::cosmos::config::CosmosSdkConfig,
-    config,
-    config::{compat_mode::CompatMode, gas_multiplier::GasMultiplier},
-    keyring::Store,
-};
+use core::str::FromStr;
+use core::time::Duration;
+use eyre::eyre;
+use eyre::Report as Error;
+use ibc_relayer::chain::cosmos::config::CosmosSdkConfig;
+use ibc_relayer::config;
+use ibc_relayer::config::compat_mode::CompatMode;
+use ibc_relayer::config::dynamic_gas::DynamicGasPrice;
+use ibc_relayer::config::gas_multiplier::GasMultiplier;
+use ibc_relayer::keyring::Store;
+use ibc_relayer::util::excluded_sequences::ExcludedSequences;
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-use tendermint_rpc::{Url, WebSocketClientUrl};
+use std::collections::BTreeMap;
+use std::sync::{Arc, RwLock};
+use tendermint_rpc::Url;
+use tendermint_rpc::WebSocketClientUrl;
 
-use crate::{
-    chain::{chain_type::ChainType as TestedChainType, driver::ChainDriver},
-    ibc::denom::Denom,
-    prelude::TestConfig,
-    types::{
-        env::{prefix_writer, EnvWriter, ExportEnv},
-        process::ChildProcess,
-        tagged::*,
-        wallet::TestWallets,
-    },
-};
+use crate::chain::chain_type::ChainType as TestedChainType;
+use crate::chain::driver::ChainDriver;
+use crate::ibc::denom::Denom;
+use crate::prelude::TestConfig;
+use crate::types::env::{prefix_writer, EnvWriter, ExportEnv};
+use crate::types::process::ChildProcess;
+use crate::types::tagged::*;
+use crate::types::wallet::TestWallets;
 
 pub type TaggedFullNode<Chain> = MonoTagged<Chain, FullNode>;
 
@@ -131,7 +132,6 @@ impl FullNode {
         test_config: &TestConfig,
         chain_number: usize,
     ) -> Result<config::ChainConfig, Error> {
-        let native_token_number = chain_number % test_config.native_tokens.len();
         let hermes_keystore_dir = test_config
             .chain_store_dir
             .join("hermes_keyring")
@@ -146,14 +146,16 @@ impl FullNode {
 
         // Provenance requires a very high gas price
         let gas_price = match chain_type {
-            TestedChainType::Provenance => config::GasPrice::new(
-                5000.0,
-                test_config.native_tokens[native_token_number].clone(),
-            ),
-            _ => config::GasPrice::new(
-                0.003,
-                test_config.native_tokens[native_token_number].clone(),
-            ),
+            TestedChainType::Provenance => {
+                config::GasPrice::new(5000.0, test_config.native_token(chain_number).clone())
+            }
+            _ => config::GasPrice::new(0.003, test_config.native_token(chain_number).clone()),
+        };
+
+        let dynamic_gas_price = if chain_type.enable_dynamic_fee() {
+            DynamicGasPrice::unsafe_new(true, 1.3, 5.0)
+        } else {
+            DynamicGasPrice::disabled()
         };
 
         Ok(config::ChainConfig::CosmosSdk(CosmosSdkConfig {
@@ -176,6 +178,7 @@ impl FullNode {
             max_gas: Some(3000000),
             gas_adjustment: None,
             gas_multiplier: Some(GasMultiplier::unsafe_new(1.5)),
+            dynamic_gas_price,
             fee_granter: None,
             max_msg_num: Default::default(),
             max_tx_size: Default::default(),
@@ -191,11 +194,14 @@ impl FullNode {
             packet_filter: Default::default(),
             address_type: chain_type.address_type(),
             memo_prefix: Default::default(),
+            memo_overwrite: None,
             proof_specs: Default::default(),
             extension_options: Default::default(),
             sequential_batch_tx: false,
             compat_mode,
             clear_interval: None,
+            excluded_sequences: ExcludedSequences::new(BTreeMap::new()),
+            allow_ccq: true,
         }))
     }
 

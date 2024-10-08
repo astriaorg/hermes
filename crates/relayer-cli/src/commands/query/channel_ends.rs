@@ -1,24 +1,4 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
-use eyre::eyre;
-use ibc_relayer::{
-    chain::{
-        handle::{BaseChainHandle, ChainHandle},
-        requests::{
-            IncludeProof, QueryChannelRequest, QueryClientStateRequest, QueryConnectionRequest,
-            QueryHeight,
-        },
-    },
-    client_state::AnyClientState,
-    registry::Registry,
-};
-use ibc_relayer_types::{
-    core::{
-        ics03_connection::connection::ConnectionEnd,
-        ics04_channel::channel::{ChannelEnd, State},
-        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
-    },
-    Height,
-};
+use abscissa_core::clap::Parser;
 use serde::{Deserialize, Serialize};
 
 use crate::{

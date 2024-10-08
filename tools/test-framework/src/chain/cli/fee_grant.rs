@@ -1,4 +1,5 @@
-use crate::{chain::exec::simple_exec, error::Error};
+use crate::chain::exec::simple_exec;
+use crate::error::Error;
 
 pub fn feegrant_grant(
     chain_id: &str,

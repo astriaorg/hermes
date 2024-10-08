@@ -1,15 +1,5 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
-use ibc_relayer::chain::{
-    handle::ChainHandle,
-    requests::{IncludeProof, QueryHeight, QueryPacketAcknowledgementRequest},
-};
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChainId, ChannelId, PortId},
-    },
-    Height,
-};
+use abscissa_core::clap::Parser;
+use ibc_relayer::chain::requests::{IncludeProof, QueryHeight, QueryPacketAcknowledgementRequest};
 use subtle_encoding::{Encoding, Hex};
 
 use crate::{

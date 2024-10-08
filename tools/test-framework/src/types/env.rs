@@ -2,12 +2,13 @@
    Types for exporting test setup information into environment variables.
 */
 
-use core::convert::AsRef;
-use std::{collections::BTreeMap, fs::write, path::Path};
-
 use itertools::Itertools;
+use std::collections::BTreeMap;
+use std::fs::write;
+use std::path::Path;
 
-use crate::{error::Error, types::tagged::*};
+use crate::error::Error;
+use crate::types::tagged::*;
 
 /**
     This trait is implemented by data types that can export the contained

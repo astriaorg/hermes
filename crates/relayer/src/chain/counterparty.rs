@@ -18,19 +18,21 @@ use ibc_relayer_types::{
 use serde::{Deserialize, Serialize};
 use tracing::{error, trace};
 
+use super::requests::{
+    IncludeProof, PageRequest, Paginate, QueryChannelRequest, QueryClientConnectionsRequest,
+    QueryClientStateRequest, QueryConnectionRequest, QueryPacketAcknowledgementsRequest,
+    QueryUnreceivedAcksRequest, QueryUnreceivedPacketsRequest,
+};
 use super::{
     handle::ChainHandle,
-    requests::{
-        IncludeProof, PageRequest, QueryChannelRequest, QueryClientConnectionsRequest,
-        QueryClientStateRequest, QueryConnectionChannelsRequest, QueryConnectionRequest,
-        QueryPacketAcknowledgementsRequest, QueryPacketCommitmentsRequest,
-        QueryUnreceivedAcksRequest, QueryUnreceivedPacketsRequest,
-    },
+    requests::{QueryConnectionChannelsRequest, QueryPacketCommitmentsRequest},
 };
-use crate::{
-    chain::requests::QueryHeight, channel::ChannelError, client_state::IdentifiedAnyClientState,
-    path::PathIdentifiers, supervisor::Error, telemetry,
-};
+use crate::chain::requests::QueryHeight;
+use crate::channel::ChannelError;
+use crate::client_state::IdentifiedAnyClientState;
+use crate::path::PathIdentifiers;
+use crate::supervisor::Error;
+use crate::telemetry;
 
 pub fn counterparty_chain_from_connection(
     src_chain: &impl ChainHandle,
@@ -165,7 +167,7 @@ pub fn channel_connection_client_no_checks(
                 channel_id: channel_id.clone(),
                 height: QueryHeight::Latest,
             },
-            IncludeProof::No,
+            IncludeProof::Yes,
         )
         .map_err(Error::relayer)?;
 
@@ -293,7 +295,11 @@ pub fn channel_on_destination(
                     channel_id: remote_channel_id.clone(),
                     height: QueryHeight::Latest,
                 },
-                IncludeProof::No,
+                // IncludeProof::Yes forces a new query when the CachingChainHandle
+                // is used.
+                // TODO: Pass the BaseChainHandle instead of the CachingChainHandle
+                // to the channel worker to avoid querying for a Proof .
+                IncludeProof::Yes,
             )
             .map(|(c, _)| IdentifiedChannelEnd {
                 port_id: channel.channel_end.counterparty().port_id().clone(),
@@ -375,13 +381,14 @@ pub fn commitments_on_chain(
     chain: &impl ChainHandle,
     port_id: &PortId,
     channel_id: &ChannelId,
+    paginate: Paginate,
 ) -> Result<(Vec<Sequence>, Height), Error> {
     // get the packet commitments on the counterparty/ source chain
     let (mut commit_sequences, response_height) = chain
         .query_packet_commitments(QueryPacketCommitmentsRequest {
             port_id: port_id.clone(),
             channel_id: channel_id.clone(),
-            pagination: Some(PageRequest::all()),
+            pagination: paginate,
         })
         .map_err(Error::relayer)?;
 
@@ -418,6 +425,7 @@ pub fn packet_acknowledgements(
     port_id: &PortId,
     channel_id: &ChannelId,
     commit_sequences: Vec<Sequence>,
+    pagination: Paginate,
 ) -> Result<Option<(Vec<Sequence>, Height)>, Error> {
     // If there aren't any sequences to query for, return early.
     // Otherwise we end up with the full list of acknowledgements on chain,
@@ -433,7 +441,7 @@ pub fn packet_acknowledgements(
         .query_packet_acknowledgements(QueryPacketAcknowledgementsRequest {
             port_id: port_id.clone(),
             channel_id: channel_id.clone(),
-            pagination: Some(PageRequest::all()),
+            pagination,
             packet_commitment_sequences: commit_sequences,
         })
         .map_err(Error::relayer)?;
@@ -494,11 +502,13 @@ pub fn unreceived_packets(
     chain: &impl ChainHandle,
     counterparty_chain: &impl ChainHandle,
     path: &PathIdentifiers,
+    paginate: Paginate,
 ) -> Result<(Vec<Sequence>, Height), Error> {
     let (commit_sequences, h) = commitments_on_chain(
         counterparty_chain,
         &path.counterparty_port_id,
         &path.counterparty_channel_id,
+        paginate,
     )?;
 
     telemetry!(
@@ -535,6 +545,7 @@ pub fn acknowledgements_on_chain(
         counterparty_chain,
         &counterparty.port_id,
         counterparty_channel_id,
+        Paginate::All,
     )?;
 
     let sequences_and_height = packet_acknowledgements(
@@ -542,6 +553,7 @@ pub fn acknowledgements_on_chain(
         &channel.port_id,
         &channel.channel_id,
         commitments_on_counterparty,
+        Paginate::All,
     )?;
 
     Ok(sequences_and_height)
@@ -580,14 +592,17 @@ pub fn unreceived_acknowledgements(
     chain: &impl ChainHandle,
     counterparty_chain: &impl ChainHandle,
     path: &PathIdentifiers,
+    pagination: Paginate,
 ) -> Result<Option<(Vec<Sequence>, Height)>, Error> {
-    let (commitments_on_src, _) = commitments_on_chain(chain, &path.port_id, &path.channel_id)?;
+    let (commitments_on_src, _) =
+        commitments_on_chain(chain, &path.port_id, &path.channel_id, pagination)?;
 
     let acks_and_height_on_counterparty = packet_acknowledgements(
         counterparty_chain,
         &path.counterparty_port_id,
         &path.counterparty_channel_id,
         commitments_on_src,
+        pagination,
     )?;
 
     if let Some((acks_on_counterparty, height)) = acks_and_height_on_counterparty {
@@ -619,6 +634,7 @@ pub fn pending_packet_summary(
     chain: &impl ChainHandle,
     counterparty_chain: &impl ChainHandle,
     channel: &IdentifiedChannelEnd,
+    pagination: Paginate,
 ) -> Result<PendingPackets, Error> {
     let counterparty = channel.channel_end.counterparty();
     let counterparty_channel_id = counterparty
@@ -627,7 +643,7 @@ pub fn pending_packet_summary(
         .ok_or_else(Error::missing_counterparty_channel_id)?;
 
     let (commitments_on_src, _) =
-        commitments_on_chain(chain, &channel.port_id, &channel.channel_id)?;
+        commitments_on_chain(chain, &channel.port_id, &channel.channel_id, pagination)?;
 
     let unreceived = unreceived_packets_sequences(
         counterparty_chain,
@@ -641,6 +657,7 @@ pub fn pending_packet_summary(
         &counterparty.port_id,
         counterparty_channel_id,
         commitments_on_src,
+        Paginate::All,
     )?;
 
     let pending_acks = if let Some((acks_on_counterparty, _)) = acks_on_counterparty {

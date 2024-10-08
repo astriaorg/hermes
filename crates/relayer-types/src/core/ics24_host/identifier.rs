@@ -1,8 +1,6 @@
-use std::{
-    convert::{From, Infallible},
-    fmt::{Debug, Display, Error as FmtError, Formatter},
-    str::FromStr,
-};
+use std::convert::Infallible;
+use std::fmt::{Debug, Display, Error as FmtError, Formatter};
+use std::str::FromStr;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -178,9 +176,6 @@ impl ClientId {
     pub fn prefix(client_type: ClientType) -> &'static str {
         match client_type {
             ClientType::Tendermint => ClientType::Tendermint.as_str(),
-
-            #[cfg(any(test, feature = "mocks"))]
-            ClientType::Mock => ClientType::Mock.as_str(),
         }
     }
 

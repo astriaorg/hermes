@@ -2,15 +2,12 @@ use ibc_proto::{
     ibc::core::channel::v1::MsgChannelCloseConfirm as RawMsgChannelCloseConfirm, Protobuf,
 };
 
-use crate::{
-    core::{
-        ics04_channel::error::Error,
-        ics24_host::identifier::{ChannelId, PortId},
-    },
-    proofs::Proofs,
-    signer::Signer,
-    tx_msg::Msg,
-};
+use crate::core::ics04_channel::error::Error;
+use crate::core::ics04_channel::packet::Sequence;
+use crate::core::ics24_host::identifier::{ChannelId, PortId};
+use crate::proofs::Proofs;
+use crate::signer::Signer;
+use crate::tx_msg::Msg;
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelCloseConfirm";
 
@@ -24,6 +21,7 @@ pub struct MsgChannelCloseConfirm {
     pub channel_id: ChannelId,
     pub proofs: Proofs,
     pub signer: Signer,
+    pub counterparty_upgrade_sequence: Sequence,
 }
 
 impl MsgChannelCloseConfirm {
@@ -33,6 +31,7 @@ impl MsgChannelCloseConfirm {
             channel_id,
             proofs,
             signer,
+            counterparty_upgrade_sequence: Sequence::from(0),
         }
     }
 }
@@ -77,6 +76,7 @@ impl TryFrom<RawMsgChannelCloseConfirm> for MsgChannelCloseConfirm {
             channel_id: raw_msg.channel_id.parse().map_err(Error::identifier)?,
             proofs,
             signer: raw_msg.signer.parse().map_err(Error::signer)?,
+            counterparty_upgrade_sequence: raw_msg.counterparty_upgrade_sequence.into(),
         })
     }
 }
@@ -89,6 +89,7 @@ impl From<MsgChannelCloseConfirm> for RawMsgChannelCloseConfirm {
             proof_init: domain_msg.proofs.object_proof().clone().into(),
             proof_height: Some(domain_msg.proofs.height().into()),
             signer: domain_msg.signer.to_string(),
+            counterparty_upgrade_sequence: domain_msg.counterparty_upgrade_sequence.into(),
         }
     }
 }
@@ -116,6 +117,7 @@ pub mod test_util {
                 revision_height: proof_height,
             }),
             signer: get_dummy_bech32_account(),
+            counterparty_upgrade_sequence: 0,
         }
     }
 }

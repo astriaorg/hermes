@@ -1,6 +1,6 @@
 use std::fs;
 
-use abscissa_core::{clap::Parser, Command, Runnable};
+use abscissa_core::clap::Parser;
 
 use crate::{conclude::Output, config, prelude::*};
 

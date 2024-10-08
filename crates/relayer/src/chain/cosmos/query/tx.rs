@@ -84,6 +84,12 @@ pub async fn query_txs(
         }
 
         QueryTxRequest::Transaction(tx) => {
+            crate::time!(
+                "query_txs: transaction hash",
+                {
+                    "src_chain": chain_id,
+                }
+            );
             let mut response = rpc_client
                 .tx_search(
                     tx_hash_query(&tx),
