@@ -139,12 +139,14 @@ impl SigningKeyPair for Ed25519KeyPair {
                 bs58::encode(&self.signing_key.verifying_key()).into_string()
             }
             Ed25519AddressType::Astria => {
+                use astria_core::primitive::v1::Bech32m;
                 use astria_core::{crypto::VerificationKey, primitive::v1::Address};
+
                 let verification_key =
                     VerificationKey::try_from(self.signing_key.verifying_key().to_bytes())
                         .expect("can convert ed25519 public key bytes to astria verification key");
-                let address = Address::builder()
-                    .array(verification_key.address_bytes())
+                let address: Address<Bech32m> = Address::builder()
+                    .array(*verification_key.address_bytes())
                     .prefix("astria")
                     .try_build()
                     .expect("can build astria address from ed25519 public key");

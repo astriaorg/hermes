@@ -788,12 +788,19 @@ impl ChainConfig {
                 .get(channel_id)
                 .map(|seqs| Cow::Borrowed(seqs.as_slice()))
                 .unwrap_or_else(|| Cow::Owned(Vec::new())),
+            Self::Astria(config) => config
+                .excluded_sequences
+                .map
+                .get(channel_id)
+                .map(|seqs| Cow::Borrowed(seqs.as_slice()))
+                .unwrap_or_else(|| Cow::Owned(Vec::new())),
         }
     }
 
     pub fn allow_ccq(&self) -> bool {
         match self {
             Self::CosmosSdk(config) => config.allow_ccq,
+            Self::Astria(config) => config.allow_ccq,
         }
     }
 }
@@ -822,7 +829,9 @@ impl<'de> Deserialize<'de> for ChainConfig {
             "CosmosSdk" => CosmosSdkConfig::deserialize(value)
                 .map(Self::CosmosSdk)
                 .map_err(|e| serde::de::Error::custom(format!("invalid CosmosSdk config: {e}"))),
-
+            "Astria" => CosmosSdkConfig::deserialize(value)
+                .map(Self::Astria)
+                .map_err(|e| serde::de::Error::custom(format!("invalid Astria config: {e}"))),
             //
             // <-- Add new chain types here -->
             //

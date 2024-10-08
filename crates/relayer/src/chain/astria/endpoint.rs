@@ -1,6 +1,7 @@
 use alloc::sync::Arc;
 use std::{str::FromStr as _, time::Duration};
 
+use ibc_proto::ibc::core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest};
 use ibc_proto::ibc::{
     apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
     core::{
@@ -9,6 +10,8 @@ use ibc_proto::ibc::{
         connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
     },
 };
+use ibc_relayer_types::core::ics02_client::height::Height;
+use ibc_relayer_types::core::ics04_channel::upgrade::{ErrorReceipt, Upgrade};
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     clients::ics07_tendermint::{
@@ -64,6 +67,7 @@ use crate::{
     light_client::{tendermint::LightClient, LightClient as _},
     misbehaviour::MisbehaviourEvidence,
 };
+use astria_core::protocol::transaction::v1alpha1::UnsignedTransactionBuilder;
 
 const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -165,7 +169,10 @@ impl AstriaEndpoint {
                 *batch_delay,
                 self.rt.clone(),
             ),
-            Mode::Pull { interval, max_retries } => EventSource::rpc(
+            Mode::Pull {
+                interval,
+                max_retries,
+            } => EventSource::rpc(
                 self.id().clone(),
                 self.sequencer_client.clone(),
                 *interval,
@@ -184,16 +191,13 @@ impl AstriaEndpoint {
             crypto::{SigningKey, VerificationKey},
             generated::protocol::transactions::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
             primitive::v1::Address,
-            protocol::transaction::v1alpha1::{
-                action::Ics20Withdrawal, Action, TransactionParams, UnsignedTransaction,
-            },
+            protocol::transaction::v1alpha1::{action::Ics20Withdrawal, Action},
             Protobuf as _,
         };
         use astria_sequencer_client::SequencerClientExt as _;
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
         use penumbra_ibc::IbcRelay;
         use penumbra_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
-        use penumbra_proto::Message as _;
 
         let msg_len = tracked_msgs.msgs.len();
         let mut actions: Vec<Action> = Vec::with_capacity(msg_len);
@@ -232,13 +236,12 @@ impl AstriaEndpoint {
             .await
             .map_err(|e| Error::other(Box::new(e)))?;
 
-        let unsigned_tx = UnsignedTransaction {
-            params: TransactionParams::builder()
-                .nonce(nonce.nonce)
-                .chain_id(self.id().to_string())
-                .build(),
-            actions,
-        };
+        let unsigned_tx = UnsignedTransactionBuilder::new()
+            .nonce(nonce.nonce)
+            .chain_id(self.id().to_string())
+            .actions(actions)
+            .try_build()
+            .map_err(|e| Error::other(e.into()))?;
 
         let signed_tx = unsigned_tx.into_signed(&SigningKey::from(signing_key.to_bytes()));
         let tx_bytes = signed_tx.into_raw().encode_to_vec();
@@ -1469,6 +1472,24 @@ impl ChainEndpoint for AstriaEndpoint {
     }
 
     fn query_consumer_chains(&self) -> Result<Vec<(ChainId, ClientId)>, Error> {
+        todo!()
+    }
+
+    fn query_upgrade(
+        &self,
+        request: QueryUpgradeRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+        todo!()
+    }
+
+    fn query_upgrade_error(
+        &self,
+        request: QueryUpgradeErrorRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
         todo!()
     }
 }

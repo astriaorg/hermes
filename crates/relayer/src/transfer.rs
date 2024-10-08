@@ -170,6 +170,7 @@ fn build_transfer_message_astria(
     timeout_timestamp: Timestamp,
 ) -> Any {
     use astria_core::primitive::v1::{asset::Denom, Address};
+    use prost::Message as _;
 
     let sender: Address = sender
         .as_ref()
@@ -211,6 +212,7 @@ fn build_transfer_message_astria(
             .to_string(),
         memo: String::new(),
         bridge_address: None,
+        use_compat_address: false, // TODO: set to true for noble
     };
 
     Any {

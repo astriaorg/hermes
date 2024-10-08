@@ -2,8 +2,6 @@ use http::Uri;
 use ibc_relayer_types::{core::ics24_host::identifier::ChainId, Height};
 use tracing::{debug, warn};
 
-use ibc_relayer_types::{core::ics24_host::identifier::ChainId, Height};
-
 use crate::chain::requests::{QueryConsensusStateHeightsRequest, QueryConsensusStatesRequest};
 use crate::config::default::max_grpc_decoding_size;
 use crate::consensus_state::AnyConsensusStateWithHeight;
