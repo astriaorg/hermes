@@ -11,21 +11,11 @@ pub mod types;
 use alloc::collections::BTreeMap;
 use core::{
     cmp::Ordering,
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
+    fmt::{Display, Error as FmtError, Formatter},
     str::FromStr,
     time::Duration,
 };
-use std::{
-    fs,
-    fs::File,
-    io::Write,
-    ops::Range,
-    path::Path,
-};
+use std::{fs, fs::File, io::Write, ops::Range, path::Path};
 
 use byte_unit::Byte;
 pub use error::Error;
@@ -34,40 +24,23 @@ use ibc_proto::google::protobuf::Any;
 use ibc_relayer_types::{
     core::{
         ics23_commitment::specs::ProofSpecs,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
     },
     timestamp::ZERO_DURATION,
 };
 pub use refresh_rate::RefreshRate;
-use serde_derive::{
-    Deserialize,
-    Serialize,
-};
+use serde_derive::{Deserialize, Serialize};
 use tendermint::block::Height as BlockHeight;
-use tendermint_rpc::{
-    Url,
-    WebSocketClientUrl,
-};
+use tendermint_rpc::{Url, WebSocketClientUrl};
 
 pub use crate::config::Error as ConfigError;
 use crate::{
     chain::cosmos::config::CosmosSdkConfig,
-    config::types::{
-        ics20_field_size_limit::Ics20FieldSizeLimit,
-        TrustThreshold,
-    },
+    config::types::{ics20_field_size_limit::Ics20FieldSizeLimit, TrustThreshold},
     error::Error as RelayerError,
     extension_options::ExtensionOptionDynamicFeeTx,
     keyring,
-    keyring::{
-        AnySigningKeyPair,
-        KeyRing,
-        Store,
-    },
+    keyring::{AnySigningKeyPair, KeyRing, Store},
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -853,11 +826,7 @@ mod tests {
 
     use test_log::test;
 
-    use super::{
-        load,
-        parse_gas_prices,
-        store_writer,
-    };
+    use super::{load, parse_gas_prices, store_writer};
     use crate::config::GasPrice;
 
     #[test]

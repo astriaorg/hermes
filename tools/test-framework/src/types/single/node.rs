@@ -2,47 +2,25 @@
    Type definition for a single running full node.
 */
 
-use core::{
-    str::FromStr,
-    time::Duration,
-};
-use std::sync::{
-    Arc,
-    RwLock,
-};
+use core::{str::FromStr, time::Duration};
+use std::sync::{Arc, RwLock};
 
-use eyre::{
-    eyre,
-    Report as Error,
-};
+use eyre::{eyre, Report as Error};
 use ibc_relayer::{
     chain::cosmos::config::CosmosSdkConfig,
     config,
-    config::{
-        compat_mode::CompatMode,
-        gas_multiplier::GasMultiplier,
-    },
+    config::{compat_mode::CompatMode, gas_multiplier::GasMultiplier},
     keyring::Store,
 };
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-use tendermint_rpc::{
-    Url,
-    WebSocketClientUrl,
-};
+use tendermint_rpc::{Url, WebSocketClientUrl};
 
 use crate::{
-    chain::{
-        chain_type::ChainType as TestedChainType,
-        driver::ChainDriver,
-    },
+    chain::{chain_type::ChainType as TestedChainType, driver::ChainDriver},
     ibc::denom::Denom,
     prelude::TestConfig,
     types::{
-        env::{
-            prefix_writer,
-            EnvWriter,
-            ExportEnv,
-        },
+        env::{prefix_writer, EnvWriter, ExportEnv},
         process::ChildProcess,
         tagged::*,
         wallet::TestWallets,

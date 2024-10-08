@@ -6,15 +6,9 @@ use tokio::runtime::Runtime as TokioRuntime;
 
 use crate::{
     chain::{
-        astria::AstriaEndpoint,
-        cosmos::CosmosSdkChain,
-        handle::ChainHandle,
-        runtime::ChainRuntime,
+        astria::AstriaEndpoint, cosmos::CosmosSdkChain, handle::ChainHandle, runtime::ChainRuntime,
     },
-    config::{
-        ChainConfig,
-        Config,
-    },
+    config::{ChainConfig, Config},
     error::Error as RelayerError,
 };
 

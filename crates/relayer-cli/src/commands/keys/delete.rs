@@ -1,25 +1,12 @@
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
+use abscissa_core::{clap::Parser, Command, Runnable};
 use eyre::eyre;
 use ibc_relayer::{
-    config::{
-        ChainConfig,
-        Config,
-    },
-    keyring::{
-        KeyRing,
-        Store,
-    },
+    config::{ChainConfig, Config},
+    keyring::{KeyRing, Store},
 };
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 
-use crate::{
-    application::app_config,
-    conclude::Output,
-};
+use crate::{application::app_config, conclude::Output};
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 #[clap(

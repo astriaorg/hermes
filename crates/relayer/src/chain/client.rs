@@ -1,10 +1,6 @@
 //! Data structures and logic to set up IBC client's parameters.
 
-use crate::{
-    chain::cosmos,
-    config::ChainConfig,
-    foreign_client::CreateOptions,
-};
+use crate::{chain::cosmos, config::ChainConfig, foreign_client::CreateOptions};
 
 /// Client parameters for the `build_create_client` operation.
 ///

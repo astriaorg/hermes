@@ -1,10 +1,7 @@
 use ibc_proto::cosmos::tx::v1beta1::Fee;
 
 use crate::{
-    chain::cosmos::{
-        calculate_fee,
-        config::CosmosSdkConfig,
-    },
+    chain::cosmos::{calculate_fee, config::CosmosSdkConfig},
     config::GasPrice,
 };
 
