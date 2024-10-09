@@ -1,20 +1,9 @@
 use eyre::eyre;
 use std::ops::RangeInclusive;
 
-use abscissa_core::{clap::Parser, config::Override, Command, FrameworkErrorKind, Runnable};
-use ibc_relayer::{
-    chain::handle::{BaseChainHandle, ChainHandle},
-    config::Config,
-    link::{error::LinkError, Link, LinkParameters},
-    util::seq_range::parse_seq_range,
-};
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChainId, ChannelId, PortId},
-    },
-    events::IbcEvent,
-};
+use abscissa_core::clap::Parser;
+use abscissa_core::config::Override;
+use abscissa_core::{Command, FrameworkErrorKind, Runnable};
 
 use ibc_relayer::chain::handle::{BaseChainHandle, ChainHandle};
 use ibc_relayer::chain::requests::{IncludeProof, QueryChannelRequest, QueryHeight};
@@ -276,13 +265,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::ClearPacketsCmd;
+
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc_relayer_types::core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChainId, ChannelId, PortId},
-    };
+    use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
 
     #[test]
     fn test_clear_packets_required_only() {

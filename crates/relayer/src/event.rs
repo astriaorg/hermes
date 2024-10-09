@@ -660,15 +660,7 @@ pub fn parse_timeout_height(s: &str) -> Result<TimeoutHeight, ChannelError> {
 
 #[cfg(test)]
 mod tests {
-    use ibc_proto::{google::protobuf::Any, Protobuf};
-    use ibc_relayer_types::{
-        clients::ics07_tendermint::header::test_util::get_dummy_ics07_header,
-        core::{
-            ics02_client::header::{decode_header, AnyHeader},
-            ics04_channel::packet::Sequence,
-        },
-        timestamp::Timestamp,
-    };
+    use super::*;
 
     #[test]
     fn connection_event_to_abci_event() {

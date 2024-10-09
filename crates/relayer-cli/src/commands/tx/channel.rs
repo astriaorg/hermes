@@ -11,8 +11,12 @@ use ibc_relayer_types::core::ics04_channel::channel::Ordering;
 use ibc_relayer_types::core::ics24_host::identifier::{
     ChainId, ChannelId, ClientId, ConnectionId, PortId,
 };
+use ibc_relayer_types::events::IbcEvent;
 
-use crate::{cli_utils::ChainHandlePair, conclude::Output, error::Error, prelude::*};
+use crate::cli_utils::ChainHandlePair;
+use crate::conclude::Output;
+use crate::error::Error;
+use crate::prelude::*;
 
 /// Macro that generates the `Runnable::run` implementation for a
 /// `tx channel` subcommand.

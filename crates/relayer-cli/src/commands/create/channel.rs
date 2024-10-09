@@ -2,29 +2,19 @@ use abscissa_core::clap::Parser;
 
 use console::style;
 use dialoguer::Confirm;
+
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{
+    IncludeProof, QueryClientStateRequest, QueryConnectionRequest, QueryHeight,
+};
 use ibc_relayer::channel::Channel;
 use ibc_relayer::config::default::connection_delay;
 use ibc_relayer::connection::Connection;
 use ibc_relayer::foreign_client::ForeignClient;
-use ibc_relayer::{
-    chain::{
-        handle::ChainHandle,
-        requests::{IncludeProof, QueryClientStateRequest, QueryConnectionRequest, QueryHeight},
-    },
-    channel::Channel,
-    config::default::connection_delay,
-    connection::Connection,
-    foreign_client::ForeignClient,
-};
 use ibc_relayer_types::core::ics03_connection::connection::IdentifiedConnectionEnd;
 use ibc_relayer_types::core::ics04_channel::channel::Ordering;
 use ibc_relayer_types::core::ics04_channel::version::Version;
 use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ConnectionId, PortId};
-use ibc_relayer_types::core::{
-    ics03_connection::connection::IdentifiedConnectionEnd,
-    ics04_channel::{channel::Ordering, version::Version},
-    ics24_host::identifier::{ChainId, ConnectionId, PortId},
-};
 
 use crate::cli_utils::{spawn_chain_runtime, ChainHandlePair};
 use crate::conclude::{exit_with_unrecoverable_error, Output};

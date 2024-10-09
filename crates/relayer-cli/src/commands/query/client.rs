@@ -8,11 +8,15 @@ use ibc_relayer::chain::requests::{
     QueryHeight, QueryTxRequest,
 };
 
-use crate::{
-    application::app_config,
-    cli_utils::spawn_chain_runtime,
-    conclude::{exit_with_unrecoverable_error, Output},
-};
+use ibc_relayer_types::core::ics02_client::client_state::ClientState;
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use ibc_relayer_types::core::ics24_host::identifier::ClientId;
+use ibc_relayer_types::events::WithBlockDataType;
+use ibc_relayer_types::Height;
+
+use crate::application::app_config;
+use crate::cli_utils::spawn_chain_runtime;
+use crate::conclude::{exit_with_unrecoverable_error, Output};
 
 /// Query client state command
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]

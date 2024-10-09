@@ -989,6 +989,7 @@ mod tests {
             super::ChainConfig::CosmosSdk(_) => {
                 // all good
             }
+            super::ChainConfig::Astria(_) => panic!("expected CosmosSdk chain type"),
         }
     }
 
@@ -1016,10 +1017,12 @@ mod tests {
 
         let excluded_sequences1 = match config.chains.first().unwrap() {
             ChainConfig::CosmosSdk(chain_config) => chain_config.excluded_sequences.clone(),
+            ChainConfig::Astria(chain_config) => chain_config.excluded_sequences.clone(),
         };
 
         let excluded_sequences2 = match config.chains.last().unwrap() {
             ChainConfig::CosmosSdk(chain_config) => chain_config.excluded_sequences.clone(),
+            ChainConfig::Astria(chain_config) => chain_config.excluded_sequences.clone(),
         };
 
         assert_eq!(excluded_sequences1, excluded_sequences2);

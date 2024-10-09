@@ -10,30 +10,11 @@ use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
 use ibc_relayer_types::events::IbcEvent;
 use std::ops::Deref;
 
-use abscissa_core::{clap::Parser, Command, Runnable};
+use crate::cli_utils::{spawn_chain_runtime, spawn_chain_runtime_generic};
+use crate::conclude::Output;
+use crate::prelude::*;
 use eyre::eyre;
-use ibc_relayer::{
-    chain::{
-        handle::ChainHandle,
-        requests::{IncludeProof, QueryClientStateRequest, QueryHeight},
-    },
-    config::Config,
-    foreign_client::{ForeignClient, MisbehaviourResults},
-    util::pretty::PrettySlice,
-};
-use ibc_relayer_types::{
-    core::{
-        ics02_client::{client_state::ClientState, events::UpdateClient},
-        ics24_host::identifier::{ChainId, ClientId},
-    },
-    events::IbcEvent,
-};
-
-use crate::{
-    cli_utils::{spawn_chain_runtime, spawn_chain_runtime_generic},
-    conclude::Output,
-    prelude::*,
-};
+use ibc_relayer_types::core::ics02_client::client_state::ClientState;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct MisbehaviourCmd {

@@ -16,7 +16,6 @@ use crate::error::Error;
 use crate::prelude::*;
 
 use super::util::CollatedPendingPackets;
-use crate::{cli_utils::spawn_chain_counterparty, conclude::Output, error::Error, prelude::*};
 
 /// A structure to display pending packet commitment sequence IDs
 /// at both ends of a channel.

@@ -4,12 +4,17 @@ use ibc_relayer::chain::requests::{
     IncludeProof, PageRequest, QueryConnectionChannelsRequest, QueryConnectionRequest, QueryHeight,
 };
 
-use crate::{
-    cli_utils::spawn_chain_runtime,
-    conclude::{exit_with_unrecoverable_error, Output},
-    error::Error,
-    prelude::*,
+use ibc_relayer_types::core::{
+    ics03_connection::connection::State,
+    ics24_host::identifier::ConnectionId,
+    ics24_host::identifier::{ChainId, PortChannelId},
 };
+use ibc_relayer_types::Height;
+
+use crate::cli_utils::spawn_chain_runtime;
+use crate::conclude::{exit_with_unrecoverable_error, Output};
+use crate::error::Error;
+use crate::prelude::*;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct QueryConnectionEndCmd {

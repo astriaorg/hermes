@@ -5,14 +5,11 @@ use itertools::Itertools;
 
 use crate::conclude::Output;
 
-use abscissa_core::{clap::Parser, Command, Runnable};
 use ibc_relayer::config::{store, ChainConfig, Config};
 
 use std::collections::HashSet;
 use std::path::PathBuf;
 use tracing::{error, info, warn};
-
-use crate::{chain_registry::get_configs, conclude::Output};
 
 fn find_key(chain_config: &ChainConfig) -> Option<String> {
     let keys = chain_config.list_keys().ok()?;

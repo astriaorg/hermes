@@ -99,7 +99,7 @@ impl UriFormatter for SimpleGrpcFormatter {
 
 #[cfg(test)]
 mod tests {
-    use std::{cmp::PartialEq, fmt::Debug};
+    use super::*;
 
     use std::fmt::Debug;
 
