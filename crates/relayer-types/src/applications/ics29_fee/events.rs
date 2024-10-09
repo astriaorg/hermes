@@ -1,13 +1,7 @@
-use std::{
-    fmt::Display,
-    str::FromStr,
-};
+use std::{fmt::Display, str::FromStr};
 
 use itertools::Itertools;
-use serde_derive::{
-    Deserialize,
-    Serialize,
-};
+use serde_derive::{Deserialize, Serialize};
 use tendermint::abci;
 
 use super::error::Error;
@@ -15,10 +9,7 @@ use crate::{
     applications::transfer::coin::RawCoin,
     core::{
         ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChannelId, PortId},
     },
     events::IbcEventType,
     signer::Signer,
@@ -38,12 +29,17 @@ fn find_value<'a>(key: &str, entries: &'a [abci::EventAttribute]) -> Result<&'a 
     entries
         .iter()
         .find_map(|entry| {
-            if entry.key == key {
-                Some(entry.value.as_str())
+            if entry.key_bytes() == key.as_bytes() {
+                Some(
+                    entry
+                        .value_str()
+                        .map_err(|_| Error::event_attribute_invalid_utf8(key.to_owned())),
+                )
             } else {
                 None
             }
         })
+        .transpose()?
         .ok_or_else(|| Error::event_attribute_not_found(key.to_owned()))
 }
 

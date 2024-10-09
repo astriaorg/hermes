@@ -2,105 +2,61 @@
    Functions for bootstrapping N-ary number of channels.
 */
 
-use core::{
-    convert::TryInto,
-    time::Duration,
-};
-
+use core::time::Duration;
 use ibc_relayer::chain::handle::ChainHandle;
-use ibc_relayer_types::core::{
-    ics04_channel::channel::Ordering,
-    ics24_host::identifier::PortId,
-};
+use ibc_relayer_types::core::ics04_channel::channel::Ordering;
+use ibc_relayer_types::core::ics24_host::identifier::PortId;
 
-use crate::{
-    bootstrap::{
-        binary::channel::{
-            bootstrap_channel_with_connection,
-            BootstrapChannelOptions,
-        },
-        nary::connection::bootstrap_connections_dynamic,
-    },
-    error::{
-        handle_generic_error,
-        Error,
-    },
-    types::{
-        binary::channel::ConnectedChannel,
-        nary::{
-            chains::{
-                DynamicConnectedChains,
-                NaryConnectedChains,
-            },
-            channel::{
-                ConnectedChannels,
-                DynamicConnectedChannels,
-            },
-            connection::{
-                ConnectedConnections,
-                DynamicConnectedConnections,
-            },
-        },
-        tagged::*,
-    },
-    util::array::{
-        assert_same_dimension,
-        into_nested_vec,
-    },
+use crate::bootstrap::binary::channel::{
+    bootstrap_channel_with_connection, BootstrapChannelOptions,
 };
+use crate::bootstrap::nary::connection::bootstrap_connections_dynamic;
+use crate::error::{handle_generic_error, Error};
+use crate::types::binary::channel::ConnectedChannel;
+use crate::types::nary::chains::{DynamicConnectedChains, NaryConnectedChains};
+use crate::types::nary::channel::{ConnectedChannels, DynamicConnectedChannels};
+use crate::types::nary::connection::{ConnectedConnections, DynamicConnectedConnections};
+use crate::types::tagged::*;
+use crate::util::array::into_nested_vec;
+use crate::util::two_dim_hash_map::TwoDimMap;
 
 /**
    Bootstrap a dynamic number of channels based on the number of
    connections in `DynamicConnectedConnections`.
+   See [`crate::types::topology`] for more information.
 */
 pub fn bootstrap_channels_with_connections_dynamic<Handle: ChainHandle>(
     connections: DynamicConnectedConnections<Handle>,
-    chains: &Vec<Handle>,
     ports: &Vec<Vec<PortId>>,
     order: Ordering,
     bootstrap_with_random_ids: bool,
 ) -> Result<DynamicConnectedChannels<Handle>, Error> {
-    let size = chains.len();
+    let mut channels: TwoDimMap<ConnectedChannel<Handle, Handle>> = TwoDimMap::new();
 
-    assert_same_dimension(size, connections.connections())?;
-    assert_same_dimension(size, ports)?;
+    for (src_chain, dst_chain, connection) in connections.connections().iter() {
+        let channel = if let Some(counterparty_channel) = channels.get((dst_chain, src_chain)) {
+            counterparty_channel.clone().flip()
+        } else {
+            // No channel is found, will create one
+            let chain_a = &connection.connection.a_chain();
+            let chain_b = &connection.connection.b_chain();
+            let port_a = ports[src_chain][dst_chain].clone();
+            let port_b = ports[dst_chain][src_chain].clone();
 
-    let mut channels: Vec<Vec<ConnectedChannel<Handle, Handle>>> = Vec::new();
+            let bootstrap_options = BootstrapChannelOptions::default()
+                .order(order)
+                .bootstrap_with_random_ids(bootstrap_with_random_ids);
 
-    for (i, connections_b) in connections.connections().iter().enumerate() {
-        let mut channels_b: Vec<ConnectedChannel<Handle, Handle>> = Vec::new();
-
-        for (j, connection) in connections_b.iter().enumerate() {
-            if i <= j {
-                let chain_a = &chains[i];
-                let chain_b = &chains[j];
-
-                let port_a = &ports[i][j];
-                let port_b = &ports[j][i];
-
-                let bootstrap_options = BootstrapChannelOptions::default()
-                    .order(order)
-                    .bootstrap_with_random_ids(bootstrap_with_random_ids);
-
-                let channel = bootstrap_channel_with_connection(
-                    chain_a,
-                    chain_b,
-                    connection.clone(),
-                    &DualTagged::new(port_a),
-                    &DualTagged::new(port_b),
-                    bootstrap_options,
-                )?;
-
-                channels_b.push(channel);
-            } else {
-                let counter_channel = &channels[j][i];
-                let channel = counter_channel.clone().flip();
-
-                channels_b.push(channel);
-            }
-        }
-
-        channels.push(channels_b);
+            bootstrap_channel_with_connection(
+                chain_a,
+                chain_b,
+                connection.clone(),
+                &DualTagged::new(&port_a),
+                &DualTagged::new(&port_b),
+                bootstrap_options,
+            )?
+        };
+        channels.insert((src_chain, dst_chain), channel);
     }
 
     Ok(DynamicConnectedChannels::new(channels))
@@ -112,14 +68,12 @@ pub fn bootstrap_channels_with_connections_dynamic<Handle: ChainHandle>(
 */
 pub fn bootstrap_channels_with_connections<Handle: ChainHandle, const SIZE: usize>(
     connections: ConnectedConnections<Handle, SIZE>,
-    chains: [Handle; SIZE],
     ports: [[PortId; SIZE]; SIZE],
     order: Ordering,
     bootstrap_with_random_ids: bool,
 ) -> Result<ConnectedChannels<Handle, SIZE>, Error> {
     let channels = bootstrap_channels_with_connections_dynamic(
         connections.into(),
-        &chains.into(),
         &into_nested_vec(ports),
         order,
         bootstrap_with_random_ids,
@@ -148,7 +102,6 @@ pub fn bootstrap_channels_and_connections_dynamic<Handle: ChainHandle>(
 
     bootstrap_channels_with_connections_dynamic(
         connections,
-        chains.chain_handles(),
         ports,
         order,
         bootstrap_with_random_ids,

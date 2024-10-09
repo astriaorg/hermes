@@ -1,15 +1,9 @@
-use ibc_proto::{
-    ibc::core::channel::v1::MsgChannelCloseInit as RawMsgChannelCloseInit,
-    Protobuf,
-};
+use ibc_proto::{ibc::core::channel::v1::MsgChannelCloseInit as RawMsgChannelCloseInit, Protobuf};
 
 use crate::{
     core::{
         ics04_channel::error::Error,
-        ics24_host::identifier::{
-            ChannelId,
-            PortId,
-        },
+        ics24_host::identifier::{ChannelId, PortId},
     },
     signer::Signer,
     tx_msg::Msg,
@@ -17,9 +11,7 @@ use crate::{
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelCloseInit";
 
-///
 /// Message definition for the first step in the channel close handshake (`ChanCloseInit` datagram).
-///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MsgChannelCloseInit {
     pub port_id: PortId,
@@ -80,10 +72,7 @@ pub mod test_util {
     use ibc_proto::ibc::core::channel::v1::MsgChannelCloseInit as RawMsgChannelCloseInit;
 
     use crate::{
-        core::ics24_host::identifier::{
-            ChannelId,
-            PortId,
-        },
+        core::ics24_host::identifier::{ChannelId, PortId},
         test_utils::get_dummy_bech32_account,
     };
 
@@ -104,8 +93,7 @@ mod tests {
     use test_log::test;
 
     use crate::core::ics04_channel::msgs::chan_close_init::{
-        test_util::get_dummy_raw_msg_chan_close_init,
-        MsgChannelCloseInit,
+        test_util::get_dummy_raw_msg_chan_close_init, MsgChannelCloseInit,
     };
 
     #[test]

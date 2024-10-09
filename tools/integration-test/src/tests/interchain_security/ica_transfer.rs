@@ -3,37 +3,21 @@
 //! the second chain a Consumer chain.
 use std::str::FromStr;
 
-use ibc_relayer::{
-    chain::tracking::TrackedMsgs,
-    event::IbcEventWithHeight,
-};
-use ibc_relayer_types::{
-    applications::{
-        ics27_ica::{
-            cosmos_tx::CosmosTx,
-            msgs::send_tx::MsgSendTx,
-            packet_data::InterchainAccountPacketData,
-        },
-        transfer::{
-            msgs::send::MsgSend,
-            Amount,
-            Coin,
-        },
-    },
-    bigint::U256,
-    signer::Signer,
-    timestamp::Timestamp,
-    tx_msg::Msg,
-};
-use ibc_test_framework::{
-    chain::ext::ica::register_interchain_account,
-    framework::binary::channel::run_binary_interchain_security_channel_test,
-    prelude::*,
-    relayer::channel::assert_eventually_channel_established,
-    util::interchain_security::{
-        update_genesis_for_consumer_chain,
-        update_relayer_config_for_consumer_chain,
-    },
+use ibc_relayer_types::applications::ics27_ica::cosmos_tx::CosmosTx;
+use ibc_relayer_types::applications::ics27_ica::packet_data::InterchainAccountPacketData;
+use ibc_relayer_types::applications::transfer::msgs::send::MsgSend;
+use ibc_relayer_types::applications::transfer::{Amount, Coin};
+use ibc_relayer_types::bigint::U256;
+use ibc_relayer_types::signer::Signer;
+use ibc_relayer_types::timestamp::Timestamp;
+use ibc_relayer_types::tx_msg::Msg;
+use ibc_test_framework::chain::config::add_allow_message_interchainaccounts;
+use ibc_test_framework::chain::ext::ica::register_unordered_interchain_account;
+use ibc_test_framework::framework::binary::channel::run_binary_interchain_security_channel_test;
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::relayer::channel::assert_eventually_channel_established;
+use ibc_test_framework::util::interchain_security::{
+    interchain_send_tx, update_genesis_for_consumer_chain, update_relayer_config_for_consumer_chain,
 };
 
 #[test]
@@ -45,23 +29,7 @@ struct InterchainSecurityIcaTransferTest;
 
 impl TestOverrides for InterchainSecurityIcaTransferTest {
     fn modify_genesis_file(&self, genesis: &mut serde_json::Value) -> Result<(), Error> {
-        use serde_json::Value;
-
-        // Allow MsgSend messages over ICA
-        let allow_messages = genesis
-            .get_mut("app_state")
-            .and_then(|app_state| app_state.get_mut("interchainaccounts"))
-            .and_then(|ica| ica.get_mut("host_genesis_state"))
-            .and_then(|state| state.get_mut("params"))
-            .and_then(|params| params.get_mut("allow_messages"))
-            .and_then(|allow_messages| allow_messages.as_array_mut());
-
-        if let Some(allow_messages) = allow_messages {
-            allow_messages.push(Value::String("/cosmos.bank.v1beta1.MsgSend".to_string()));
-        } else {
-            return Err(Error::generic(eyre!("failed to update genesis file")));
-        }
-
+        add_allow_message_interchainaccounts(genesis, "/cosmos.bank.v1beta1.MsgSend")?;
         update_genesis_for_consumer_chain(genesis)?;
 
         Ok(())
@@ -81,14 +49,19 @@ impl TestOverrides for InterchainSecurityIcaTransferTest {
 impl BinaryChannelTest for InterchainSecurityIcaTransferTest {
     fn run<ChainA: ChainHandle, ChainB: ChainHandle>(
         &self,
-        _config: &TestConfig,
+        config: &TestConfig,
         _relayer: RelayerDriver,
         chains: ConnectedChains<ChainA, ChainB>,
         channel: ConnectedChannel<ChainA, ChainB>,
     ) -> Result<(), Error> {
+        let fee_denom_a: MonoTagged<ChainA, Denom> =
+            MonoTagged::new(Denom::base(config.native_token(0)));
         let connection_b_to_a = channel.connection.clone().flip();
-        let (wallet, channel_id, port_id) =
-            register_interchain_account(&chains.node_b, chains.handle_b(), &connection_b_to_a)?;
+        let (wallet, channel_id, port_id) = register_unordered_interchain_account(
+            &chains.node_b,
+            chains.handle_b(),
+            &connection_b_to_a,
+        )?;
 
         // Check that the corresponding ICA channel is eventually established.
         let _counterparty_channel_id = assert_eventually_channel_established(
@@ -118,6 +91,7 @@ impl BinaryChannelTest for InterchainSecurityIcaTransferTest {
             &chains.node_a.wallets().user1(),
             &ica_address.as_ref(),
             &stake_denom.with_amount(ica_fund).as_ref(),
+            &fee_denom_a.with_amount(381000000u64).as_ref(),
         )?;
 
         chains.node_a.chain_driver().assert_eventual_wallet_amount(
@@ -165,29 +139,7 @@ impl BinaryChannelTest for InterchainSecurityIcaTransferTest {
             &ica_address.as_ref(),
             &stake_denom.with_amount(ica_fund - amount).as_ref(),
         )?;
+
         Ok(())
     }
-}
-
-fn interchain_send_tx<ChainA: ChainHandle>(
-    chain: &ChainA,
-    from: &Signer,
-    connection: &ConnectionId,
-    msg: InterchainAccountPacketData,
-    relative_timeout: Timestamp,
-) -> Result<Vec<IbcEventWithHeight>, Error> {
-    let msg = MsgSendTx {
-        owner: from.clone(),
-        connection_id: connection.clone(),
-        packet_data: msg,
-        relative_timeout,
-    };
-
-    let msg_any = msg.to_any();
-
-    let tm = TrackedMsgs::new_static(vec![msg_any], "SendTx");
-
-    chain
-        .send_messages_and_wait_commit(tm)
-        .map_err(Error::relayer)
 }

@@ -1,86 +1,40 @@
-use alloc::{
-    collections::btree_map::BTreeMap as HashMap,
-    sync::Arc,
-};
-use core::{
-    convert::Infallible,
-    ops::Deref,
-    time::Duration,
-};
+use alloc::{collections::btree_map::BTreeMap as HashMap, sync::Arc};
+use core::{convert::Infallible, ops::Deref, time::Duration};
 use std::sync::RwLock;
 
-use crossbeam_channel::{
-    unbounded,
-    Receiver,
-    Sender,
-};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use ibc_relayer_types::{
-    core::ics24_host::identifier::{
-        ChainId,
-        ChannelId,
-        PortId,
-    },
+    core::ics24_host::identifier::{ChainId, ChannelId, PortId},
     events::IbcEvent,
     Height,
 };
 use itertools::Itertools;
-use tracing::{
-    debug,
-    error,
-    error_span,
-    info,
-    instrument,
-    trace,
-    warn,
-};
+use tracing::{debug, error, error_span, info, instrument, trace, warn};
 
 use crate::{
-    chain::{
-        endpoint::HealthCheck,
-        handle::ChainHandle,
-        tracking::TrackingId,
-    },
+    chain::{endpoint::HealthCheck, handle::ChainHandle, tracking::TrackingId},
     config::Config,
     event::{
-        source::{
-            self,
-            Error as EventError,
-            ErrorDetail as EventErrorDetail,
-            EventBatch,
-        },
+        source::{self, Error as EventError, ErrorDetail as EventErrorDetail, EventBatch},
         IbcEventWithHeight,
     },
     object::Object,
-    registry::{
-        Registry,
-        SharedRegistry,
-    },
+    registry::{Registry, SharedRegistry},
     rest,
     supervisor::scan::ScanMode,
     telemetry,
     util::{
         lock::LockExt,
-        task::{
-            spawn_background_task,
-            Next,
-            TaskError,
-            TaskHandle,
-        },
+        task::{spawn_background_task, Next, TaskError, TaskHandle},
     },
     worker::WorkerMap,
 };
 
 pub mod client_state_filter;
-use client_state_filter::{
-    FilterPolicy,
-    Permission,
-};
+use client_state_filter::{FilterPolicy, Permission};
 
 pub mod error;
-pub use error::{
-    Error,
-    ErrorDetail,
-};
+pub use error::{Error, ErrorDetail};
 
 pub mod dump_state;
 use dump_state::SupervisorState;
@@ -91,10 +45,7 @@ pub mod spawn;
 pub mod cmd;
 use cmd::SupervisorCmd;
 
-use self::{
-    scan::ChainScanner,
-    spawn::SpawnContext,
-};
+use self::{scan::ChainScanner, spawn::SpawnContext};
 
 type ArcBatch = Arc<source::Result<EventBatch>>;
 type Subscription = Receiver<ArcBatch>;
@@ -419,13 +370,15 @@ fn relay_on_object<Chain: ChainHandle>(
     };
 
     // Then, apply the client filter
+    // If the object is a CrossChain query discard it if the destination chain
+    // is not configured
     let client_filter_outcome = match object {
         Object::Client(client) => client_state_filter.control_client_object(registry, client),
         Object::Connection(conn) => client_state_filter.control_conn_object(registry, conn),
         Object::Channel(chan) => client_state_filter.control_chan_object(registry, chan),
         Object::Packet(packet) => client_state_filter.control_packet_object(registry, packet),
+        Object::CrossChainQuery(_ccq) => Ok(Permission::Allow),
         Object::Wallet(_wallet) => Ok(Permission::Allow),
-        Object::CrossChainQuery(_) => Ok(Permission::Allow),
     };
 
     match client_filter_outcome {
@@ -582,6 +535,31 @@ pub fn collect_events(
                     event_with_height.clone(),
                     mode.clients.enabled,
                     || Object::client_from_chan_open_events(&attributes, src_chain).ok(),
+                );
+            }
+            IbcEvent::UpgradeInitChannel(..)
+            | IbcEvent::UpgradeTryChannel(..)
+            | IbcEvent::UpgradeAckChannel(..)
+            | IbcEvent::UpgradeOpenChannel(..)
+            | IbcEvent::UpgradeErrorChannel(..) => {
+                collect_event(
+                    &mut collected,
+                    event_with_height.clone(),
+                    mode.channels.enabled,
+                    || {
+                        event_with_height
+                            .event
+                            .clone()
+                            .channel_upgrade_attributes()
+                            .and_then(|attr| {
+                                Object::channel_from_chan_upgrade_events(
+                                    &attr,
+                                    src_chain,
+                                    mode.connections.enabled,
+                                )
+                                .ok()
+                            })
+                    },
                 );
             }
             IbcEvent::SendPacket(ref packet) => {
@@ -834,8 +812,33 @@ fn process_batch<Chain: ChainHandle>(
         workers.notify_new_block(&src_chain.id(), batch.height, new_block);
     }
 
-    // Forward the IBC events.
+    // Forward the IBC events to the appropriate workers
     for (object, events_with_heights) in collected.per_object.into_iter() {
+        if events_with_heights.is_empty() {
+            // Event batch is empty, nothing to do
+            continue;
+        }
+
+        let Ok(src_chain) = registry.get_or_spawn(object.src_chain_id()) else {
+            trace!(
+                "skipping events for '{}': source chain '{}' is not registered",
+                object.short_name(),
+                object.src_chain_id()
+            );
+
+            continue;
+        };
+
+        let Ok(dst_chain) = registry.get_or_spawn(object.dst_chain_id()) else {
+            trace!(
+                "skipping events for '{}': destination chain '{}' is not registered",
+                object.short_name(),
+                object.src_chain_id()
+            );
+
+            continue;
+        };
+
         if !relay_on_object(
             config,
             registry,
@@ -844,32 +847,23 @@ fn process_batch<Chain: ChainHandle>(
             &object,
         ) {
             trace!(
-                "skipping events for '{}'. \
-                reason: filtering is enabled and channel does not match any allowed channels",
+                "skipping events for '{}': rejected by filtering policy",
                 object.short_name()
             );
 
             continue;
         }
 
-        if events_with_heights.is_empty() {
-            continue;
-        }
-
-        let src = registry
-            .get_or_spawn(object.src_chain_id())
-            .map_err(Error::spawn)?;
-
-        let dst = registry
-            .get_or_spawn(object.dst_chain_id())
-            .map_err(Error::spawn)?;
-
         if let Object::Packet(ref _path) = object {
-            // Update telemetry info
-            telemetry!(send_telemetry(&src, &dst, &events_with_heights, _path));
+            telemetry!(send_telemetry(
+                &src_chain,
+                &dst_chain,
+                &events_with_heights,
+                _path
+            ));
         }
 
-        let worker = workers.get_or_spawn(object, src, dst, config);
+        let worker = workers.get_or_spawn(object, src_chain, dst_chain, config);
 
         worker.send_events(
             batch.height,
@@ -893,7 +887,6 @@ fn process_batch<Chain: ChainHandle>(
 /// So successfully sending a packet from chain A to chain B will result in first a SendPacket
 /// event with `chain_id = A` and `counterparty_chain_id = B` and then a WriteAcknowlegment
 /// event with `chain_id = B` and `counterparty_chain_id = A`.
-#[cfg(feature = "telemetry")]
 fn send_telemetry<Src, Dst>(
     src: &Src,
     dst: &Dst,

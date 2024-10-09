@@ -1,32 +1,13 @@
 use core::any::Any;
 
-use bip39::{
-    Language,
-    Mnemonic,
-    Seed,
-};
-use ed25519_dalek::{
-    SigningKey,
-    VerifyingKey,
-};
-use ed25519_dalek_bip32::{
-    ChildIndex,
-    DerivationPath,
-    ExtendedSigningKey,
-};
+use bip39::{Language, Mnemonic, Seed};
+use ed25519_dalek::{SigningKey, VerifyingKey};
+use ed25519_dalek_bip32::{ChildIndex, DerivationPath, ExtendedSigningKey};
 use hdpath::StandardHDPath;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use signature::Signer;
 
-use super::{
-    errors::Error,
-    KeyFile,
-    KeyType,
-    SigningKeyPair,
-};
+use super::{errors::Error, KeyFile, KeyType, SigningKeyPair};
 use crate::config::AddressType;
 
 pub fn private_key_from_mnemonic(
@@ -158,15 +139,14 @@ impl SigningKeyPair for Ed25519KeyPair {
                 bs58::encode(&self.signing_key.verifying_key()).into_string()
             }
             Ed25519AddressType::Astria => {
-                use astria_core::{
-                    crypto::VerificationKey,
-                    primitive::v1::Address,
-                };
+                use astria_core::primitive::v1::Bech32m;
+                use astria_core::{crypto::VerificationKey, primitive::v1::Address};
+
                 let verification_key =
                     VerificationKey::try_from(self.signing_key.verifying_key().to_bytes())
                         .expect("can convert ed25519 public key bytes to astria verification key");
-                let address = Address::builder()
-                    .array(verification_key.address_bytes())
+                let address: Address<Bech32m> = Address::builder()
+                    .array(*verification_key.address_bytes())
                     .prefix("astria")
                     .try_build()
                     .expect("can build astria address from ed25519 public key");

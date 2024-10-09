@@ -1,30 +1,18 @@
 use core::time::Duration;
 
-use flex_error::{
-    define_error,
-    ErrorMessageTracer,
+use flex_error::{define_error, ErrorMessageTracer};
+
+use ibc_relayer_types::core::ics02_client::error::Error as ClientError;
+use ibc_relayer_types::core::ics04_channel::channel::{Ordering, State};
+use ibc_relayer_types::core::ics24_host::identifier::{
+    ChainId, ChannelId, ClientId, PortChannelId, PortId,
 };
-use ibc_relayer_types::{
-    core::{
-        ics02_client::error::Error as ClientError,
-        ics04_channel::channel::State,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            ClientId,
-            PortChannelId,
-            PortId,
-        },
-    },
-    events::IbcEvent,
-};
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::proofs::ProofError;
 
 use crate::{
     error::Error as RelayerError,
-    foreign_client::{
-        ForeignClientError,
-        HasExpiredOrFrozenError,
-    },
+    foreign_client::{ForeignClientError, HasExpiredOrFrozenError},
     supervisor::Error as SupervisorError,
 };
 
@@ -49,6 +37,16 @@ define_error! {
                     e.reason)
             },
 
+        InvalidChannelUpgradeOrdering
+            |_| { "attempted to upgrade a channel to a more strict ordring, which is not allowed" },
+
+        InvalidChannelUpgradeState
+            { expected: String, actual: String }
+            |e| { format_args!("channel state should be {} but is {}", e.expected, e.actual) },
+
+        InvalidChannelUpgradeTimeout
+            |_| { "attempted to upgrade a channel without supplying at least one of timeout height or timeout timestamp" },
+
         MissingLocalChannelId
             |_| { "failed due to missing local channel id" },
 
@@ -68,9 +66,32 @@ define_error! {
         MissingChannelOnDestination
             |_| { "missing channel on destination chain" },
 
+        MissingChannelProof
+            |_| { "missing channel proof" },
+
+        MissingUpgradeProof
+            |_| { "missing upgrade proof" },
+
+        MissingUpgradeErrorReceiptProof
+            |_| { "missing upgrade error receipt proof" },
+
+        MalformedProof
+            [ ProofError ]
+            |_| { "malformed proof" },
+
         ChannelProof
             [ RelayerError ]
             |_| { "failed to build channel proofs" },
+
+        InvalidOrdering
+            {
+                channel_ordering: Ordering,
+                counterparty_ordering: Ordering,
+            }
+            | e | {
+                format_args!("channel ordering '{0}' does not match counterparty ordering '{1}'",
+                    e.channel_ordering, e.counterparty_ordering)
+            },
 
         ClientOperation
             {

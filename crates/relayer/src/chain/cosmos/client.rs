@@ -6,8 +6,7 @@ use ibc_relayer_types::core::ics02_client::trust_threshold::TrustThreshold;
 use tracing::warn;
 
 use crate::{
-    chain::cosmos::config::CosmosSdkConfig,
-    foreign_client::CreateOptions,
+    chain::cosmos::config::CosmosSdkConfig, foreign_client::CreateOptions,
     util::pretty::PrettyDuration,
 };
 

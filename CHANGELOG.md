@@ -1,5 +1,486 @@
 # CHANGELOG
 
+## v1.10.3
+
+*September 2nd, 2024*
+
+This release fixes an issue where Hermes could not connect to gRPC servers over TLS. Additionally, this release also fixes a bug in the `clear packet` CLI where the `excluded_sequences` configuration option was not always taken into account.
+
+Furthermore, Hermes now uses `abci_query` instead of gRPC for some queries, for instance for querying staking parameters and service configuration during health checks, and when retrieving version information.
+
+### BUG FIXES
+
+- [Chain Registry](chain-registry)
+  - Add explicit root TLS configuration to gRPC clients
+    ([\#4160](https://github.com/informalsystems/hermes/issues/4160))
+- [Relayer Library](relayer)
+  - Add explicit root TLS configuration to gRPC clients
+    ([\#4160](https://github.com/informalsystems/hermes/issues/4160))
+- [Relayer CLI](relayer-cli)
+  - Correctly filter out sequences from the `excluded_sequences` configuration
+    when clearing packets with the `clear packet` CLI.
+    ([\#4158](https://github.com/informalsystems/hermes/issues/4158))
+
+### IMPROVEMENTS
+
+- [Relayer Library](relayer)
+  - Use `abci_query` instead of gRPC queries when retrieving staking params
+    and service config during health-check, and when retrieving version information.
+    ([\#4102](https://github.com/informalsystems/hermes/issues/4102))
+- [Integration Test Framework](tools/test-framework)
+  - Update the version of Celestia running the integration tests in the CI from `v1.11.0`
+    to `v1.14.0` ([\#4123](https://github.com/informalsystems/hermes/issues/4123))
+  - Update the version of Neutron running the integration tests in the CI from `v4.1.0`
+    to `v4.2.2` ([\#4168](https://github.com/informalsystems/hermes/issues/4168))
+  - Update the version of `wasmd` running the integration tests in the CI from `v0.52.0`
+    to `v0.53.0` ([\#4169](https://github.com/informalsystems/hermes/issues/4169))
+  - Update the version of Juno running the integration tests in the CI from `v23.0.0`
+    to `v24.0.0` ([\#4171](https://github.com/informalsystems/hermes/issues/4171))
+
+### FEATURES
+
+- [Integration Test Framework](tools/test-framework)
+  - Add ibc-go `v9` to the chains running the integration tests in the CI.
+    ([\#4151](https://github.com/informalsystems/hermes/issues/4151))
+
+## v1.10.2
+
+*August 14th, 2024*
+
+This release brings significant performance improvements and introduces a new configuration options for better control over packet clearing. Enhancements include faster startup times through optimized queries and the introduction of a `clear_limit` setting for packet clearing. Additionally, bug fixes and updates to the integration test framework ensure greater stability and compatibility across various environments.
+
+### BUG FIXES
+
+- [Relayer Library](relayer)
+  - Fix the `memo_overwrite` configuration to correctly apply the
+    overwrite if it is configured.
+    ([\#4104](https://github.com/informalsystems/hermes/issues/4104))
+- [Telemetry & Metrics](telemetry)
+  - Fix the `dynamic_gas_queried_success_fees` Prometheus metric name.
+    ([\#4104](https://github.com/informalsystems/hermes/issues/4104))
+    
+
+### IMPROVEMENTS
+- [Relayer Library](relayer)
+  - Add a new configuration `clear_limit` to specify the maximum number
+    of packets cleared every time packet clearing is triggered.
+    Defaults to 50.
+    ([\#4071](https://github.com/informalsystems/hermes/issues/4071))
+  - Paginate results of `query_packet_commitments` and `query_packet_acknowledgements`
+    queries to speed up the scanning phase.
+    ([\#4101](https://github.com/informalsystems/hermes/issues/4101))
+  - Use the `ibc.core.connection.v1.ConnectionParams` gRPC query to retrieve  `maxExpectedTimePerBlock`
+    and check it against the configured `max_block_time` instead of using the `/genesis` endpoint.
+    This improves both startup times and reliability for most chains.
+    ([\#4143](https://github.com/informalsystems/hermes/issues/4143))
+- [Integration Test Framework](tools/test-framework)
+  - Update the version of Gaia running the integration tests in the CI from `v17.2.1`
+    to `v18.1.0` ([\#4114](https://github.com/informalsystems/hermes/issues/4114))
+  - Update the version of Provenance running the integration tests in the CI from `v1.17.0`
+    to `v1.19.1` ([\#4115](https://github.com/informalsystems/hermes/issues/4115))
+  - Update the version of Osmosis running the integration tests in the CI from `v25.0.0`
+    to `v25.2.0` ([\#4116](https://github.com/informalsystems/hermes/issues/4116))
+  - Update the version of Juno running the integration tests in the CI from `v22.0.0`
+    to `v23.0.0` ([\#4117](https://github.com/informalsystems/hermes/issues/4117))
+  - Update the version of Migaloo Chain running the integration tests in the CI from `v4.1.3`
+    to `v4.2.0` ([\#4118](https://github.com/informalsystems/hermes/issues/4118))
+  - Update the version of `wasmd` running the integration tests in the CI from `v0.51.0`
+    to `v0.52.0` ([\#4120](https://github.com/informalsystems/hermes/issues/4120))
+  - Update the version of Stride running the integration tests in the CI from `v21.0.0`
+    to `v23.0.1` ([\#4121](https://github.com/informalsystems/hermes/issues/4121))
+  - Update the version of Neutron running the integration tests in the CI from `v3.0.5`
+    to `v4.1.0` ([\#4122](https://github.com/informalsystems/hermes/issues/4122))
+
+## v1.10.1
+
+*July 23th, 2024*
+
+In this release `tendermint-rs` has been updated to the latest version, addressing issues with the `/block_results` response. This ensures compatibility with CometBFT v0.38.10.
+
+And enhancements have been made to the logs regarding packet clearing, providing better insights and warnings for users.
+
+
+### BREAKING CHANGES
+
+- Bump version of `ibc-proto` from `v0.46.0` to `v0.47.0` and
+  version of `tendermint-rs` from `v0.37.0` to `v0.38.1`.
+  ([\#4093](https://github.com/informalsystems/hermes/issues/4093))
+
+### IMPROVEMENTS
+
+- [Integration Test Framework](tools/test-framework)
+  - Add the features `packet-forward` and `ica` to enable
+    Packet Forward Middleware and ICA when running tests with Osmosis
+    ([\#3195](https://github.com/informalsystems/hermes/issues/3195))
+- [Relayer Library](relayer)
+  - Improve logs when clearing packet.
+  * When Hermes doesn't pull packet data it will now warn the user
+    instead of logging `pulled packet data for 0 events out of X`
+  * When ICS20 packets are filtered due to having a receiver or memo
+    field too big, the log will be at `warn` level instead of `debug`.
+    ([\#4072](https://github.com/informalsystems/hermes/issues/4072))
+
+## v1.10.0
+
+*June 24th, 2024*
+
+This release enhances filter configurations and includes the following updates:
+
+1. `excluded_sequences` supports sequence ranges in addition to exact values,
+   e.g. `[1, 2, "5-10", 13]` is now valid.
+2. `packet_filter` now ignores unintended whitespace.
+3. A new `allow_ccq` per-chain configuration has been added to skip the relaying of
+   ICS31 Cross Chain Queries.
+
+Additionally, various improvements to testing and bug fixes have been implemented.
+
+### BUG FIXES
+
+- General
+  - Fix a bug where in some cases, Hermes would drop all events in a
+    batch that came after an event rejected by the filtering policy
+    ([\#4034](https://github.com/informalsystems/hermes/issues/4034))
+- [Relayer Library](relayer)
+  - Discard CrossChain queries intended for unconfigured chains.
+    ([\#4021](https://github.com/informalsystems/hermes/issues/4021))
+
+### FEATURES
+
+- [Integration Test Framework](tools/test-framework)
+  - Add tests to ensure that Hermes correctly relays transfer messages
+    from a grantee address with granted authorisation using `authz` module.
+    ([\#4046](https://github.com/informalsystems/hermes/issues/4046))
+- [Relayer Library](relayer)
+  - Add a new per-chain configuration `allow_ccq` to enable or disable
+    relaying of ICS31 Cross Chain Query packets.
+    ([\#4040](https://github.com/informalsystems/hermes/issues/4040))
+
+### IMPROVEMENTS
+
+- [Integration Test Framework](tools/test-framework)
+  - Update the version of Gaia running the integration tests in the CI from `v15.2.0`
+    to `v17.2.0` ([\#4023](https://github.com/informalsystems/hermes/issues/4023))
+  - Update the version of Osmosis running the integration tests in the CI from `v24.0.1`
+    to `v25.0.0` ([\#4024](https://github.com/informalsystems/hermes/issues/4024))
+  - Update the version of Juno running the integration tests in the CI from `v21.0.0`
+    to `v22.0.0` ([\#4025](https://github.com/informalsystems/hermes/issues/4025))
+  - Update the version of Neutron running the integration tests in the CI from `v3.0.2`
+    to `v3.0.5` ([\#4026](https://github.com/informalsystems/hermes/issues/4026))
+  - Update the version of Celestia app running the integration tests in the CI from `v1.4.0`
+    to `v1.11.0` ([\#4027](https://github.com/informalsystems/hermes/issues/4027))
+  - Update the version of `wasmd` running the integration tests in the CI from `v0.50.0`
+    to `v0.51.0` ([\#4029](https://github.com/informalsystems/hermes/issues/4029))
+  - Reduce run time for ICS29 tests by immediately verifying if either
+    the legacy fees, `recv_fee + ack_fee + timeout_fee` or current
+    fees, `max(recv_fee + ack_fee, timeout_fee)` have been escrowed.
+    ([\#4053](https://github.com/informalsystems/hermes/issues/4053))
+  - Refactored the test-framework bootstrapping for n-ary chain tests
+    to utilize the specified topology.
+  * Currently, only linear, cyclic and fully connected topologies are supported.
+    ([\#4038](https://github.com/informalsystems/hermes/issues/4038))
+- [Relayer Library](relayer)
+  - Use custom User-Agent for Hermes queries
+    ([\#3979](https://github.com/informalsystems/hermes/issues/3979))
+  - Updated the channel and port filter parsing to ignore whitespaces.
+    This will prevent unintended channel scanning due to accidental
+    whitespaces when exact matches are specified in the `packet_filter`
+    configuration.
+    ([\#4045](https://github.com/informalsystems/hermes/issues/4045))
+  - Improve the `excluded_sequences` configuration so that it now accepts
+    ranges of sequence values in addition to exact values.
+    Accepted format:
+  * Exact sequence, e.g. [1, 2, 3]
+  * "-" separator, e.g. ["1-3"]
+
+    These can be combined making the following configurations equivalent:
+  * `excluded_sequences = { 'channel-0' = [1, "3-5", 7, "9-12"] }`
+  * `excluded_sequences = { 'channel-0' = [1, 3, 4, 5, 7, 9, 10, 11, 12] }`
+
+    ([\#4047](https://github.com/informalsystems/hermes/issues/4047))
+
+## v1.9.0
+
+*May 30th, 2024*
+
+This v1.9.0 release introduces new features and improvements to Hermes.
+
+**Major Features**:
+
+1. **Channel Upgrades:** Hermes now handles [channel upgrade](https://www.ibcprotocol.dev/blog/introducing-ibc-channel-upgradability) events introduced in ibc-go v8, helping chains opting-in to new functionality on existing channels.
+2. **Dynamic Gas Fees Compatibility:** Hermes is now compatible with Skip's `x/feemarket` module for dynamic gas fees, in addition to Osmosis' implementation, providing more flexibility in gas fee management.
+
+Additionally, this release includes various bug fixes enhancing the stability and performance of Hermes. These fixes address issues with channel and connection creation on older ibc-go versions, event extraction, health-check messages, and more.
+
+### BREAKING CHANGES
+
+- [Telemetry & Metrics](telemetry)
+  - Remove the `telemetry` and `rest-server` feature flags, ensuring Hermes is always built with telemetry and REST support.
+    Both servers can still be disabled in the configuration file, by setting `telemetry.enabled = false` and `rest.enabled = false`, respectively.
+    ([\#3878](https://github.com/informalsystems/hermes/pull/3878))
+
+### FEATURES
+
+- [Relayer Library](relayer)
+  - Add support for upgrading channels, as per the [ICS 004 specification](https://github.com/cosmos/ibc/blob/main/spec/core/ics-004-channel-and-packet-semantics/UPGRADES.md) ([#3228](https://github.com/informalsystems/hermes/issues/2547))
+    This feature allows chains to upgrade an existing channel to take advantage of new features without having to create a new channel, thus preserving all existing packet state processed on the channel. For example, a channel could now be upgraded to enable the [ICS 029 fee middleware](https://ibc.cosmos.network/main/middleware/ics29-fee/overview), allowing relayer operators on that channel to receive fees each time they relay an incentivized packet.
+  - Improve reliability of event source in `pull` mode by proceeding to next block even if Hermes cannot parse the current block.
+    Add new configuration option to `event_source` setting: `max_retries` defines how many times Hermes should attempt to pull a block over RPC.
+    ```toml
+    event_source = { mode = 'pull', interval = '1s', max_retries = 4 }
+    ```
+    ([\#3894](https://github.com/informalsystems/hermes/issues/3894))
+
+### IMPROVEMENTS
+
+- [Integration Test Framework](tools/test-framework)
+  - Update the version of Juno running the integration tests in the CI from `v17.1.1`
+    to `v21.0.0` ([\#3959](https://github.com/informalsystems/hermes/issues/3959))
+  - Update the version of Migaloo Chain running the
+    integration tests in the CI from `v3.0.2` to `v4.1.3`
+    ([\#3960](https://github.com/informalsystems/hermes/issues/3960))
+  - Update the version of `wasmd` running the
+    integration tests in the CI from `v0.30.0` to `v0.50.0`
+    ([\#3961](https://github.com/informalsystems/hermes/issues/3961))
+  - Update the version of ibc-go simapp running the
+    integration tests in the CI from `v8.2.0` to `v8.3.1`
+    ([\#4009](https://github.com/informalsystems/hermes/issues/4009))
+- [Relayer Library](relayer)
+  - Update to tendermint-rs v0.35.0
+    ([\#3895](https://github.com/informalsystems/hermes/issues/3895))
+  - Use `packet_ack_hex` event attribute instead of deprecated `packet_ack` attribute to decode `WriteAck` event
+    ([\#3921](https://github.com/informalsystems/hermes/issues/3921))
+  - Update to tendermint-rs v0.36.0
+    ([\#3966](https://github.com/informalsystems/hermes/issues/3966))
+  - Add support for dynamic gas fee for chains using Skip's [`x/feemarket`](https://github.com/skip-mev/feemarket) module, while keeping compatibility with Osmosis' bespoke implementation
+    ([\#4000](https://github.com/informalsystems/hermes/issues/4000))
+- [Relayer CLI](relayer-cli)
+  - Use RPC (pull) event source instead of WebSocket (push) when generating configuration with `hermes config auto`
+    ([\#3913](https://github.com/informalsystems/hermes/issues/3913))
+
+### BUG FIXES
+
+- [Relayer Library](relayer)
+  - Fix creation of channels and connection on chains
+    using an unsupported version of ibc-go, eg. Sei
+    ([\#3817](https://github.com/informalsystems/hermes/issues/3817))
+  - Fix a bug where Hermes would only ever extract the first emitted ICS 031 CrossChain Query event, which would cause it to miss the other CCQ events.
+    ([\#3954](https://github.com/informalsystems/hermes/issues/3954))
+- [Relayer CLI](relayer-cli)
+  - Fixed `minimum-gas-prices` health-check messages and make it more verbose and legible
+    ([\#3893](https://github.com/informalsystems/hermes/issues/3893))
+  - Set `compat_mode` for pull mode in `hermes listen` command
+    ([\#3910](https://github.com/informalsystems/hermes/issues/3910))
+  - Fixed the trusted height consensus state query when submitting the double vote evidence
+    ([\#3999](https://github.com/informalsystems/hermes/issues/3999))
+
+## v1.8.3
+
+*May 28th, 2024*
+
+This patch release fixes a bug that may happen prevent the relayer from submitting the evidence for a duplicate vote in some cases.
+
+### BUG FIXES
+
+- [Relayer CLI](relayer-cli)
+  - Fix the trusted height consensus state query when submitting the double vote evidence
+    ([\#3999](https://github.com/informalsystems/hermes/issues/3999))
+
+## v1.8.2
+
+*March 12th, 2024*
+
+This release fixes the two following bugs and improves the connection and channel handshake retry mechanism:
+
+* Fix erroneous warnings for incompatible version of IBC-Go during health checks, ensuring accurate compatibility reporting
+* Fix a bug in the `clear packets` command which caused packet clearing to fail with an "counterparty channel not found" error
+
+### BUG FIXES
+
+- [Relayer CLI](relayer-cli)
+  - Correctly use the counterparty channel and port IDs when clearing the packets
+    from the destination chain to the source chain in the `packet clear` command
+    ([\#3889](https://github.com/informalsystems/hermes/issues/3889))
+- [Relayer](relayer)
+  - Fix parsing of IBC-Go version in health check and improve health check
+    reporting ([\#3880](https://github.com/informalsystems/hermes/issues/3880))
+
+### FEATURES
+
+- [Integration Test Framework](tools/test-framework)
+  - Add Injective chain to the chains running the integration tests in the CI.
+    ([\#3887](https://github.com/informalsystems/hermes/issues/3887))
+
+### IMPROVEMENTS
+
+- [Relayer](relayer)
+  - Change connection and channel handshake retry strategy
+    to retry at most 10 times (5 times per block max)
+    ([\#3864](https://github.com/informalsystems/hermes/issues/3864))
+
+## v1.8.1
+
+*March 7th, 2024*
+
+This v1.8.1 release brings better reliability when relaying, more enhanced configuration and improved monitoring.
+
+Reliability has been improved:
+* It is now possible to relay ICS-04 packets with non-UTF-8 payloads
+* Packet sequences are now verified for ordered channels before trying to relay
+
+Additional per-chain configurations have been added:
+* `excluded_sequences` used to skip problematic packets when clearing
+* `memo_overwrite` allowing users to overwrite the relayer memo when chains have a strict limit for the size of the memo.
+
+Monitoring issues improvements:
+* A new metric `simulate_errors` which counts the number of failed simulated transactions
+* Out of gas error diagnostic gives more information and a dedicated entry to the guide has been added
+* Failed gas simulation will not be considered as unrecoverable for legacy chains.
+* The compatibility check during the health-check has been improved will assess more correctly the versions for Ibc-Go and Cosmos SDK
+
+Special thanks to our contributors for their valuable additions to this release:
+
+* Sergey (@freak12techno) for adding the `simulate_errors` metric ([#3845])
+* Martin Dyring-Andersen (@mdyring) for adding recovery from failed gas simulation for legacy chains ([#3792])
+
+### BUG FIXES
+
+- Allow relaying ICS-04 packets with non-UTF-8 payloads ([\#3770](https://github.com/informalsystems/hermes/issues/3770))
+  Hermes does not assume anymore that an ICS-04 packet data is valid UTF-8,
+  by using the `packet_data_hex` attribute when assembling a packet from events, instead of the deprecated `packet_data` attribute.
+  Relying on the `packet_data` attribute enforces a UTF-8 encoded payload (eg. JSON), disallowing eg. Protobuf-encoded payloads.
+  The `packet_data` attribute [has been deprecated][0] in favor of `packet_data_hex` since IBC-Go v1.0.0.
+- Improve reliability of compatibility check and fix parsing of expected modules versions ([\#3831](https://github.com/informalsystems/hermes/issues/3831))
+
+[0]: https://github.com/cosmos/ibc-go/blob/fadf8f2b0ab184798d021d220d877e00c7634e26/CHANGELOG.md?plain=1#L1417
+
+### FEATURES
+
+- Add a per-chain configuration `excluded_sequences` allowing users to specify a list of packet sequences which will not be cleared.
+  This configuration has no impact on standard packet relaying.
+  ([\#3754](https://github.com/informalsystems/hermes/issues/3754))
+- Add a per-chain configuration `memo_overwrite` allowing users to overwrite the relayer memo used for each transaction
+  ([\#3811](https://github.com/informalsystems/hermes/issues/3811))
+- Added a new Prometheus metric `simulate_errors` for tracking when a transaction simulation fails, with the following labels:
+  ([\#3845](https://github.com/informalsystems/hermes/issues/3845))
+  * `recoverable` (can the execution continue if this happened?)
+  * `account` (account from which the tx was sent)
+  * `error_description` (description of the error)
+
+    ```
+    # HELP simulate_errors_total Number of errors observed by Hermes when simulating a Tx
+    # TYPE simulate_errors_total counter
+    simulate_errors_total{account="osmo17ndx5qfku28ymxgmq6zq4a6d02dvpfjjul0hyh",error_description="Unknown error",recoverable="false",service_name="unknown_service",otel_scope_name="hermes",otel_scope_version=""} 4
+    ```
+
+### IMPROVEMENTS
+
+- Use the consensus state at client latest height in status CLI ([#3814](https://github.com/informalsystems/ibc-rs/issues/3814))
+- Add syncing check for gRPC node ([#3814](https://github.com/informalsystems/ibc-rs/issues/3814))
+- Improve the log diagnostic when an out of gas error is thrown.
+  And a new entry related to gas error has been added to the Hermes guide.
+  ([\#3530](https://github.com/informalsystems/hermes/issues/3530))
+- Improve resilience when relaying on ordered channels.
+  When relaying packets on an ordered channel, Hermes will now attempt
+  to detect whether the next message to send has the sequence number
+  expected on that channel. If there is a mismatch, then Hermes will trigger a packet
+  clear on the channel to unblock it before resuming operations on that channel.
+  ([\#3540](https://github.com/informalsystems/hermes/issues/3540))
+- Recover from gas simulation failures on legacy chains.
+  ([\#3792](https://github.com/informalsystems/hermes/issues/3792))
+
+## v1.8.0
+
+*January 23rd, 2024*
+
+This v1.8.0 release introduces new features and improvements to Hermes.
+
+One key feature is that Hermes is now compatible with both the legacy `UpgradeProposal` and the newer `MsgIbcSoftwareUpgrade` message when upgrading a chain.
+This allows Hermes to be compatible with ibc-go v8.0.0. The compatibility check that Hermes performs on startup has been updated to reflect this.
+
+Additional configuration settings have been added:
+
+- The new global settings `ics20_max_memo_size` and `ics20_max_receiver_size` allow users to specify a limit for the size of the memo and receiver fields for ICS20 packets. Any packet with either field having a size exceeding the configured values will not be relayed.
+- The new per-chain setting `query_packets_chunk_size` allows users to specify how many packets are queried at once from the chain when clearing pending packets. This is useful to tweak when there are many large pending packets and the RPC endpoints times out or refuses to answer the pending packets query.
+- The new per-chain setting `client_refresh_rate` can be use to specify how often the clients referencing this chain should be refreshed. The rate is expressed as a fraction of the trusting period.
+- The new per-chain setting `dynamic_gas_price` can be enabled to have the relayer query for and use a dynamic gas price instead of using the static `gas_price` specified in the config. This should only be used for chains which have a [EIP-1559][eip-1559]-like fee market enabled and support the `osmosis.txfees.v1beta1.Query/GetEipBaseFee` gRPC query.
+
+Telemetry now features new metrics:
+- Monitoring the ICS20 packets filtered due to the memo and/or receiver field size exceeding the configured limits.
+- Monitoring the distribution of dynamic gas fees queried from the chain, if enabled.
+
+[eip-1559]: https://metamask.io/1559/
+
+### BREAKING CHANGES
+
+- Bump MSRV to 1.71 ([\#3688](https://github.com/informalsystems/hermes/issues/3688))
+
+### FEATURES
+
+- Relayer
+  - Use legacy `UpgradeProposal` or newer `MsgIbcSoftwareUpgrade` message when upgrading
+    a chain depending on whether the chain is running IBC-Go v8 or older.
+    ([\#3696](https://github.com/informalsystems/hermes/issues/3696))
+  - Add a new per-chain configuration table `dynamic_gas_price` which enables
+    querying the current gas price from the chain instead of the static `gas_price`,
+    when the chain has [EIP-1559][eip]-like dynamic gas price.
+    The new configuration setting can be configured per-chain as follows:
+    ```toml
+    dynamic_gas_price = { enabled = true, multiplier = 1.1, max = 0.6 }
+    ```
+    At the moment, only chains which support the `osmosis.txfees.v1beta1.Query/GetEipBaseFee`
+    query can be used with dynamic gas price enabled.
+    ([\#3738](https://github.com/informalsystems/hermes/issues/3738))
+
+    [eip]: https://metamask.io/1559/
+  - Add two new packet configurations:
+    * `ics20_max_memo_size` which filters ICS20 packets with memo field bigger than the configured value
+    * `ics20_max_receiver_size` which filters ICS20 packets with receiver field bigger than the configured value
+      ([\#3766](https://github.com/informalsystems/hermes/issues/3766))
+  - Add a `client_refresh_rate` setting to specify the rate at which to refresh clients referencing this chain, relative to its trusting period.
+    ([\#3402](https://github.com/informalsystems/hermes/issues/3402))
+  - Add a `--packet-sequences` flag to the `clear packets`, `tx packet-recv`, and `tx packet-ack` commands.
+    When this flag is specified, these commands will only clear the packets with the specified sequence numbers
+    on the given chain. If not provided, all pending packets will be cleared on both chains, as before.
+    ([\#3672](https://github.com/informalsystems/hermes/issues/3672))
+
+    This flag takes either a single sequence number or a range of sequences numbers.
+    Each element of the comma-separated list must be either a single sequence number or
+    a range of sequence numbers.
+
+    Examples:
+    - `10` will clear a single packet with sequence number `10`
+    - `1,2,3` will clear packets with sequence numbers `1, 2, 3`
+    - `1..5` will clear packets with sequence numbers `1, 2, 3, 4, 5`
+    - `..5` will clear packets with sequence numbers `1, 2, 3, 4, 5`
+    - `5..` will clear packets with sequence numbers greater than or equal to `5`
+    - `..5,10..20,25,30..` will clear packets with sequence numbers `1, 2, 3, 4, 5, 10, 11, ..., 20, 25, 30, 31, ...`
+    - `..5,10..20,25,30..` will clear packets with sequence numbers `1, 2, 3, 4, 5, 10, 11, ..., 20, 25, 30, 31, ...`
+  - Add a `--gov-account` option to `hermes tx upgrade-chain` to specify the authority account used to sign upgrade proposal for chains running IBC-Go v8+.
+    ([\#3696](https://github.com/informalsystems/hermes/issues/3696))
+  - Add a `query_packets_chunk_size` config option and a `--query-packets-chunk-size` flag to the `clear packets` CLI to configure how
+    many packets to query at once from the chain when clearing pending packets. Lower this setting if one or more of packets you are
+    trying to clear are huge and make the packet query time out or fail.
+    ([\#3743](https://github.com/informalsystems/hermes/issues/3743))
+- Telemetry & Metrics
+  - Add three metrics related to EIP gas price:
+  - `dynamic_gas_queried_fees` contains data on the queried values before applying any filter
+  - `dynamic_gas_queried_success_fees` contains data on the queried values if the query was successful and before applying any filter
+  - `dynamic_gas_paid_fees` contains data on the queried values after applying the `max` filter
+    ([\#3738](https://github.com/informalsystems/hermes/issues/3738))
+  - Add a new metric `filtered_packets` which counts the number of packets filtered due to having a memo or receiver field too big
+    ([\#3794](https://github.com/informalsystems/hermes/issues/3794))
+- Integration Test Framework
+  - Add a test for asynchronous Interchain Query relaying
+    ([\#3455](https://github.com/informalsystems/hermes/issues/3455))
+  - Add an ICA test to assert a channel correctly closes after a packet time-outs
+    ([\#3778](https://github.com/informalsystems/hermes/issues/3778))
+
+### IMPROVEMENTS
+
+- Relayer CLI
+  - Update compatibility check to allow IBC-Go 4.1.1 to 8.x and SDK 0.45.x to 0.50.x.
+    ([\#3745](https://github.com/informalsystems/hermes/issues/3745))
+
 ## v1.7.4
 
 *December 15th, 2023*

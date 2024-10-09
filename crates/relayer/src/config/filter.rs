@@ -1,31 +1,16 @@
 //! Custom `serde` deserializer for `FilterMatch`
 
-use core::{
-    fmt,
-    str::FromStr,
-};
-use std::{
-    collections::HashMap,
-    hash::Hash,
-};
+use core::{fmt, str::FromStr};
+use std::{collections::HashMap, hash::Hash};
 
 use ibc_relayer_types::{
     applications::transfer::RawCoin,
     bigint::U256,
-    core::ics24_host::identifier::{
-        ChannelId,
-        PortId,
-    },
+    core::ics24_host::identifier::{ChannelId, PortId},
     events::IbcEventType,
 };
 use itertools::Itertools;
-use serde::{
-    de,
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 /// Represents all the filtering policies for packets.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -387,7 +372,7 @@ impl<'de> Deserialize<'de> for ChannelFilterMatch {
 }
 
 pub(crate) mod port {
-    use ibc_relayer_types::core::ics24_host::identifier::PortId;
+    use super::*;
 
     use super::*;
 
@@ -401,11 +386,13 @@ pub(crate) mod port {
         }
 
         fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-            if let Ok(port_id) = PortId::from_str(v) {
-                Ok(PortFilterMatch::Exact(port_id))
-            } else {
-                let wildcard = v.parse().map_err(E::custom)?;
+            let trimmed_v = v.trim();
+            if trimmed_v.contains('*') {
+                let wildcard = trimmed_v.parse().map_err(E::custom)?;
                 Ok(PortFilterMatch::Wildcard(wildcard))
+            } else {
+                let port_id = PortId::from_str(trimmed_v).map_err(E::custom)?;
+                Ok(PortFilterMatch::Exact(port_id))
             }
         }
 
@@ -416,7 +403,7 @@ pub(crate) mod port {
 }
 
 pub(crate) mod channel {
-    use ibc_relayer_types::core::ics24_host::identifier::ChannelId;
+    use super::*;
 
     use super::*;
 
@@ -430,11 +417,13 @@ pub(crate) mod channel {
         }
 
         fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-            if let Ok(channel_id) = ChannelId::from_str(v) {
-                Ok(ChannelFilterMatch::Exact(channel_id))
-            } else {
-                let wildcard = v.parse().map_err(E::custom)?;
+            let trimmed_v = v.trim();
+            if trimmed_v.contains('*') {
+                let wildcard = trimmed_v.parse().map_err(E::custom)?;
                 Ok(ChannelFilterMatch::Wildcard(wildcard))
+            } else {
+                let channel_id = ChannelId::from_str(trimmed_v.trim()).map_err(E::custom)?;
+                Ok(ChannelFilterMatch::Exact(channel_id))
             }
         }
 
@@ -447,7 +436,6 @@ pub(crate) mod channel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::filter::ChannelPolicy;
 
     #[test]
     fn deserialize_packet_filter_policy() {
@@ -469,10 +457,7 @@ mod tests {
     fn serialize_packet_filter_policy() {
         use std::str::FromStr;
 
-        use ibc_relayer_types::core::ics24_host::identifier::{
-            ChannelId,
-            PortId,
-        };
+        use ibc_relayer_types::core::ics24_host::identifier::{ChannelId, PortId};
 
         let filter_policy = ChannelFilters(vec![
             (
@@ -624,5 +609,22 @@ mod tests {
     fn to_string_wildcards() {
         let wildcard = "ica*".parse::<Wildcard>().unwrap();
         assert_eq!(wildcard.to_string(), "ica*".to_string());
+    }
+
+    #[test]
+    fn test_exact_matches() {
+        let allow_policy = r#"
+            policy = "allow"
+            list = [
+                [ "transfer", "channel-88", ], # Standard exact match
+                [ "transfer", "channel-476 ", ], # Whitespace abstraction
+            ]
+            "#;
+
+        let pf: ChannelPolicy =
+            toml::from_str(allow_policy).expect("could not parse filter policy");
+
+        let assert_allow = matches!(pf, ChannelPolicy::Allow(filters) if filters.is_exact());
+        assert!(assert_allow);
     }
 }

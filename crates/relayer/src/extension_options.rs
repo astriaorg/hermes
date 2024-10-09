@@ -1,9 +1,6 @@
 use ibc_proto::google::protobuf::Any;
 use prost::Message;
-use serde_derive::{
-    Deserialize,
-    Serialize,
-};
+use serde_derive::{Deserialize, Serialize};
 
 use crate::error::Error;
 
@@ -12,7 +9,7 @@ use crate::error::Error;
 #[derive(Clone, PartialEq, Eq, Message, Serialize, Deserialize)]
 pub struct ExtensionOptionDynamicFeeTx {
     #[prost(string, tag = "1")]
-    pub max_priority_price: ::prost::alloc::string::String,
+    pub max_priority_price: String,
 }
 
 impl ExtensionOptionDynamicFeeTx {

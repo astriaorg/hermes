@@ -1,49 +1,26 @@
-use core::fmt::{
-    Display,
-    Error as FmtError,
-    Formatter,
-};
+use core::fmt::{Display, Error as FmtError, Formatter};
 use std::{
     ops::Range,
     sync::Mutex,
-    time::{
-        Duration,
-        Instant,
-    },
+    time::{Duration, Instant},
 };
 
-use dashmap::{
-    DashMap,
-    DashSet,
-};
+use dashmap::{DashMap, DashSet};
 use ibc_relayer_types::{
     applications::transfer::Coin,
-    core::ics24_host::identifier::{
-        ChainId,
-        ChannelId,
-        ClientId,
-        PortId,
-    },
+    core::ics24_host::identifier::{ChainId, ChannelId, ClientId, PortId},
     signer::Signer,
 };
 use opentelemetry::{
     global,
-    metrics::{
-        Counter,
-        ObservableGauge,
-        UpDownCounter,
-    },
-    Context,
-    KeyValue,
+    metrics::{Counter, ObservableGauge, UpDownCounter},
+    Context, KeyValue,
 };
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::proto::MetricFamily;
 use tendermint::Time;
 
-use crate::{
-    broadcast_error::BroadcastError,
-    path_identifier::PathIdentifier,
-};
+use crate::{broadcast_error::BroadcastError, path_identifier::PathIdentifier};
 
 const EMPTY_BACKLOG_SYMBOL: u64 = 0;
 const BACKLOG_CAPACITY: usize = 1000;
@@ -192,7 +169,7 @@ pub struct TelemetryState {
     backlog_oldest_sequence: ObservableGauge<u64>,
 
     /// Record the timestamp of the last time the `backlog_*` metrics have been updated.
-    /// The timestamp is the time passed since since the unix epoch in seconds.
+    /// The timestamp is the time passed since the unix epoch in seconds.
     backlog_latest_update_timestamp: ObservableGauge<u64>,
 
     /// Records the length of the backlog, i.e., how many packets are pending.
@@ -221,6 +198,21 @@ pub struct TelemetryState {
 
     /// Number of errors observed by Hermes when broadcasting a Tx
     broadcast_errors: Counter<u64>,
+
+    /// Number of errors observed by Hermes when simulating a Tx
+    simulate_errors: Counter<u64>,
+
+    /// The EIP-1559 base fee queried
+    dynamic_gas_queried_fees: ObservableGauge<f64>,
+
+    /// The EIP-1559 base fee paid
+    dynamic_gas_paid_fees: ObservableGauge<f64>,
+
+    /// The EIP-1559 base fee successfully queried
+    dynamic_gas_queried_success_fees: ObservableGauge<f64>,
+
+    /// Number of ICS-20 packets filtered because the memo and/or the receiver fields were exceeding the configured limits
+    filtered_packets: Counter<u64>,
 }
 
 impl TelemetryState {
@@ -232,10 +224,7 @@ impl TelemetryState {
     ) -> Self {
         use opentelemetry::sdk::{
             export::metrics::aggregation,
-            metrics::{
-                controllers,
-                processors,
-            },
+            metrics::{controllers, processors},
         };
 
         let controller = controllers::basic(processors::factory(
@@ -406,6 +395,33 @@ impl TelemetryState {
                 .with_description(
                     "Number of errors observed by Hermes when broadcasting a Tx",
                 )
+                .init(),
+
+            simulate_errors: meter
+                .u64_counter("simulate_errors")
+                .with_description(
+                    "Number of errors observed by Hermes when simulating a Tx",
+                )
+                .init(),
+
+            dynamic_gas_queried_fees: meter
+                .f64_observable_gauge("dynamic_gas_queried_fees")
+                .with_description("The EIP-1559 base fee queried")
+                .init(),
+
+            dynamic_gas_paid_fees: meter
+                .f64_observable_gauge("dynamic_gas_paid_fees")
+                .with_description("The EIP-1559 base fee paid")
+                .init(),
+
+            dynamic_gas_queried_success_fees: meter
+                .f64_observable_gauge("dynamic_gas_queried_success_fees")
+                .with_description("The EIP-1559 base fee successfully queried")
+                .init(),
+
+            filtered_packets: meter
+                .u64_counter("filtered_packets")
+                .with_description("Number of ICS-20 packets filtered because the memo and/or the receiver fields were exceeding the configured limits")
                 .init(),
         }
     }
@@ -1153,6 +1169,73 @@ impl TelemetryState {
 
         self.broadcast_errors.add(&cx, 1, labels);
     }
+
+    /// Add an error and its description to the list of errors observed after simulating
+    /// a Tx with a specific account.
+    pub fn simulate_errors(&self, address: &String, recoverable: bool, error_description: String) {
+        let cx = Context::current();
+
+        let labels = &[
+            KeyValue::new("account", address.to_string()),
+            KeyValue::new("recoverable", recoverable.to_string()),
+            KeyValue::new("error_description", error_description.to_owned()),
+        ];
+
+        self.simulate_errors.add(&cx, 1, labels);
+    }
+
+    pub fn dynamic_gas_queried_fees(&self, chain_id: &ChainId, amount: f64) {
+        let cx = Context::current();
+
+        let labels = &[KeyValue::new("identifier", chain_id.to_string())];
+
+        self.dynamic_gas_queried_fees.observe(&cx, amount, labels);
+    }
+
+    pub fn dynamic_gas_paid_fees(&self, chain_id: &ChainId, amount: f64) {
+        let cx = Context::current();
+
+        let labels = &[KeyValue::new("identifier", chain_id.to_string())];
+
+        self.dynamic_gas_paid_fees.observe(&cx, amount, labels);
+    }
+
+    pub fn dynamic_gas_queried_success_fees(&self, chain_id: &ChainId, amount: f64) {
+        let cx = Context::current();
+
+        let labels = &[KeyValue::new("identifier", chain_id.to_string())];
+
+        self.dynamic_gas_queried_success_fees
+            .observe(&cx, amount, labels);
+    }
+
+    /// Increment number of packets filtered because the memo field is too big
+    #[allow(clippy::too_many_arguments)]
+    pub fn filtered_packets(
+        &self,
+        src_chain: &ChainId,
+        dst_chain: &ChainId,
+        src_channel: &ChannelId,
+        dst_channel: &ChannelId,
+        src_port: &PortId,
+        dst_port: &PortId,
+        count: u64,
+    ) {
+        let cx = Context::current();
+
+        if count > 0 {
+            let labels = &[
+                KeyValue::new("src_chain", src_chain.to_string()),
+                KeyValue::new("dst_chain", dst_chain.to_string()),
+                KeyValue::new("src_channel", src_channel.to_string()),
+                KeyValue::new("dst_channel", dst_channel.to_string()),
+                KeyValue::new("src_port", src_port.to_string()),
+                KeyValue::new("dst_port", dst_port.to_string()),
+            ];
+
+            self.filtered_packets.add(&cx, count, labels);
+        }
+    }
 }
 
 use std::sync::Arc;
@@ -1162,12 +1245,7 @@ use opentelemetry::{
     sdk::{
         export::metrics::AggregatorSelector,
         metrics::{
-            aggregators::{
-                histogram,
-                last_value,
-                sum,
-                Aggregator,
-            },
+            aggregators::{histogram, last_value, sum, Aggregator},
             sdk_api::Descriptor,
         },
     },
@@ -1232,6 +1310,15 @@ impl AggregatorSelector for CustomAggregatorSelector {
             // TODO: Once quantile sketches are supported, replace histograms with that.
             "tx_latency_submitted" => Some(Arc::new(histogram(&self.get_submitted_range()))),
             "tx_latency_confirmed" => Some(Arc::new(histogram(&self.get_confirmed_range()))),
+            "dynamic_gas_queried_fees" => Some(Arc::new(histogram(&[
+                0.0025, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0,
+            ]))),
+            "dynamic_gas_paid_fees" => Some(Arc::new(histogram(&[
+                0.0025, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0,
+            ]))),
+            "dynamic_gas_queried_success_fees" => Some(Arc::new(histogram(&[
+                0.0025, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0,
+            ]))),
             "ics29_period_fees" => Some(Arc::new(last_value())),
             _ => Some(Arc::new(sum())),
         }

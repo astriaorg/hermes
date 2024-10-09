@@ -1,32 +1,21 @@
-use core::{
-    str::FromStr,
-    time::Duration,
-};
+use core::str::FromStr;
+use core::time::Duration;
 
 use http::uri::Uri;
+
 use ibc_proto::cosmos::tx::v1beta1::Fee;
-use ibc_relayer::{
-    chain::cosmos::{
-        gas::calculate_fee,
-        types::{
-            config::TxConfig,
-            gas::GasConfig,
-        },
-    },
-    config::{
-        AddressType,
-        GasPrice,
-    },
-};
+use ibc_relayer::chain::cosmos::gas::calculate_fee;
+use ibc_relayer::chain::cosmos::types::config::TxConfig;
+use ibc_relayer::chain::cosmos::types::gas::GasConfig;
+use ibc_relayer::config::dynamic_gas::DynamicGasPrice;
+use ibc_relayer::config::{AddressType, GasPrice};
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 use tendermint_rpc::Url;
 
-use crate::error::{
-    handle_generic_error,
-    Error,
-};
+use crate::chain::chain_type::ChainType;
+use crate::error::{handle_generic_error, Error};
 
-pub fn gas_config_for_test(native_token: String) -> GasConfig {
+pub fn gas_config_for_test(native_token: String, chain_type: ChainType) -> GasConfig {
     let max_gas = 3000000;
     let gas_multiplier = 1.5;
 
@@ -49,6 +38,12 @@ pub fn gas_config_for_test(native_token: String) -> GasConfig {
         granter: fee_granter.clone(),
     };
 
+    let dynamic_gas_price = if chain_type.enable_dynamic_fee() {
+        DynamicGasPrice::unsafe_new(true, 1.3, 5.0)
+    } else {
+        DynamicGasPrice::disabled()
+    };
+
     GasConfig {
         default_gas,
         max_gas,
@@ -56,11 +51,13 @@ pub fn gas_config_for_test(native_token: String) -> GasConfig {
         gas_price,
         max_fee,
         fee_granter,
+        dynamic_gas_price,
     }
 }
 
 pub fn new_tx_config_for_test(
     chain_id: ChainId,
+    chain_type: ChainType,
     raw_rpc_address: String,
     raw_grpc_address: String,
     address_type: AddressType,
@@ -68,7 +65,7 @@ pub fn new_tx_config_for_test(
 ) -> Result<TxConfig, Error> {
     let rpc_address = Url::from_str(&raw_rpc_address).map_err(handle_generic_error)?;
     let grpc_address = Uri::from_str(&raw_grpc_address).map_err(handle_generic_error)?;
-    let gas_config = gas_config_for_test(native_token);
+    let gas_config = gas_config_for_test(native_token, chain_type);
     let rpc_timeout = Duration::from_secs(30);
     let max_msg_num = Default::default();
     let max_tx_size = Default::default();

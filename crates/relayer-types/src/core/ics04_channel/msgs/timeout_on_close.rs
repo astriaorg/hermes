@@ -1,15 +1,9 @@
-use ibc_proto::{
-    ibc::core::channel::v1::MsgTimeoutOnClose as RawMsgTimeoutOnClose,
-    Protobuf,
-};
+use ibc_proto::{ibc::core::channel::v1::MsgTimeoutOnClose as RawMsgTimeoutOnClose, Protobuf};
 
 use crate::{
     core::ics04_channel::{
         error::Error,
-        packet::{
-            Packet,
-            Sequence,
-        },
+        packet::{Packet, Sequence},
     },
     proofs::Proofs,
     signer::Signer,
@@ -27,6 +21,7 @@ pub struct MsgTimeoutOnClose {
     pub next_sequence_recv: Sequence,
     pub proofs: Proofs,
     pub signer: Signer,
+    pub counterparty_upgrade_sequence: Sequence,
 }
 
 impl MsgTimeoutOnClose {
@@ -35,12 +30,14 @@ impl MsgTimeoutOnClose {
         next_sequence_recv: Sequence,
         proofs: Proofs,
         signer: Signer,
+        counterparty_upgrade_sequence: Sequence,
     ) -> MsgTimeoutOnClose {
         Self {
             packet,
             next_sequence_recv,
             proofs,
             signer,
+            counterparty_upgrade_sequence,
         }
     }
 }
@@ -95,6 +92,7 @@ impl TryFrom<RawMsgTimeoutOnClose> for MsgTimeoutOnClose {
             next_sequence_recv: Sequence::from(raw_msg.next_sequence_recv),
             signer: raw_msg.signer.parse().map_err(Error::signer)?,
             proofs,
+            counterparty_upgrade_sequence: raw_msg.counterparty_upgrade_sequence.into(),
         })
     }
 }
@@ -111,6 +109,7 @@ impl From<MsgTimeoutOnClose> for RawMsgTimeoutOnClose {
             proof_height: Some(domain_msg.proofs.height().into()),
             next_sequence_recv: domain_msg.next_sequence_recv.into(),
             signer: domain_msg.signer.to_string(),
+            counterparty_upgrade_sequence: domain_msg.counterparty_upgrade_sequence.into(),
         }
     }
 }
@@ -122,8 +121,7 @@ mod tests {
     use test_log::test;
 
     use crate::core::ics04_channel::msgs::timeout_on_close::{
-        test_util::get_dummy_raw_msg_timeout_on_close,
-        MsgTimeoutOnClose,
+        test_util::get_dummy_raw_msg_timeout_on_close, MsgTimeoutOnClose,
     };
 
     #[test]
@@ -207,16 +205,12 @@ mod tests {
 #[cfg(test)]
 pub mod test_util {
     use ibc_proto::ibc::core::{
-        channel::v1::MsgTimeoutOnClose as RawMsgTimeoutOnClose,
-        client::v1::Height as RawHeight,
+        channel::v1::MsgTimeoutOnClose as RawMsgTimeoutOnClose, client::v1::Height as RawHeight,
     };
 
     use crate::{
         core::ics04_channel::packet::test_utils::get_dummy_raw_packet,
-        test_utils::{
-            get_dummy_bech32_account,
-            get_dummy_proof,
-        },
+        test_utils::{get_dummy_bech32_account, get_dummy_proof},
     };
 
     /// Returns a dummy `RawMsgTimeoutOnClose`, for testing only!
@@ -235,6 +229,7 @@ pub mod test_util {
             }),
             next_sequence_recv: 1,
             signer: get_dummy_bech32_account(),
+            counterparty_upgrade_sequence: 0,
         }
     }
 }

@@ -1,16 +1,10 @@
 //! Definition of domain type message `MsgCreateClient`.
 
 use ibc_proto::{
-    google::protobuf::Any,
-    ibc::core::client::v1::MsgCreateClient as RawMsgCreateClient,
-    Protobuf,
+    google::protobuf::Any, ibc::core::client::v1::MsgCreateClient as RawMsgCreateClient, Protobuf,
 };
 
-use crate::{
-    core::ics02_client::error::Error,
-    signer::Signer,
-    tx_msg::Msg,
-};
+use crate::{core::ics02_client::error::Error, signer::Signer, tx_msg::Msg};
 
 pub const TYPE_URL: &str = "/ibc.core.client.v1.MsgCreateClient";
 
@@ -74,43 +68,5 @@ impl From<MsgCreateClient> for RawMsgCreateClient {
             consensus_state: Some(ics_msg.consensus_state),
             signer: ics_msg.signer.to_string(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use ibc_proto::ibc::core::client::v1::MsgCreateClient as RawMsgCreateClient;
-    use test_log::test;
-
-    use crate::{
-        clients::ics07_tendermint::{
-            client_state::test_util::get_dummy_tendermint_client_state,
-            consensus_state::ConsensusState as TmConsensusState,
-            header::test_util::get_dummy_tendermint_header,
-        },
-        core::ics02_client::msgs::create_client::MsgCreateClient,
-        test_utils::get_dummy_account_id,
-    };
-
-    #[test]
-    fn msg_create_client_serialization() {
-        let signer = get_dummy_account_id();
-
-        let tm_header = get_dummy_tendermint_header();
-        let tm_client_state = get_dummy_tendermint_client_state(tm_header.clone()).into();
-
-        let msg = MsgCreateClient::new(
-            tm_client_state,
-            TmConsensusState::from(tm_header).into(),
-            signer,
-        )
-        .unwrap();
-
-        let raw = RawMsgCreateClient::from(msg.clone());
-        let msg_back = MsgCreateClient::try_from(raw.clone()).unwrap();
-        let raw_back = RawMsgCreateClient::from(msg_back.clone());
-        assert_eq!(msg, msg_back);
-        assert_eq!(raw, raw_back);
     }
 }

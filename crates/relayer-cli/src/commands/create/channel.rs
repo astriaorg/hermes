@@ -1,49 +1,24 @@
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
+use abscissa_core::clap::Parser;
+
 use console::style;
 use dialoguer::Confirm;
-use ibc_relayer::{
-    chain::{
-        handle::ChainHandle,
-        requests::{
-            IncludeProof,
-            QueryClientStateRequest,
-            QueryConnectionRequest,
-            QueryHeight,
-        },
-    },
-    channel::Channel,
-    config::default::connection_delay,
-    connection::Connection,
-    foreign_client::ForeignClient,
-};
-use ibc_relayer_types::core::{
-    ics03_connection::connection::IdentifiedConnectionEnd,
-    ics04_channel::{
-        channel::Ordering,
-        version::Version,
-    },
-    ics24_host::identifier::{
-        ChainId,
-        ConnectionId,
-        PortId,
-    },
-};
 
-use crate::{
-    cli_utils::{
-        spawn_chain_runtime,
-        ChainHandlePair,
-    },
-    conclude::{
-        exit_with_unrecoverable_error,
-        Output,
-    },
-    prelude::*,
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{
+    IncludeProof, QueryClientStateRequest, QueryConnectionRequest, QueryHeight,
 };
+use ibc_relayer::channel::Channel;
+use ibc_relayer::config::default::connection_delay;
+use ibc_relayer::connection::Connection;
+use ibc_relayer::foreign_client::ForeignClient;
+use ibc_relayer_types::core::ics03_connection::connection::IdentifiedConnectionEnd;
+use ibc_relayer_types::core::ics04_channel::channel::Ordering;
+use ibc_relayer_types::core::ics04_channel::version::Version;
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ConnectionId, PortId};
+
+use crate::cli_utils::{spawn_chain_runtime, ChainHandlePair};
+use crate::conclude::{exit_with_unrecoverable_error, Output};
+use crate::prelude::*;
 
 static PROMPT: &str = "Are you sure you want a new connection & clients to be created? Hermes will use default security parameters.";
 static HINT: &str = "Consider using the default invocation\n\nhermes create channel --a-port <PORT-ID> --b-port <PORT-ID> --a-chain <CHAIN-A-ID> --a-connection <CONNECTION-A-ID>\n\nto reuse a pre-existing connection.";
@@ -297,15 +272,8 @@ mod tests {
 
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::{
-        ics04_channel::{
-            channel::Ordering,
-            version::Version,
-        },
-        ics24_host::identifier::{
-            ChainId,
-            ConnectionId,
-            PortId,
-        },
+        ics04_channel::{channel::Ordering, version::Version},
+        ics24_host::identifier::{ChainId, ConnectionId, PortId},
     };
 
     use super::CreateChannelCommand;

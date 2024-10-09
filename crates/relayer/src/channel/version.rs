@@ -5,12 +5,9 @@
 //! handshake.
 
 pub use ibc_relayer_types::core::ics04_channel::version::Version;
-use ibc_relayer_types::{
-    applications::transfer,
-    core::ics24_host::identifier::PortId,
-};
+use ibc_relayer_types::{applications::transfer, core::ics24_host::identifier::PortId};
 
-/// Returns the default channel version, depending on the the given [`PortId`].
+/// Returns the default channel version, depending on the given [`PortId`].
 pub fn default_by_port(port_id: &PortId) -> Option<Version> {
     if port_id.as_str() == transfer::PORT_ID_STR {
         // https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer#forwards-compatibility

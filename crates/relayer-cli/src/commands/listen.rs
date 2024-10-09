@@ -1,45 +1,26 @@
 use alloc::sync::Arc;
 use core::{
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
+    fmt::{Display, Error as FmtError, Formatter},
     str::FromStr,
 };
 use std::thread;
 
-use abscissa_core::{
-    application::fatal_error,
-    clap::Parser,
-    Runnable,
-};
+use abscissa_core::application::fatal_error;
+use abscissa_core::clap::Parser;
 use eyre::eyre;
 use ibc_relayer::{
     chain::handle::Subscription,
-    config::{
-        ChainConfig,
-        EventSourceMode,
-    },
+    config::{ChainConfig, EventSourceMode},
+    error::Error,
     event::source::EventSource,
     util::compat_mode::compat_mode_from_version,
+    HERMES_VERSION,
 };
-use ibc_relayer_types::{
-    core::ics24_host::identifier::ChainId,
-    events::IbcEvent,
-};
+use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent};
 use itertools::Itertools;
-use tendermint_rpc::{
-    client::CompatMode,
-    Client,
-    HttpClient,
-};
+use tendermint_rpc::{client::CompatMode, Client, HttpClient};
 use tokio::runtime::Runtime as TokioRuntime;
-use tracing::{
-    error,
-    info,
-    instrument,
-};
+use tracing::{error, info, instrument};
 
 use crate::prelude::*;
 
@@ -176,12 +157,24 @@ fn subscribe(
                     *batch_delay,
                     rt,
                 ),
-                EventSourceMode::Pull { interval } => EventSource::rpc(
-                    chain_config.id().clone(),
-                    HttpClient::new(config.rpc_addr.clone())?,
-                    *interval,
-                    rt,
-                ),
+                EventSourceMode::Pull {
+                    interval,
+                    max_retries,
+                } => {
+                    let mut rpc_client = HttpClient::builder(config.rpc_addr.clone().try_into()?)
+                        .user_agent(format!("hermes/{}", HERMES_VERSION))
+                        .build()
+                        .map_err(|e| Error::rpc(config.rpc_addr.clone(), e))?;
+                    rpc_client.set_compat_mode(compat_mode);
+
+                    EventSource::rpc(
+                        chain_config.id().clone(),
+                        rpc_client,
+                        *interval,
+                        *max_retries,
+                        rt,
+                    )
+                }
             }?;
 
             thread::spawn(move || event_source.run());
@@ -201,7 +194,10 @@ fn detect_compatibility_mode(
         ChainConfig::CosmosSdk(config) => config.rpc_addr.clone(),
         ChainConfig::Astria(config) => config.rpc_addr.clone(),
     };
-    let client = HttpClient::new(rpc_addr)?;
+    let client = HttpClient::builder(rpc_addr.try_into()?)
+        .user_agent(format!("hermes/{}", HERMES_VERSION))
+        .build()?;
+
     let status = rt.block_on(client.status())?;
     let compat_mode = match config {
         ChainConfig::CosmosSdk(config) => {
@@ -221,10 +217,7 @@ mod tests {
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 
-    use super::{
-        EventFilter,
-        ListenCmd,
-    };
+    use super::{EventFilter, ListenCmd};
 
     #[test]
     fn test_listen_required_only() {

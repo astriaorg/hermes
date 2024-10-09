@@ -13,11 +13,8 @@
 //! A more thorough walkthrough of this test can be found at
 //! `tools/test-framework/src/docs/walkthroughs/ordered_channel.rs`.
 
-use ibc_test_framework::{
-    ibc::denom::derive_ibc_denom,
-    prelude::*,
-    util::random::random_u128_range,
-};
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::util::random::random_u128_range;
 
 #[test]
 fn test_ordered_channel() -> Result<(), Error> {
@@ -76,11 +73,9 @@ impl BinaryChannelTest for OrderedChannelTest {
             &denom_a.with_amount(amount1).as_ref(),
         )?;
 
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(2));
 
         relayer.with_supervisor(|| {
-            sleep(Duration::from_secs(1));
-
             let amount2 = random_u128_range(1000, 5000);
 
             info!(

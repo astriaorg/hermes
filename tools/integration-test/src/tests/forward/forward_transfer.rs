@@ -18,19 +18,11 @@
 //!   the memo fields are misspelled:
 //!    - Misspelled receiver address, port or channel: The intermediary chain will refund the sender.
 
-use ibc_relayer::config::{
-    self,
-    Config,
-    ModeConfig,
-};
+use ibc_relayer::config::{self, ModeConfig};
 use ibc_test_framework::prelude::*;
 
 use crate::tests::forward::memo::{
-    MemoField,
-    MemoInfo,
-    MemoMisspelledField,
-    MisspelledChannelMemoInfo,
-    MisspelledPortMemoInfo,
+    MemoField, MemoInfo, MemoMisspelledField, MisspelledChannelMemoInfo, MisspelledPortMemoInfo,
     MisspelledReceiverMemoInfo,
 };
 
@@ -81,7 +73,7 @@ impl NaryChannelTest<3> for IbcForwardTransferTest {
         chains: NaryConnectedChains<Handle, 3>,
         channels: NaryConnectedChannels<Handle, 3>,
     ) -> Result<(), Error> {
-        let connected_chains = chains.connected_chains_at::<0, 2>()?;
+        let connected_chains = chains.connected_chains_at::<0, 1>()?;
 
         let node_a = chains.full_node_at::<0>()?;
         let node_b = chains.full_node_at::<1>()?;
@@ -184,7 +176,7 @@ impl NaryChannelTest<3> for MisspelledMemoFieldsIbcForwardTransferTest {
         chains: NaryConnectedChains<Handle, 3>,
         channels: NaryConnectedChannels<Handle, 3>,
     ) -> Result<(), Error> {
-        let connected_chains = chains.connected_chains_at::<0, 2>()?;
+        let connected_chains = chains.connected_chains_at::<0, 1>()?;
 
         let node_a = chains.full_node_at::<0>()?;
         let node_b = chains.full_node_at::<1>()?;
@@ -430,7 +422,7 @@ impl NaryChannelTest<3> for MisspelledMemoContentIbcForwardTransferTest {
         chains: NaryConnectedChains<Handle, 3>,
         channels: NaryConnectedChannels<Handle, 3>,
     ) -> Result<(), Error> {
-        let connected_chains = chains.connected_chains_at::<0, 2>()?;
+        let connected_chains = chains.connected_chains_at::<0, 1>()?;
 
         let node_a = chains.full_node_at::<0>()?;
         let node_b = chains.full_node_at::<1>()?;

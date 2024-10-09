@@ -14,10 +14,8 @@ use std::thread;
 
 use ibc_relayer::config::ChainConfig;
 use ibc_relayer_types::bigint::U256;
-use ibc_test_framework::{
-    chain::ext::fee_grant::FeeGrantMethodsExt,
-    prelude::*,
-};
+use ibc_test_framework::chain::ext::fee_grant::FeeGrantMethodsExt;
+use ibc_test_framework::prelude::*;
 
 #[test]
 fn test_fee_grant() -> Result<(), Error> {
@@ -44,7 +42,7 @@ impl BinaryChannelTest for FeeGrantTest {
         let denom_a = chains.node_a.denom();
         let wallet_a = chains.node_a.wallets().user1().cloned();
         let wallet_b = chains.node_b.wallets().user1().cloned();
-        let fee_denom_a = MonoTagged::new(Denom::base(&config.native_tokens[0]));
+        let fee_denom_a = MonoTagged::new(Denom::base(config.native_token(0)));
 
         let a_to_b_amount = 12345u64;
         let granter = chains
@@ -187,7 +185,7 @@ impl BinaryChannelTest for NoFeeGrantTest {
         let wallet_a = chains.node_a.wallets().user1().cloned();
         let wallet_a2 = chains.node_a.wallets().user2().cloned();
         let wallet_b = chains.node_b.wallets().user1().cloned();
-        let fee_denom_a = MonoTagged::new(Denom::base(&config.native_tokens[0]));
+        let fee_denom_a = MonoTagged::new(Denom::base(config.native_token(0)));
 
         let a_to_b_amount = 12345u64;
         let granter = chains

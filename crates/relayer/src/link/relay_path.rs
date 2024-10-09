@@ -1,148 +1,72 @@
-use alloc::collections::{
-    BTreeMap as HashMap,
-    VecDeque,
-};
-use std::{
-    ops::Sub,
-    time::{
-        Duration,
-        Instant,
-    },
-};
+use alloc::collections::BTreeMap as HashMap;
+use alloc::collections::VecDeque;
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use std::ops::Sub;
+use std::time::{Duration, Instant};
 
-use ibc_proto::{
-    google::protobuf::Any,
-    ibc::applications::transfer::v2::FungibleTokenPacketData as RawPacketData,
-};
-use ibc_relayer_types::{
-    core::{
-        ics02_client::events::ClientMisbehaviour,
-        ics04_channel::{
-            channel::{
-                ChannelEnd,
-                Ordering,
-            },
-            events::{
-                SendPacket,
-                WriteAcknowledgement,
-            },
-            msgs::{
-                acknowledgement::MsgAcknowledgement,
-                chan_close_confirm::MsgChannelCloseConfirm,
-                recv_packet::MsgRecvPacket,
-                timeout::MsgTimeout,
-                timeout_on_close::MsgTimeoutOnClose,
-            },
-            packet::{
-                Packet,
-                PacketMsgType,
-            },
-        },
-        ics24_host::identifier::{
-            ChannelId,
-            ClientId,
-            ConnectionId,
-            PortId,
-        },
-    },
-    events::{
-        IbcEvent,
-        IbcEventType,
-        WithBlockDataType,
-    },
-    signer::Signer,
-    timestamp::Timestamp,
-    tx_msg::Msg,
-    Height,
-};
+use ibc_proto::google::protobuf::Any;
+use ibc_proto::ibc::applications::transfer::v2::FungibleTokenPacketData as RawPacketData;
 use itertools::Itertools;
-use tracing::{
-    debug,
-    error,
-    info,
-    span,
-    trace,
-    warn,
-    Level,
-};
+use tracing::{debug, error, info, span, trace, warn, Level};
 
-use crate::{
-    chain::{
-        counterparty::{
-            unreceived_acknowledgements,
-            unreceived_packets,
-        },
-        endpoint::ChainStatus,
-        handle::ChainHandle,
-        requests::{
-            IncludeProof,
-            Qualified,
-            QueryChannelRequest,
-            QueryClientEventRequest,
-            QueryHeight,
-            QueryHostConsensusStateRequest,
-            QueryNextSequenceReceiveRequest,
-            QueryPacketCommitmentRequest,
-            QueryTxRequest,
-            QueryUnreceivedAcksRequest,
-            QueryUnreceivedPacketsRequest,
-        },
-        tracking::{
-            TrackedMsgs,
-            TrackingId,
-        },
-    },
-    channel::{
-        error::ChannelError,
-        Channel,
-    },
-    config::types::ics20_field_size_limit::{
-        Ics20FieldSizeLimit,
-        ValidationResult,
-    },
-    event::{
-        source::EventBatch,
-        IbcEventWithHeight,
-    },
-    foreign_client::{
-        ForeignClient,
-        ForeignClientError,
-    },
-    link::{
-        error::{
-            self,
-            LinkError,
-        },
-        operational_data::{
-            OperationalData,
-            OperationalDataTarget,
-            TrackedEvents,
-            TransitMessage,
-        },
-        packet_events::{
-            query_packet_events_with,
-            query_send_packet_events,
-            query_write_ack_events,
-        },
-        pending,
-        pending::PendingTxs,
-        relay_sender,
-        relay_sender::{
-            AsyncReply,
-            SubmitReply,
-        },
-        relay_summary::RelaySummary,
-        ChannelState,
-        LinkParameters,
-    },
-    path::PathIdentifiers,
-    telemetry,
-    util::{
-        collate::CollatedIterExt,
-        pretty::PrettyEvents,
-        queue::Queue,
-    },
+use ibc_relayer_types::core::ics02_client::events::ClientMisbehaviour as ClientMisbehaviourEvent;
+use ibc_relayer_types::core::ics04_channel::channel::{
+    ChannelEnd, Ordering, State as ChannelState,
 };
+use ibc_relayer_types::core::ics04_channel::events::{SendPacket, WriteAcknowledgement};
+use ibc_relayer_types::core::ics04_channel::msgs::{
+    acknowledgement::MsgAcknowledgement, chan_close_confirm::MsgChannelCloseConfirm,
+    recv_packet::MsgRecvPacket, timeout::MsgTimeout, timeout_on_close::MsgTimeoutOnClose,
+};
+use ibc_relayer_types::core::ics04_channel::packet::{Packet, PacketMsgType};
+use ibc_relayer_types::core::ics24_host::identifier::{ChannelId, ClientId, ConnectionId, PortId};
+use ibc_relayer_types::events::{IbcEvent, IbcEventType, WithBlockDataType};
+use ibc_relayer_types::signer::Signer;
+use ibc_relayer_types::timestamp::Timestamp;
+use ibc_relayer_types::tx_msg::Msg;
+use ibc_relayer_types::Height;
+
+use crate::chain::counterparty::unreceived_acknowledgements;
+use crate::chain::counterparty::unreceived_packets;
+use crate::chain::endpoint::ChainStatus;
+use crate::chain::handle::ChainHandle;
+use crate::chain::requests::Paginate;
+use crate::chain::requests::QueryChannelRequest;
+use crate::chain::requests::QueryClientEventRequest;
+use crate::chain::requests::QueryHeight;
+use crate::chain::requests::QueryHostConsensusStateRequest;
+use crate::chain::requests::QueryNextSequenceReceiveRequest;
+use crate::chain::requests::QueryPacketCommitmentRequest;
+use crate::chain::requests::QueryTxRequest;
+use crate::chain::requests::QueryUnreceivedAcksRequest;
+use crate::chain::requests::QueryUnreceivedPacketsRequest;
+use crate::chain::requests::{IncludeProof, Qualified};
+use crate::chain::tracking::TrackedMsgs;
+use crate::chain::tracking::TrackingId;
+use crate::channel::error::ChannelError;
+use crate::channel::Channel;
+use crate::config::types::ics20_field_size_limit::Ics20FieldSizeLimit;
+use crate::config::types::ics20_field_size_limit::ValidationResult;
+use crate::event::source::EventBatch;
+use crate::event::IbcEventWithHeight;
+use crate::foreign_client::{ForeignClient, ForeignClientError};
+use crate::link::error::{self, LinkError};
+use crate::link::operational_data::{
+    OperationalData, OperationalDataTarget, TrackedEvents, TransitMessage,
+};
+use crate::link::packet_events::query_packet_events_with;
+use crate::link::packet_events::query_send_packet_events;
+use crate::link::packet_events::query_write_ack_events;
+use crate::link::pending::PendingTxs;
+use crate::link::relay_sender::{AsyncReply, SubmitReply};
+use crate::link::relay_summary::RelaySummary;
+use crate::link::LinkParameters;
+use crate::link::{pending, relay_sender};
+use crate::path::PathIdentifiers;
+use crate::telemetry;
+use crate::util::collate::CollatedIterExt;
+use crate::util::pretty::PrettyEvents;
+use crate::util::queue::Queue;
 
 const MAX_RETRIES: usize = 5;
 
@@ -193,6 +117,7 @@ pub struct RelayPath<ChainA: ChainHandle, ChainB: ChainHandle> {
 
     pub max_memo_size: Ics20FieldSizeLimit,
     pub max_receiver_size: Ics20FieldSizeLimit,
+    pub exclude_src_sequences: Vec<Sequence>,
 }
 
 impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
@@ -241,6 +166,8 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
             max_memo_size: link_parameters.max_memo_size,
             max_receiver_size: link_parameters.max_receiver_size,
+
+            exclude_src_sequences: link_parameters.exclude_src_sequences,
         })
     }
 
@@ -428,10 +355,9 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         }
 
         // Nothing to do if channel on destination is already closed
-        if self
-            .dst_channel(QueryHeight::Latest)?
-            .state_matches(&ChannelState::Closed)
-        {
+        let dst_channel = self.dst_channel(QueryHeight::Latest)?;
+
+        if dst_channel.state_matches(&ChannelState::Closed) {
             return Ok(None);
         }
 
@@ -441,12 +367,15 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
             .build_channel_proofs(self.src_port_id(), src_channel_id, event.height)
             .map_err(|e| LinkError::channel(ChannelError::channel_proof(e)))?;
 
+        let counterparty_upgrade_sequence = self.src_channel(QueryHeight::Latest)?.upgrade_sequence;
+
         // Build the domain type message
         let new_msg = MsgChannelCloseConfirm {
             port_id: self.dst_port_id().clone(),
             channel_id: self.dst_channel_id().clone(),
             proofs,
             signer: self.dst_signer()?,
+            counterparty_upgrade_sequence,
         };
 
         Ok(Some(new_msg.to_any()))
@@ -501,20 +430,29 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         TrackedEvents::new(result, tracking_id)
     }
 
-    fn relay_pending_packets(&self, height: Option<Height>) -> Result<(), LinkError> {
+    fn relay_pending_packets(
+        &self,
+        height: Option<Height>,
+        clear_limit: usize,
+    ) -> Result<(), LinkError> {
         let _span = span!(Level::ERROR, "relay_pending_packets", ?height).entered();
 
-        let tracking_id = TrackingId::new_cleared_uuid();
+        let tracking_id = TrackingId::new_packet_clearing();
         telemetry!(received_event_batch, tracking_id);
 
         let src_config = self.src_chain().config().map_err(LinkError::relayer)?;
         let chunk_size = src_config.query_packets_chunk_size();
 
         for i in 1..=MAX_RETRIES {
-            let cleared_recv =
-                self.schedule_recv_packet_and_timeout_msgs(height, chunk_size, tracking_id);
+            let cleared_recv = self.schedule_recv_packet_and_timeout_msgs(
+                height,
+                chunk_size,
+                clear_limit,
+                tracking_id,
+            );
 
-            let cleared_ack = self.schedule_packet_ack_msgs(height, chunk_size, tracking_id);
+            let cleared_ack =
+                self.schedule_packet_ack_msgs(height, chunk_size, clear_limit, tracking_id);
 
             match cleared_recv.and(cleared_ack) {
                 Ok(()) => return Ok(()),
@@ -530,14 +468,18 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
     /// Clears any packets that were sent before `height`.
     /// If no height is passed in, then the latest height of the source chain is used.
-    pub fn schedule_packet_clearing(&self, height: Option<Height>) -> Result<(), LinkError> {
+    pub fn schedule_packet_clearing(
+        &self,
+        height: Option<Height>,
+        clear_limit: usize,
+    ) -> Result<(), LinkError> {
         let _span = span!(Level::ERROR, "schedule_packet_clearing", ?height).entered();
 
         let clear_height = height
             .map(|h| h.decrement().map_err(|e| LinkError::decrement_height(h, e)))
             .transpose()?;
 
-        self.relay_pending_packets(clear_height)?;
+        self.relay_pending_packets(clear_height, clear_limit)?;
 
         debug!(height = ?clear_height, "done relaying pending packets at clear height");
 
@@ -646,6 +588,16 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
                     self.max_memo_size,
                     self.max_receiver_size,
                 ) {
+                    telemetry!(
+                        filtered_packets,
+                        &self.src_chain().id(),
+                        &self.dst_chain().id(),
+                        &packet.source_channel,
+                        &packet.destination_channel,
+                        &packet.source_port,
+                        &packet.destination_port,
+                        1
+                    );
                     continue;
                 }
             }
@@ -777,12 +729,12 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
                     return Ok(reply);
                 }
-                Err(LinkError(error::LinkErrorDetail::Send(e), _)) => {
-                    // This error means we could retry
-                    error!("error {}", e.event);
+                Err(LinkError(error::LinkErrorDetail::Send(_), _)) => {
                     if i + 1 == MAX_RETRIES {
-                        error!("{}/{} retries exhausted. giving up", i + 1, MAX_RETRIES)
+                        error!("{}/{} retries exhausted, giving up", i + 1, MAX_RETRIES)
                     } else {
+                        debug!("{}/{} retries exhausted, retrying with newly-generated operational data", i + 1, MAX_RETRIES);
+
                         // If we haven't exhausted all retries, regenerate the op. data & retry
                         match self.regenerate_operational_data(odata.clone()) {
                             None => return Ok(S::Reply::empty()), // Nothing to retry
@@ -806,7 +758,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
     /// Return value:
     ///   - `Some(..)`: a new operational data from which to retry sending,
     ///   - `None`: all the events in the initial operational data were exhausted (i.e., turned
-    ///   into timeouts), so there is nothing to retry.
+    ///     into timeouts), so there is nothing to retry.
     ///
     /// Side effects: may schedule a new operational data targeting the source chain, comprising
     /// new timeout messages.
@@ -1016,7 +968,11 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
     #[inline]
     fn event_per_type(
         mut tx_events: Vec<IbcEventWithHeight>,
-    ) -> (Option<IbcEvent>, Option<Height>, Option<ClientMisbehaviour>) {
+    ) -> (
+        Option<IbcEvent>,
+        Option<Height>,
+        Option<ClientMisbehaviourEvent>,
+    ) {
         let mut error = None;
         let mut update = None;
         let mut misbehaviour = None;
@@ -1197,6 +1153,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         &self,
         opt_query_height: Option<Height>,
         chunk_size: usize,
+        clear_limit: usize,
         tracking_id: TrackingId,
     ) -> Result<(), LinkError> {
         let _span = span!(
@@ -1207,9 +1164,13 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         .entered();
 
         // Pull the s.n. of all packets that the destination chain has not yet received.
-        let (sequences, src_response_height) =
-            unreceived_packets(self.dst_chain(), self.src_chain(), &self.path_id)
-                .map_err(LinkError::supervisor)?;
+        let (sequences, src_response_height) = unreceived_packets(
+            self.dst_chain(),
+            self.src_chain(),
+            &self.path_id,
+            Paginate::All,
+        )
+        .map_err(LinkError::supervisor)?;
 
         let query_height = opt_query_height.unwrap_or(src_response_height);
 
@@ -1217,6 +1178,14 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         if sequences.is_empty() {
             return Ok(());
         }
+
+        // Retain only sequences which should not be filtered out
+        let raw_sequences: Vec<Sequence> = sequences
+            .into_iter()
+            .filter(|sequence| !self.exclude_src_sequences.contains(sequence))
+            .collect();
+
+        let sequences = &raw_sequences[..raw_sequences.len().min(clear_limit)];
 
         debug!(
             dst_chain = %self.dst_chain().id(),
@@ -1229,7 +1198,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         // Chunk-up the list of sequence nrs. into smaller parts,
         // and schedule operational data incrementally across each chunk.
         for events_chunk in query_packet_events_with(
-            &sequences,
+            sequences,
             Qualified::SmallerEqual(query_height),
             self.src_chain(),
             &self.path_id,
@@ -1258,6 +1227,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         &self,
         opt_query_height: Option<Height>,
         chunk_size: usize,
+        clear_limit: usize,
         tracking_id: TrackingId,
     ) -> Result<(), LinkError> {
         let _span = span!(
@@ -1267,9 +1237,13 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         )
         .entered();
 
-        let sequences_and_height =
-            unreceived_acknowledgements(self.dst_chain(), self.src_chain(), &self.path_id)
-                .map_err(LinkError::supervisor)?;
+        let sequences_and_height = unreceived_acknowledgements(
+            self.dst_chain(),
+            self.src_chain(),
+            &self.path_id,
+            Paginate::All,
+        )
+        .map_err(LinkError::supervisor)?;
 
         let Some((sequences, src_response_height)) = sequences_and_height else {
             return Ok(());
@@ -1282,6 +1256,14 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
             return Ok(());
         }
 
+        // Retain only sequences which should not be filtered out
+        let raw_sequences: Vec<Sequence> = sequences
+            .into_iter()
+            .filter(|sequence| !self.exclude_src_sequences.contains(sequence))
+            .collect();
+
+        let sequences = &raw_sequences[..raw_sequences.len().min(clear_limit)];
+
         debug!(
             dst_chain = %self.dst_chain().id(),
             src_chain = %self.src_chain().id(),
@@ -1292,7 +1274,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
         // Incrementally process all the available sequence numbers in chunks
         for events_chunk in query_packet_events_with(
-            &sequences,
+            sequences,
             Qualified::SmallerEqual(query_height),
             self.src_chain(),
             &self.path_id,
@@ -1442,11 +1424,14 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
             )
             .map_err(|e| LinkError::packet_proofs_constructor(self.dst_chain().id(), e))?;
 
+        let counterparty_upgrade_sequence = self.src_channel(QueryHeight::Latest)?.upgrade_sequence;
+
         let msg = MsgTimeoutOnClose::new(
             packet.clone(),
             next_sequence_received,
             proofs.clone(),
             self.src_signer()?,
+            counterparty_upgrade_sequence,
         );
 
         trace!(packet = %msg.packet, height = %proofs.height(), "built timeout on close msg");
@@ -1892,7 +1877,6 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
     }
 
     // we need fully qualified ChainId to avoid unneeded imports warnings
-    #[cfg(feature = "telemetry")]
     fn target_info(
         &self,
         target: OperationalDataTarget,
@@ -1918,7 +1902,6 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         }
     }
 
-    #[cfg(feature = "telemetry")]
     fn backlog_update(&self, event: &IbcEvent) {
         match event {
             IbcEvent::SendPacket(send_packet_ev) => {
@@ -1952,7 +1935,6 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         }
     }
 
-    #[cfg(feature = "telemetry")]
     fn record_cleared_send_packet(&self, event_with_height: &IbcEventWithHeight) {
         if let IbcEvent::SendPacket(send_packet_ev) = &event_with_height.event {
             ibc_telemetry::global().send_packet_events(
@@ -1974,7 +1956,6 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         }
     }
 
-    #[cfg(feature = "telemetry")]
     fn record_cleared_acknowledgments<'a>(
         &self,
         events_with_heights: impl Iterator<Item = &'a IbcEventWithHeight>,
@@ -1994,7 +1975,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
     }
 }
 
-#[tracing::instrument(skip(data))]
+#[tracing::instrument(skip_all)]
 fn check_ics20_fields_size(
     data: &[u8],
     memo_limit: Ics20FieldSizeLimit,
@@ -2009,9 +1990,9 @@ fn check_ics20_fields_size(
                 (ValidationResult::Valid, ValidationResult::Valid) => true,
 
                 (memo_validity, receiver_validity) => {
-                    debug!("found invalid ICS-20 packet data, not relaying packet!");
-                    debug!("    ICS-20 memo:     {memo_validity}");
-                    debug!("    ICS-20 receiver: {receiver_validity}");
+                    warn!("found invalid ICS-20 packet data, not relaying packet!");
+                    warn!("    ICS-20 memo:     {memo_validity}");
+                    warn!("    ICS-20 receiver: {receiver_validity}");
 
                     false
                 }

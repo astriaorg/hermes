@@ -1,43 +1,22 @@
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
-use color_eyre::eyre::eyre;
-use ibc_relayer::chain::{
-    handle::ChainHandle,
-    requests::{
-        IncludeProof,
-        PageRequest,
-        QueryClientConnectionsRequest,
-        QueryClientEventRequest,
-        QueryClientStateRequest,
-        QueryConsensusStateHeightsRequest,
-        QueryConsensusStateRequest,
-        QueryHeight,
-        QueryTxRequest,
-    },
-};
-use ibc_relayer_types::{
-    core::{
-        ics02_client::client_state::ClientState,
-        ics24_host::identifier::{
-            ChainId,
-            ClientId,
-        },
-    },
-    events::WithBlockDataType,
-    Height,
+use abscissa_core::clap::Parser;
+use abscissa_core::{Command, Runnable};
+
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{
+    IncludeProof, PageRequest, QueryClientConnectionsRequest, QueryClientEventRequest,
+    QueryClientStateRequest, QueryConsensusStateHeightsRequest, QueryConsensusStateRequest,
+    QueryHeight, QueryTxRequest,
 };
 
-use crate::{
-    application::app_config,
-    cli_utils::spawn_chain_runtime,
-    conclude::{
-        exit_with_unrecoverable_error,
-        Output,
-    },
-};
+use ibc_relayer_types::core::ics02_client::client_state::ClientState;
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use ibc_relayer_types::core::ics24_host::identifier::ClientId;
+use ibc_relayer_types::events::WithBlockDataType;
+use ibc_relayer_types::Height;
+
+use crate::application::app_config;
+use crate::cli_utils::spawn_chain_runtime;
+use crate::conclude::{exit_with_unrecoverable_error, Output};
 
 /// Query client state command
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
@@ -338,24 +317,10 @@ fn client_status(
         return Ok(Status::Frozen);
     }
 
-    let consensus_state_heights =
-        chain.query_consensus_state_heights(QueryConsensusStateHeightsRequest {
-            client_id: client_id.clone(),
-            pagination: Some(PageRequest::all()),
-        })?;
-
-    let latest_consensus_height = consensus_state_heights.last().copied().ok_or_else(|| {
-        eyre!(
-            "no consensus state found for client '{}' on chain '{}'",
-            client_id,
-            chain.id()
-        )
-    })?;
-
     let (latest_consensus_state, _) = chain.query_consensus_state(
         QueryConsensusStateRequest {
             client_id: client_id.clone(),
-            consensus_height: latest_consensus_height,
+            consensus_height: client_state.latest_height(),
             query_height: QueryHeight::Latest,
         },
         IncludeProof::No,
@@ -430,17 +395,11 @@ mod tests {
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc_relayer_types::core::ics24_host::identifier::{
-        ChainId,
-        ClientId,
-    };
+    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
 
     use super::{
-        QueryClientConnectionsCmd,
-        QueryClientConsensusCmd,
-        QueryClientHeaderCmd,
-        QueryClientStateCmd,
-        QueryClientStatusCmd,
+        QueryClientConnectionsCmd, QueryClientConsensusCmd, QueryClientHeaderCmd,
+        QueryClientStateCmd, QueryClientStatusCmd,
     };
 
     #[test]

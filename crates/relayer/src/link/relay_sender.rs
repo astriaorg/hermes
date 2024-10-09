@@ -1,26 +1,13 @@
-use core::fmt::{
-    Display,
-    Error as FmtError,
-    Formatter,
-};
+use core::fmt::{Display, Error as FmtError, Formatter};
 
 use ibc_relayer_types::events::IbcEvent;
 use tendermint_rpc::endpoint::broadcast::tx_sync;
 use tracing::info;
 
 use crate::{
-    chain::{
-        handle::ChainHandle,
-        tracking::TrackedMsgs,
-    },
-    link::{
-        error::LinkError,
-        RelaySummary,
-    },
-    util::pretty::{
-        PrettyCode,
-        PrettyEvents,
-    },
+    chain::{handle::ChainHandle, tracking::TrackedMsgs},
+    link::{error::LinkError, RelaySummary},
+    util::pretty::{PrettyCode, PrettyEvents},
 };
 
 pub trait SubmitReply {
@@ -107,10 +94,11 @@ impl Submit for AsyncSender {
     type Reply = AsyncReply;
 
     fn submit(target: &impl ChainHandle, msgs: TrackedMsgs) -> Result<Self::Reply, LinkError> {
-        let a = target
+        let responses = target
             .send_messages_and_wait_check_tx(msgs)
             .map_err(LinkError::relayer)?;
-        let reply = AsyncReply { responses: a };
+
+        let reply = AsyncReply { responses };
 
         // Note: There may be errors in the reply, for example:
         // `Response { code: Err(11), data: Data([]), log: Log("Too much gas wanted: 35000000, maximum is 25000000: out of gas")`

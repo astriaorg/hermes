@@ -1,36 +1,18 @@
-use std::{
-    error::Error,
-    io,
-};
+use std::{error::Error, io};
 
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
+use abscissa_core::clap::Parser;
 use crossbeam_channel::Sender;
 use ibc_relayer::{
-    chain::handle::{
-        CachingChainHandle,
-        ChainHandle,
-    },
+    chain::handle::{CachingChainHandle, ChainHandle},
     config::Config,
     registry::SharedRegistry,
     rest,
-    supervisor::{
-        cmd::SupervisorCmd,
-        spawn_supervisor,
-        SupervisorHandle,
-        SupervisorOptions,
-    },
+    supervisor::{cmd::SupervisorCmd, spawn_supervisor, SupervisorHandle, SupervisorOptions},
     util::debug_section::DebugSection,
 };
 
 use crate::{
-    conclude::{
-        json,
-        Output,
-    },
+    conclude::{json, Output},
     prelude::*,
 };
 
@@ -48,10 +30,7 @@ impl Runnable for StartCmd {
         let app = app_reader();
 
         if app.debug_enabled(DebugSection::ProfilingJson) {
-            use std::{
-                env,
-                path::Path,
-            };
+            use std::{env, path::Path};
 
             use ibc_relayer::util::profiling::open_or_create_profile_file;
 
@@ -105,10 +84,7 @@ impl Runnable for StartCmd {
 /// - [DEPRECATED] SIGHUP: Trigger a reload of the configuration.
 /// - SIGUSR1: Ask the supervisor to dump its state and print it to the console.
 fn register_signals(tx_cmd: Sender<SupervisorCmd>) -> Result<(), io::Error> {
-    use signal_hook::{
-        consts::signal::*,
-        iterator::Signals,
-    };
+    use signal_hook::{consts::signal::*, iterator::Signals};
 
     let sigs = vec![
         SIGHUP,  // Reload of configuration (disabled)
@@ -154,7 +130,6 @@ fn register_signals(tx_cmd: Sender<SupervisorCmd>) -> Result<(), io::Error> {
     Ok(())
 }
 
-#[cfg(feature = "rest-server")]
 fn spawn_rest_server(config: &Config) -> Option<rest::Receiver> {
     use ibc_relayer::util::spawn_blocking;
 
@@ -192,23 +167,6 @@ fn spawn_rest_server(config: &Config) -> Option<rest::Receiver> {
     Some(rx)
 }
 
-#[cfg(not(feature = "rest-server"))]
-fn spawn_rest_server(config: &Config) -> Option<rest::Receiver> {
-    let rest = config.rest.clone();
-
-    if rest.enabled {
-        warn!(
-            "REST server enabled in the config but Hermes was built without REST support, \
-             build Hermes with --features=rest-server to enable REST support."
-        );
-
-        None
-    } else {
-        None
-    }
-}
-
-#[cfg(feature = "telemetry")]
 fn spawn_telemetry_server(config: &Config) {
     use ibc_relayer::util::spawn_blocking;
 
@@ -241,16 +199,6 @@ fn spawn_telemetry_server(config: &Config) {
             Err(e) => error!("telemetry service failed to start: {e}"),
         }
     });
-}
-
-#[cfg(not(feature = "telemetry"))]
-fn spawn_telemetry_server(config: &Config) {
-    if config.telemetry.enabled {
-        warn!(
-            "telemetry enabled in the config but Hermes was built without telemetry support, \
-             build Hermes with --features=telemetry to enable telemetry support."
-        );
-    }
 }
 
 fn make_supervisor<Chain: ChainHandle>(

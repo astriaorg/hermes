@@ -1,35 +1,20 @@
+use crate::core::ics04_channel::channel::ChannelEnd;
+use crate::core::ics04_channel::error::Error as ChannelError;
+use crate::core::ics04_channel::version::Version;
+use crate::core::ics24_host::identifier::{ChannelId, PortId};
+
+use crate::proofs::Proofs;
+use crate::signer::Signer;
+use crate::tx_msg::Msg;
+
+use ibc_proto::ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry;
+use ibc_proto::Protobuf;
+
 use core::str::FromStr;
-
-use ibc_proto::{
-    ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry,
-    Protobuf,
-};
-
-use crate::{
-    core::{
-        ics04_channel::{
-            channel::ChannelEnd,
-            error::Error as ChannelError,
-            version::Version,
-        },
-        ics24_host::{
-            error::ValidationError,
-            identifier::{
-                ChannelId,
-                PortId,
-            },
-        },
-    },
-    proofs::Proofs,
-    signer::Signer,
-    tx_msg::Msg,
-};
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelOpenTry";
 
-///
 /// Message definition for the second step in the channel open handshake (`ChanOpenTry` datagram).
-///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MsgChannelOpenTry {
     pub port_id: PortId,
@@ -71,13 +56,6 @@ impl Msg for MsgChannelOpenTry {
     fn type_url(&self) -> String {
         TYPE_URL.to_string()
     }
-
-    fn validate_basic(&self) -> Result<(), ValidationError> {
-        match self.channel.counterparty().channel_id() {
-            None => Err(ValidationError::invalid_counterparty_channel_id()),
-            Some(_c) => Ok(()),
-        }
-    }
 }
 
 impl Protobuf<RawMsgChannelOpenTry> for MsgChannelOpenTry {}
@@ -109,20 +87,24 @@ impl TryFrom<RawMsgChannelOpenTry> for MsgChannelOpenTry {
             .transpose()
             .map_err(ChannelError::identifier)?;
 
+        let channel: ChannelEnd = raw_msg
+            .channel
+            .ok_or_else(ChannelError::missing_channel)?
+            .try_into()?;
+
+        assert!(
+            channel.counterparty().channel_id().is_some(),
+            "Expected counterparty channel to have a channel ID"
+        );
+
         let msg = MsgChannelOpenTry {
             port_id: raw_msg.port_id.parse().map_err(ChannelError::identifier)?,
             previous_channel_id,
-            channel: raw_msg
-                .channel
-                .ok_or_else(ChannelError::missing_channel)?
-                .try_into()?,
+            channel,
             counterparty_version: raw_msg.counterparty_version.into(),
             proofs,
             signer: raw_msg.signer.parse().map_err(ChannelError::signer)?,
         };
-
-        msg.validate_basic()
-            .map_err(ChannelError::invalid_counterparty_channel_id)?;
 
         Ok(msg)
     }
@@ -149,22 +131,15 @@ impl From<MsgChannelOpenTry> for RawMsgChannelOpenTry {
 pub mod test_util {
 
     use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry,
-        client::v1::Height,
+        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, client::v1::Height,
     };
 
     use crate::{
         core::{
             ics04_channel::channel::test_util::get_dummy_raw_channel_end,
-            ics24_host::identifier::{
-                ChannelId,
-                PortId,
-            },
+            ics24_host::identifier::{ChannelId, PortId},
         },
-        test_utils::{
-            get_dummy_bech32_account,
-            get_dummy_proof,
-        },
+        test_utils::{get_dummy_bech32_account, get_dummy_proof},
     };
 
     /// Returns a dummy `RawMsgChannelOpenTry`, for testing only!
@@ -188,14 +163,12 @@ pub mod test_util {
 #[cfg(test)]
 mod tests {
     use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry,
-        client::v1::Height,
+        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, client::v1::Height,
     };
     use test_log::test;
 
     use crate::core::ics04_channel::msgs::chan_open_try::{
-        test_util::get_dummy_raw_msg_chan_open_try,
-        MsgChannelOpenTry,
+        test_util::get_dummy_raw_msg_chan_open_try, MsgChannelOpenTry,
     };
 
     #[test]

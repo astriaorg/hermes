@@ -1,37 +1,18 @@
+use abscissa_core::clap::Parser;
+use ibc_relayer_types::core::ics02_client::height::Height;
 use std::ops::RangeInclusive;
 
-use abscissa_core::{
-    clap::Parser,
-    Command,
-    Runnable,
-};
-use ibc_relayer::{
-    chain::handle::ChainHandle,
-    link::{
-        Link,
-        LinkParameters,
-    },
-    util::seq_range::parse_seq_range,
-};
-use ibc_relayer_types::{
-    core::{
-        ics02_client::height::Height,
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            PortId,
-        },
-    },
-    events::IbcEvent,
-};
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::link::{Link, LinkParameters};
+use ibc_relayer::util::seq_range::parse_seq_range;
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+use ibc_relayer_types::events::IbcEvent;
 
-use crate::{
-    cli_utils::ChainHandlePair,
-    conclude::Output,
-    error::Error,
-    prelude::*,
-};
+use crate::cli_utils::ChainHandlePair;
+use crate::conclude::Output;
+use crate::error::Error;
+use crate::prelude::*;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct TxPacketRecvCmd {
@@ -106,7 +87,11 @@ impl Runnable for TxPacketRecvCmd {
             src_channel_id: self.src_channel_id.clone(),
             max_memo_size: config.mode.packets.ics20_max_memo_size,
             max_receiver_size: config.mode.packets.ics20_max_receiver_size,
+
+            // Packets are only excluded when clearing
+            exclude_src_sequences: vec![],
         };
+
         let link = match Link::new_from_opts(chains.src, chains.dst, opts, false, false) {
             Ok(link) => link,
             Err(e) => Output::error(e).exit(),
@@ -203,7 +188,11 @@ impl Runnable for TxPacketAckCmd {
             src_channel_id: self.src_channel_id.clone(),
             max_memo_size: config.mode.packets.ics20_max_memo_size,
             max_receiver_size: config.mode.packets.ics20_max_receiver_size,
+
+            // Packets are only excluded when clearing
+            exclude_src_sequences: vec![],
         };
+
         let link = match Link::new_from_opts(chains.src, chains.dst, opts, false, false) {
             Ok(link) => link,
             Err(e) => Output::error(e).exit(),
@@ -232,16 +221,9 @@ mod tests {
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc_relayer_types::core::ics24_host::identifier::{
-        ChainId,
-        ChannelId,
-        PortId,
-    };
+    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
 
-    use super::{
-        TxPacketAckCmd,
-        TxPacketRecvCmd,
-    };
+    use super::{TxPacketAckCmd, TxPacketRecvCmd};
 
     #[test]
     fn test_packet_recv_required_only() {

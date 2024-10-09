@@ -1,49 +1,24 @@
 //! Definition of the application, based on the Abscissa framework
 
-use std::{
-    path::PathBuf,
-    thread,
-};
+use std::{path::PathBuf, thread};
 
 use abscissa_core::{
-    application::{
-        self,
-        AppCell,
-    },
+    application::{self, AppCell},
     component::Component,
-    config::{
-        self,
-        CfgCell,
-    },
-    terminal::{
-        component::Terminal,
-        ColorChoice,
-    },
-    Application,
-    Configurable,
-    FrameworkError,
-    FrameworkErrorKind,
-    StandardPaths,
+    config::{self, CfgCell},
+    terminal::{component::Terminal, ColorChoice},
+    Application, Configurable, FrameworkError, FrameworkErrorKind, StandardPaths,
 };
 use ibc_relayer::{
-    config::{
-        Config,
-        TracingServerConfig,
-    },
+    config::{Config, TracingServerConfig},
     util::debug_section::DebugSection,
 };
 
 use crate::{
     commands::CliCmd,
-    components::{
-        JsonTracing,
-        PrettyTracing,
-    },
+    components::{JsonTracing, PrettyTracing},
     entry::EntryPoint,
-    tracing_handle::{
-        spawn_reload_handler,
-        ReloadHandle,
-    },
+    tracing_handle::{spawn_reload_handler, ReloadHandle},
 };
 
 /// Application state
@@ -190,7 +165,7 @@ impl Application for CliApp {
         let terminal = Terminal::new(self.term_colors(command));
 
         let config_path = command.config_path();
-        self.config_path = config_path.clone();
+        self.config_path.clone_from(&config_path);
 
         let config = config_path
             .map(|path| self.load_config(&path))

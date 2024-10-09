@@ -3,10 +3,7 @@
 
 use std::path::PathBuf;
 
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use crate::fetchable::Fetchable;
 
@@ -48,6 +45,8 @@ pub struct LogoURIs {
 }
 
 impl Fetchable for AssetList {
+    const DESC: &'static str = "asset list";
+
     fn path(resource: &str) -> PathBuf {
         [resource, "assetlist.json"].iter().collect()
     }
@@ -56,10 +55,7 @@ impl Fetchable for AssetList {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        constants::ALL_CHAINS,
-        error::RegistryError,
-    };
+    use crate::{constants::ALL_CHAINS, error::RegistryError};
 
     #[tokio::test]
     #[ignore]

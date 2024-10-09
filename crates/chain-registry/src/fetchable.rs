@@ -6,12 +6,7 @@ use http::uri::Builder;
 use serde::de::DeserializeOwned;
 
 use crate::{
-    constants::{
-        DEFAULT_REF,
-        HOST,
-        PROTOCOL,
-        REGISTRY_PATH,
-    },
+    constants::{DEFAULT_REF, HOST, PROTOCOL, REGISTRY_PATH},
     error::RegistryError,
 };
 
@@ -22,6 +17,8 @@ pub trait Fetchable
 where
     Self: DeserializeOwned,
 {
+    const DESC: &'static str;
+
     /// The path of the fetchable resource.
     fn path(resource: &str) -> PathBuf;
 

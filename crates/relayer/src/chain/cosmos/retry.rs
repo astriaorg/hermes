@@ -3,35 +3,20 @@ use std::thread;
 
 use ibc_proto::google::protobuf::Any;
 use tendermint::abci::Code;
-use tendermint_rpc::{
-    endpoint::broadcast::tx_sync::Response,
-    HttpClient,
-};
-use tracing::{
-    debug,
-    error,
-    instrument,
-    warn,
-};
+use tendermint_rpc::{endpoint::broadcast::tx_sync::Response, HttpClient};
+use tracing::{debug, error, instrument, warn};
 
 use crate::{
     chain::cosmos::{
         query::account::refresh_account,
         tx::estimate_fee_and_send_tx,
-        types::{
-            account::Account,
-            config::TxConfig,
-        },
+        types::{account::Account, config::TxConfig},
     },
     config::types::Memo,
     error::Error,
-    keyring::{
-        Secp256k1KeyPair,
-        SigningKeyPair,
-    },
+    keyring::{Secp256k1KeyPair, SigningKeyPair},
     sdk_error::sdk_error_from_tx_sync_error_code,
-    telemetry,
-    time,
+    telemetry, time,
 };
 
 // Delay in milliseconds before retrying in the case of account sequence mismatch.
@@ -119,7 +104,7 @@ async fn do_send_tx_with_account_sequence_retry(
         // NOTE: The error code could potentially overlap between Cosmos SDK and Ibc-go channel
         // error codes. This is currently not the case of incorrect account sequence error
         //which is the Cosmos SDK code 32 and Ibc-go channel errors only go up to 25.
-        Ok(ref response) if response.code == Code::from(INCORRECT_ACCOUNT_SEQUENCE_ERR) => {
+        Ok((response, _)) if response.code == Code::from(INCORRECT_ACCOUNT_SEQUENCE_ERR) => {
             warn!(
                 ?response,
                 "failed to broadcast tx because of a mismatched account sequence number, \
@@ -141,7 +126,7 @@ async fn do_send_tx_with_account_sequence_retry(
 
         // Gas estimation succeeded and broadcast_tx_sync was either successful or has failed with
         // an unrecoverable error.
-        Ok(response) => {
+        Ok((response, estimated_gas)) => {
             debug!("gas estimation succeeded");
 
             // Gas estimation and broadcast_tx_sync were successful.
@@ -171,7 +156,7 @@ async fn do_send_tx_with_account_sequence_retry(
                     // Log the error.
                     error!(
                         ?response,
-                        diagnostic = ?sdk_error_from_tx_sync_error_code(code.into()),
+                        diagnostic = ?sdk_error_from_tx_sync_error_code(code.into(), estimated_gas),
                         "failed to broadcast tx with unrecoverable error"
                     );
 
@@ -211,7 +196,10 @@ async fn refresh_account_and_retry_send_tx_with_account_sequence(
     // Retry after delay
     thread::sleep(Duration::from_millis(ACCOUNT_SEQUENCE_RETRY_DELAY));
 
-    estimate_fee_and_send_tx(rpc_client, config, key_pair, account, tx_memo, messages).await
+    let (estimate_result, _) =
+        estimate_fee_and_send_tx(rpc_client, config, key_pair, account, tx_memo, messages).await?;
+
+    Ok(estimate_result)
 }
 
 /// Determine whether the given error yielded by `tx_simulate`

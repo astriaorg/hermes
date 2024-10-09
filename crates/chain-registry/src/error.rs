@@ -1,18 +1,9 @@
 use std::path::PathBuf;
 
-use flex_error::{
-    define_error,
-    TraceError,
-};
-use http;
+use flex_error::{define_error, TraceError};
 use itertools::Itertools;
-use reqwest;
-use serde_json;
-use tendermint_rpc;
-use tokio::{
-    task::JoinError,
-    time::error::Elapsed,
-};
+use tokio::task::JoinError;
+use tokio::time::error::Elapsed;
 
 define_error! {
     RegistryError {
@@ -83,7 +74,7 @@ define_error! {
                     .iter()
                     .join(", ");
 
-                format!("Error finding a healthy endpoint after {} retries. Endpoints: {endpoints}", e.retries)
+                format!("Did not find a healthy endpoint after {} retries. Endpoints: {endpoints}", e.retries)
             },
 
         UriParseError

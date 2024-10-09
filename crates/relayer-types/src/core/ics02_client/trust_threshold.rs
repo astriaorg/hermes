@@ -2,25 +2,12 @@
 //! represented as a fraction with valid values in the
 //! range `[0, 1)`.
 
-use std::{
-    convert::TryFrom,
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
-    str::FromStr,
-};
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
 
-use ibc_proto::{
-    ibc::lightclients::tendermint::v1::Fraction,
-    Protobuf,
-};
+use ibc_proto::{ibc::lightclients::tendermint::v1::Fraction, Protobuf};
 use num_rational::Ratio;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use tendermint::trust_threshold::TrustThresholdFraction;
 
 use crate::core::ics02_client::error::Error;
@@ -173,10 +160,7 @@ impl<'de> Deserialize<'de> for TrustThreshold {
     {
         use std::fmt;
 
-        use serde::de::{
-            self,
-            Visitor,
-        };
+        use serde::de::{self, Visitor};
 
         // This is a Visitor that forwards string types to T's `FromStr` impl and
         // forwards map types to T's `Deserialize` impl. The `PhantomData` is to
@@ -229,10 +213,7 @@ where
 {
     use std::fmt;
 
-    use serde::de::{
-        self,
-        Visitor,
-    };
+    use serde::de::{self, Visitor};
 
     struct StringOrInt;
 

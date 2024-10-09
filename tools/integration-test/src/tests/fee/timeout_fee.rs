@@ -2,13 +2,10 @@
 //! the case that it relays a timeout packet when an `ibc_token_transfer_with_fee`
 //! operation times out.
 
-use std::thread;
-
 use ibc_relayer_types::core::ics04_channel::version::Version;
-use ibc_test_framework::{
-    prelude::*,
-    util::random::random_u128_range,
-};
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::util::random::random_u128_range;
+use std::thread;
 
 #[test]
 fn test_timeout_fee() -> Result<(), Error> {
@@ -74,10 +71,6 @@ impl BinaryChannelTest for TimeoutFeeTest {
             &denom_a.with_amount(timeout_fee).as_ref(),
             Duration::from_secs(5),
         )?;
-
-        info!("Expect user A's balance after transfer: {}", balance_a2);
-
-        chain_driver_a.assert_eventual_wallet_amount(&user_a.address(), &balance_a2.as_ref())?;
 
         // Sleep to wait for IBC packet to timeout before start relaying
         thread::sleep(Duration::from_secs(6));

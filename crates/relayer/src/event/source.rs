@@ -1,35 +1,19 @@
 pub mod rpc;
 pub mod websocket;
 
-use std::{
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use crossbeam_channel as channel;
 use futures::Stream;
-use ibc_relayer_types::core::{
-    ics02_client::height::Height,
-    ics24_host::identifier::ChainId,
-};
+use ibc_relayer_types::core::{ics02_client::height::Height, ics24_host::identifier::ChainId};
 use tendermint_rpc::{
-    client::CompatMode,
-    event::Event as RpcEvent,
-    Error as RpcError,
-    HttpClient,
-    WebSocketClientUrl,
+    client::CompatMode, event::Event as RpcEvent, Error as RpcError, HttpClient, WebSocketClientUrl,
 };
 use tokio::runtime::Runtime as TokioRuntime;
 
-pub use super::error::{
-    Error,
-    ErrorDetail,
-};
+pub use super::error::{Error, ErrorDetail};
 use super::IbcEventWithHeight;
-use crate::chain::{
-    handle::Subscription,
-    tracking::TrackingId,
-};
+use crate::chain::{handle::Subscription, tracking::TrackingId};
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -58,9 +42,11 @@ impl EventSource {
         chain_id: ChainId,
         rpc_client: HttpClient,
         poll_interval: Duration,
+        max_retries: u32,
         rt: Arc<TokioRuntime>,
     ) -> Result<(Self, TxEventSourceCmd)> {
-        let (source, tx) = rpc::EventSource::new(chain_id, rpc_client, poll_interval, rt)?;
+        let (source, tx) =
+            rpc::EventSource::new(chain_id, rpc_client, poll_interval, max_retries, rt)?;
         Ok((Self::Rpc(source), tx))
     }
 
@@ -117,10 +103,7 @@ pub enum EventSourceCmd {
 
 // TODO: These are SDK specific, should be eventually moved.
 pub mod queries {
-    use tendermint_rpc::query::{
-        EventType,
-        Query,
-    };
+    use tendermint_rpc::query::{EventType, Query};
 
     pub fn all() -> Vec<Query> {
         // Note: Tendermint-go supports max 5 query specifiers!

@@ -2,41 +2,26 @@
    Constructs for N-ary connected chains.
 */
 
-use core::convert::{
-    From,
-    TryFrom,
-};
-
 use eyre::eyre;
-use ibc_relayer::{
-    chain::handle::ChainHandle,
-    foreign_client::ForeignClient,
-};
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::foreign_client::ForeignClient;
 
-use crate::{
-    error::Error,
-    types::{
-        binary::chains::ConnectedChains as BinaryConnectedChains,
-        env::{
-            prefix_writer,
-            EnvWriter,
-            ExportEnv,
-        },
-        nary::{
-            aliases::*,
-            foreign_client::*,
-        },
-        single::node::FullNode,
-        tagged::*,
-    },
-    util::array::try_into_array,
-};
+use crate::error::Error;
+use crate::types::binary::chains::ConnectedChains as BinaryConnectedChains;
+use crate::types::env::{prefix_writer, EnvWriter, ExportEnv};
+use crate::types::nary::aliases::*;
+use crate::types::nary::foreign_client::*;
+use crate::types::single::node::FullNode;
+use crate::types::tagged::*;
+use crate::util::array::try_into_array;
+use crate::util::two_dim_hash_map::TwoDimMap;
 
 /**
    A fixed-size N-ary connected chains as specified by `SIZE`.
 
    Contains `SIZE` number of [`ChainHandle`]s, `SIZE` number of
-   [`FullNode`]s, and `SIZE`x`SIZE` numbers of [`ForeignClient`] pairs.
+   [`FullNode`]s, and a numbers of [`ForeignClient`] pairs
+   depending on `SIZE` and the topology.
 
    A `ConnectedChains` can be constructed by first constructing
    a [`DynamicConnectedChains`], and then calling
@@ -61,7 +46,7 @@ pub struct NaryConnectedChains<Handle: ChainHandle, const SIZE: usize> {
 pub struct DynamicConnectedChains<Handle: ChainHandle> {
     chain_handles: Vec<Handle>,
     full_nodes: Vec<FullNode>,
-    pub foreign_clients: Vec<Vec<ForeignClient<Handle, Handle>>>,
+    pub foreign_clients: TwoDimMap<ForeignClient<Handle, Handle>>,
 }
 
 /**
@@ -199,7 +184,7 @@ impl<Handle: ChainHandle> DynamicConnectedChains<Handle> {
     pub fn new(
         chain_handles: Vec<Handle>,
         full_nodes: Vec<FullNode>,
-        foreign_clients: Vec<Vec<ForeignClient<Handle, Handle>>>,
+        foreign_clients: TwoDimMap<ForeignClient<Handle, Handle>>,
     ) -> Self {
         Self {
             chain_handles,
@@ -216,7 +201,7 @@ impl<Handle: ChainHandle> DynamicConnectedChains<Handle> {
         &self.full_nodes
     }
 
-    pub fn foreign_clients(&self) -> &Vec<Vec<ForeignClient<Handle, Handle>>> {
+    pub fn foreign_clients(&self) -> &TwoDimMap<ForeignClient<Handle, Handle>> {
         &self.foreign_clients
     }
 }

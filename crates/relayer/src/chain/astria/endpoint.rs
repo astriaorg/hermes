@@ -1,54 +1,32 @@
 use alloc::sync::Arc;
-use std::{
-    str::FromStr as _,
-    time::Duration,
-};
+use std::{str::FromStr as _, time::Duration};
 
+use ibc_proto::ibc::core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest};
 use ibc_proto::ibc::{
-    apps::fee::v1::{
-        QueryIncentivizedPacketRequest,
-        QueryIncentivizedPacketResponse,
-    },
+    apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
     core::{
         channel::v1::query_client::QueryClient as IbcChannelQueryClient,
         client::v1::query_client::QueryClient as IbcClientQueryClient,
         connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
     },
 };
+use ibc_relayer_types::core::ics02_client::height::Height;
+use ibc_relayer_types::core::ics04_channel::upgrade::{ErrorReceipt, Upgrade};
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     clients::ics07_tendermint::{
         client_state::ClientState as TendermintClientState,
-        consensus_state::ConsensusState as TendermintConsensusState,
-        header::Header,
+        consensus_state::ConsensusState as TendermintConsensusState, header::Header,
     },
     core::{
-        ics02_client::{
-            client_type::ClientType,
-            events::UpdateClient,
-        },
-        ics03_connection::connection::{
-            ConnectionEnd,
-            IdentifiedConnectionEnd,
-        },
+        ics02_client::{client_type::ClientType, events::UpdateClient},
+        ics03_connection::connection::{ConnectionEnd, IdentifiedConnectionEnd},
         ics04_channel::{
-            channel::{
-                ChannelEnd,
-                IdentifiedChannelEnd,
-            },
+            channel::{ChannelEnd, IdentifiedChannelEnd},
             packet::Sequence,
         },
-        ics23_commitment::{
-            commitment::CommitmentPrefix,
-            merkle::MerkleProof,
-        },
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            ClientId,
-            ConnectionId,
-            PortId,
-        },
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
     },
     signer::Signer,
     Height as ICSHeight,
@@ -58,12 +36,8 @@ use tendermint::time::Time as TmTime;
 use tendermint_light_client::verifier::types::LightBlock;
 use tendermint_rpc::{
     client::CompatMode,
-    endpoint::{
-        broadcast::tx_sync::Response as TxResponse,
-        status,
-    },
-    Client as _,
-    HttpClient,
+    endpoint::{broadcast::tx_sync::Response as TxResponse, status},
+    Client as _, HttpClient,
 };
 use tokio::runtime::Runtime as TokioRuntime;
 use tonic::IntoRequest;
@@ -72,49 +46,28 @@ use tracing::warn;
 use crate::{
     account::Balance,
     chain::{
-        astria::utils::{
-            decode_merkle_proof,
-            response_to_tx_sync_result,
-        },
+        astria::utils::{decode_merkle_proof, response_to_tx_sync_result},
         client::ClientSettings,
-        cosmos::{
-            version::Specs,
-            wait::wait_for_block_commits,
-        },
-        endpoint::{
-            ChainEndpoint,
-            ChainStatus,
-            HealthCheck,
-        },
+        cosmos::{version::Specs, wait::wait_for_block_commits},
+        endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
         handle::Subscription,
         requests::*,
         tracking::TrackedMsgs,
     },
-    client_state::{
-        AnyClientState,
-        IdentifiedAnyClientState,
-    },
+    client_state::{AnyClientState, IdentifiedAnyClientState},
     config::ChainConfig,
     consensus_state::AnyConsensusState,
     denom::DenomTrace,
     error::Error,
     event::{
-        source::{
-            EventSource,
-            TxEventSourceCmd,
-        },
+        source::{EventSource, TxEventSourceCmd},
         IbcEventWithHeight,
     },
-    keyring::{
-        Ed25519KeyPair,
-        KeyRing,
-    },
-    light_client::{
-        tendermint::LightClient,
-        LightClient as _,
-    },
+    keyring::{Ed25519KeyPair, KeyRing},
+    light_client::{tendermint::LightClient, LightClient as _},
     misbehaviour::MisbehaviourEvidence,
 };
+use astria_core::protocol::transaction::v1alpha1::UnsignedTransactionBuilder;
 
 const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -216,10 +169,14 @@ impl AstriaEndpoint {
                 *batch_delay,
                 self.rt.clone(),
             ),
-            Mode::Pull { interval } => EventSource::rpc(
+            Mode::Pull {
+                interval,
+                max_retries,
+            } => EventSource::rpc(
                 self.id().clone(),
                 self.sequencer_client.clone(),
                 *interval,
+                *max_retries,
                 self.rt.clone(),
             ),
         }
@@ -231,18 +188,10 @@ impl AstriaEndpoint {
 
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
         use astria_core::{
-            crypto::{
-                SigningKey,
-                VerificationKey,
-            },
+            crypto::{SigningKey, VerificationKey},
             generated::protocol::transactions::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
             primitive::v1::Address,
-            protocol::transaction::v1alpha1::{
-                action::Ics20Withdrawal,
-                Action,
-                TransactionParams,
-                UnsignedTransaction,
-            },
+            protocol::transaction::v1alpha1::{action::Ics20Withdrawal, Action},
             Protobuf as _,
         };
         use astria_sequencer_client::SequencerClientExt as _;
@@ -287,13 +236,12 @@ impl AstriaEndpoint {
             .await
             .map_err(|e| Error::other(Box::new(e)))?;
 
-        let unsigned_tx = UnsignedTransaction {
-            params: TransactionParams::builder()
-                .nonce(nonce.nonce)
-                .chain_id(self.id().to_string())
-                .build(),
-            actions,
-        };
+        let unsigned_tx = UnsignedTransactionBuilder::new()
+            .nonce(nonce.nonce)
+            .chain_id(self.id().to_string())
+            .actions(actions)
+            .try_build()
+            .map_err(|e| Error::other(e.into()))?;
 
         let signed_tx = unsigned_tx.into_signed(&SigningKey::from(signing_key.to_bytes()));
         let tx_bytes = signed_tx.into_raw().encode_to_vec();
@@ -599,14 +547,8 @@ impl ChainEndpoint for AstriaEndpoint {
         _key_name: Option<&str>,
         denom: Option<&str>,
     ) -> Result<Balance, Error> {
-        use astria_core::{
-            crypto::VerificationKey,
-            protocol::account::v1alpha1::AssetBalance,
-        };
-        use astria_sequencer_client::{
-            Address,
-            SequencerClientExt as _,
-        };
+        use astria_core::{crypto::VerificationKey, protocol::account::v1alpha1::AssetBalance};
+        use astria_sequencer_client::{Address, SequencerClientExt as _};
 
         let signing_key: ed25519_consensus::SigningKey =
             (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
@@ -680,10 +622,7 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryClientStatesRequest,
     ) -> Result<Vec<IdentifiedAnyClientState>, Error> {
-        use crate::{
-            chain::cosmos::client_id_suffix,
-            util::pretty::PrettyIdentifiedClientState,
-        };
+        use crate::{chain::cosmos::client_id_suffix, util::pretty::PrettyIdentifiedClientState};
 
         let mut client = self.ibc_client_grpc_client.clone();
 
@@ -1379,10 +1318,7 @@ impl ChainEndpoint for AstriaEndpoint {
         mut request: QueryPacketEventDataRequest,
     ) -> Result<Vec<IbcEventWithHeight>, Error> {
         use crate::chain::cosmos::{
-            query::tx::{
-                query_packets_from_block,
-                query_packets_from_txs,
-            },
+            query::tx::{query_packets_from_block, query_packets_from_txs},
             sort_events_by_sequence,
         };
 
@@ -1536,6 +1472,24 @@ impl ChainEndpoint for AstriaEndpoint {
     }
 
     fn query_consumer_chains(&self) -> Result<Vec<(ChainId, ClientId)>, Error> {
+        todo!()
+    }
+
+    fn query_upgrade(
+        &self,
+        request: QueryUpgradeRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+        todo!()
+    }
+
+    fn query_upgrade_error(
+        &self,
+        request: QueryUpgradeErrorRequest,
+        height: Height,
+        include_proof: IncludeProof,
+    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
         todo!()
     }
 }

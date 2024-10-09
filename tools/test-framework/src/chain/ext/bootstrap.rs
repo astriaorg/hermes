@@ -1,59 +1,31 @@
 use core::str::FromStr;
-use std::{
-    fs,
-    path::PathBuf,
-    str,
-    time::Duration,
-};
-
 use eyre::eyre;
 use hdpath::StandardHDPath;
-use ibc_relayer::keyring::{
-    Secp256k1KeyPair,
-    SigningKeyPair,
-};
 use serde_json as json;
-use toml;
+use std::fs;
+use std::path::PathBuf;
+use std::str;
+use std::time::Duration;
 use tracing::debug;
 
-use crate::{
-    chain::{
-        cli::{
-            bootstrap::{
-                add_genesis_account,
-                add_genesis_validator,
-                add_wallet,
-                collect_gen_txs,
-                initialize,
-                start_chain,
-            },
-            provider::{
-                copy_validator_key_pair,
-                query_consumer_genesis,
-                query_gov_proposal,
-                replace_genesis_state,
-                submit_consumer_chain_proposal,
-            },
-        },
-        driver::ChainDriver,
-        exec::simple_exec,
-    },
-    error::{
-        handle_generic_error,
-        Error,
-    },
-    ibc::token::Token,
-    prelude::assert_eventually_succeed,
-    types::{
-        process::ChildProcess,
-        wallet::{
-            Wallet,
-            WalletAddress,
-            WalletId,
-        },
-    },
-    util::proposal_status::ProposalStatus,
+use ibc_relayer::keyring::{Secp256k1KeyPair, SigningKeyPair};
+
+use crate::chain::cli::bootstrap::{
+    add_genesis_account, add_genesis_validator, add_wallet, collect_gen_txs, initialize,
+    start_chain,
 };
+use crate::chain::cli::provider::{
+    copy_validator_key_pair, query_consumer_genesis, query_gov_proposal, replace_genesis_state,
+    submit_consumer_chain_proposal,
+};
+use crate::chain::driver::ChainDriver;
+use crate::chain::exec::simple_exec;
+use crate::error::{handle_generic_error, Error};
+use crate::ibc::token::Token;
+use crate::prelude::assert_eventually_succeed;
+use crate::types::process::ChildProcess;
+use crate::types::wallet::{Wallet, WalletAddress, WalletId};
+use crate::util::proposal_status::ProposalStatus;
 
 pub trait ChainBootstrapMethodsExt {
     /**
@@ -134,6 +106,7 @@ pub trait ChainBootstrapMethodsExt {
     fn submit_consumer_chain_proposal(
         &self,
         consumer_chain_id: &str,
+        fees: &str,
         spawn_time: &str,
     ) -> Result<(), Error>;
 
@@ -258,6 +231,9 @@ impl ChainBootstrapMethodsExt for ChainDriver {
 
     fn add_genesis_account(&self, wallet: &WalletAddress, amounts: &[&Token]) -> Result<(), Error> {
         let amounts_str = amounts.iter().map(|t| t.to_string()).collect::<Vec<_>>();
+        let extra_args = self
+            .chain_type
+            .extra_add_genesis_account_args(&self.chain_id);
 
         add_genesis_account(
             self.chain_id.as_str(),
@@ -265,6 +241,7 @@ impl ChainBootstrapMethodsExt for ChainDriver {
             &self.home_path,
             &wallet.0,
             &amounts_str,
+            &extra_args.iter().map(|s| s.as_ref()).collect::<Vec<_>>(),
         )
     }
 
@@ -300,6 +277,7 @@ impl ChainBootstrapMethodsExt for ChainDriver {
     fn submit_consumer_chain_proposal(
         &self,
         consumer_chain_id: &str,
+        fees: &str,
         _spawn_time: &str,
     ) -> Result<(), Error> {
         let res = simple_exec(
@@ -317,7 +295,7 @@ impl ChainBootstrapMethodsExt for ChainDriver {
         let raw_proposal = r#"
         {
             "title": "Create consumer chain",
-            "description": "First consumer chain",
+            "summary": "First consumer chain",
             "chain_id": "{consumer_chain_id}",
             "initial_height": {
                 "revision_number": 1,
@@ -333,7 +311,12 @@ impl ChainBootstrapMethodsExt for ChainDriver {
             "transfer_timeout_period": 100000000000,
             "ccv_timeout_period": 100000000000,
             "unbonding_period": 100000000000,
-            "deposit": "10000001stake"
+            "deposit": "10000001stake",
+            "top_N": 95,
+            "validators_power_cap": 0,
+            "validator_set_cap": 0,
+            "allowlist": [],
+            "denylist": []
         }"#;
 
         let proposal = raw_proposal.replace("{consumer_chain_id}", consumer_chain_id);
@@ -346,6 +329,7 @@ impl ChainBootstrapMethodsExt for ChainDriver {
             &self.command_path,
             &self.home_path,
             &self.rpc_listen_address(),
+            fees,
         )
     }
 
@@ -361,7 +345,7 @@ impl ChainBootstrapMethodsExt for ChainDriver {
         assert_eventually_succeed(
             &format!("proposal `{}` status: {}", proposal_id, status.as_str()),
             10,
-            Duration::from_secs(2),
+            Duration::from_secs(3),
             || match query_gov_proposal(
                 chain_id,
                 command_path,

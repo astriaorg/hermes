@@ -3,20 +3,13 @@
 //! Utilizes the [`moka`](https://docs.rs/moka) crate, which provides full
 //! concurrency of retrievals and a high expected concurrency for updates.
 use core::fmt::Formatter;
-use std::{
-    fmt,
-    time::Duration,
-};
+use std::{fmt, time::Duration};
 
 use ibc_relayer_types::core::{
     ics02_client::height::Height,
     ics03_connection::connection::ConnectionEnd,
     ics04_channel::channel::ChannelEnd,
-    ics24_host::identifier::{
-        ClientId,
-        ConnectionId,
-        PortChannelId,
-    },
+    ics24_host::identifier::{ClientId, ConnectionId, PortChannelId},
 };
 use moka::sync::Cache as MokaCache;
 
@@ -106,6 +99,9 @@ impl Cache {
     where
         F: FnOnce() -> Result<ChannelEnd, E>,
     {
+        // FIXME: If a channel being upgraded is queried using Latest
+        // Height, it might return the wrong Channel End information.
+        // Find an alternative to avoid this issue
         if let Some(chan) = self.channels.get(id) {
             // If cache hit, return it.
             Ok((chan, CacheStatus::Hit))

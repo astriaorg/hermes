@@ -4,14 +4,8 @@
 //! i.e. they are *foreign* to the relayer. In contrast, the term "local client"
 //! refers to light clients running *locally* as part of the relayer.
 
-use core::{
-    fmt,
-    time::Duration,
-};
-use std::{
-    thread,
-    time::Instant,
-};
+use core::{fmt, time::Duration};
+use std::{thread, time::Instant};
 
 use flex_error::define_error;
 use ibc_proto::google::protobuf::Any;
@@ -22,69 +16,36 @@ use ibc_relayer_types::{
             client_state::ClientState,
             error::Error as ClientError,
             events::UpdateClient,
-            header::{
-                AnyHeader,
-                Header,
-            },
+            header::{AnyHeader, Header},
             msgs::{
-                create_client::MsgCreateClient,
-                misbehaviour::MsgSubmitMisbehaviour,
-                update_client::MsgUpdateClient,
-                upgrade_client::MsgUpgradeClient,
+                create_client::MsgCreateClient, misbehaviour::MsgSubmitMisbehaviour,
+                update_client::MsgUpdateClient, upgrade_client::MsgUpgradeClient,
             },
             trust_threshold::TrustThreshold,
         },
-        ics24_host::identifier::{
-            ChainId,
-            ClientId,
-        },
+        ics24_host::identifier::{ChainId, ClientId},
     },
     downcast,
-    events::{
-        IbcEvent,
-        IbcEventType,
-        WithBlockDataType,
-    },
-    timestamp::{
-        Timestamp,
-        TimestampOverflowError,
-    },
+    events::{IbcEvent, IbcEventType, WithBlockDataType},
+    timestamp::{Timestamp, TimestampOverflowError},
     tx_msg::Msg,
     Height,
 };
 use itertools::Itertools;
-use tracing::{
-    debug,
-    error,
-    info,
-    instrument,
-    trace,
-    warn,
-};
+use tracing::{debug, error, info, instrument, trace, warn};
 
 use crate::{
-    chain::{
-        client::ClientSettings,
-        handle::ChainHandle,
-        requests::*,
-        tracking::TrackedMsgs,
-    },
+    chain::{client::ClientSettings, handle::ChainHandle, requests::*, tracking::TrackedMsgs},
     client_state::AnyClientState,
     config::ChainConfig,
     consensus_state::AnyConsensusState,
     error::Error as RelayerError,
     event::IbcEventWithHeight,
-    misbehaviour::{
-        AnyMisbehaviour,
-        MisbehaviourEvidence,
-    },
+    misbehaviour::{AnyMisbehaviour, MisbehaviourEvidence},
     telemetry,
     util::{
         collate::CollatedIterExt,
-        pretty::{
-            PrettyDuration,
-            PrettySlice,
-        },
+        pretty::{PrettyDuration, PrettySlice},
     },
 };
 
@@ -1008,7 +969,7 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
 
             // In production, this should rarely happen unless there is another
             // relayer racing to update the client state, and that we so happen
-            // to get the the latest client state that was updated between
+            // to get the latest client state that was updated between
             // the time the target height was determined, and the time
             // the client state was fetched.
 
@@ -1022,7 +983,7 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
             // so that subsequent fetches can be fast.
             let cs_heights = self.fetch_consensus_state_heights()?;
 
-            // Iterate through the available consesnsus heights and find one
+            // Iterate through the available consensus heights and find one
             // that is lower than the target height.
             cs_heights
                 .into_iter()
@@ -1258,6 +1219,13 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
         target_height: Height,
         maybe_trusted_height: Option<Height>,
     ) -> Result<Vec<MsgUpdateClient>, ForeignClientError> {
+        crate::time!(
+            "build_update_client_with_trusted",
+            {
+                "src_chain": self.src_chain().id(),
+                "dst_chain": self.dst_chain().id(),
+            }
+        );
         // Get the latest client state on destination.
         let (client_state, _) = self.validated_client_state()?;
 
@@ -1814,8 +1782,6 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
 
         let tm_misbehaviour = match &evidence.misbehaviour {
             AnyMisbehaviour::Tendermint(tm_misbehaviour) => Some(tm_misbehaviour.clone()),
-            #[cfg(test)]
-            _ => None,
         }
         .ok_or_else(|| {
             ForeignClientError::misbehaviour_desc(format!(

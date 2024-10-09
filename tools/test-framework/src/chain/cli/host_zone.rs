@@ -1,7 +1,5 @@
-use crate::{
-    chain::exec::simple_exec,
-    error::Error,
-};
+use crate::chain::exec::simple_exec;
+use crate::error::Error;
 
 pub fn register_host_zone(
     chain_id: &str,
@@ -33,13 +31,16 @@ pub fn register_host_zone(
             bech32_prefix,
             ibc_denom,
             channel_id,
-            "1",
+            "10",
+            "false",
             "--from",
             sender,
             "--chain-id",
             chain_id,
             "--gas",
             "auto",
+            "--gas-adjustment",
+            "1.3",
             "--yes",
         ],
     )?;

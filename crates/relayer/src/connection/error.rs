@@ -1,30 +1,17 @@
 use core::time::Duration;
 
-use flex_error::{
-    define_error,
-    ErrorMessageTracer,
-};
+use flex_error::{define_error, ErrorMessageTracer};
 use ibc_relayer_types::{
     core::{
-        ics03_connection::connection::{
-            Counterparty,
-            State,
-        },
-        ics24_host::identifier::{
-            ChainId,
-            ClientId,
-            ConnectionId,
-        },
+        ics03_connection::connection::{Counterparty, State},
+        ics24_host::identifier::{ChainId, ClientId, ConnectionId},
     },
     events::IbcEvent,
 };
 
 use crate::{
     error::Error as RelayerError,
-    foreign_client::{
-        ForeignClientError,
-        HasExpiredOrFrozenError,
-    },
+    foreign_client::{ForeignClientError, HasExpiredOrFrozenError},
     supervisor::Error as SupervisorError,
 };
 
@@ -130,7 +117,7 @@ define_error! {
                 destination_chain_id: ChainId
             }
             |e| {
-                format!("the source chain of client a ({}) does not not match the destination chain of client b ({})",
+                format!("the source chain of client a ({}) does not match the destination chain of client b ({})",
                     e.source_chain_id, e.destination_chain_id)
             },
 

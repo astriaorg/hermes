@@ -7,61 +7,25 @@ use std::time::Duration;
 use crossbeam_channel as channel;
 use futures::{
     pin_mut,
-    stream::{
-        self,
-        select_all,
-        StreamExt,
-    },
-    Stream,
-    TryStreamExt,
+    stream::{self, select_all, StreamExt},
+    Stream, TryStreamExt,
 };
-use ibc_relayer_types::{
-    core::ics24_host::identifier::ChainId,
-    events::IbcEvent,
-};
+use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent};
 use tendermint_rpc::{
-    client::CompatMode,
-    event::Event as RpcEvent,
-    query::Query,
-    SubscriptionClient,
-    WebSocketClient,
-    WebSocketClientDriver,
-    WebSocketClientUrl,
+    client::CompatMode, event::Event as RpcEvent, query::Query, SubscriptionClient,
+    WebSocketClient, WebSocketClientDriver, WebSocketClientUrl,
 };
-use tokio::{
-    runtime::Runtime as TokioRuntime,
-    sync::mpsc,
-    task::JoinHandle,
-};
-use tracing::{
-    debug,
-    error,
-    info,
-    instrument,
-    trace,
-};
+use tokio::{runtime::Runtime as TokioRuntime, sync::mpsc, task::JoinHandle};
+use tracing::{debug, error, info, instrument, trace};
 
 use self::extract::extract_events;
-use super::{
-    EventBatch,
-    EventSourceCmd,
-    Result,
-    SubscriptionStream,
-    TxEventSourceCmd,
-};
+use super::{EventBatch, EventSourceCmd, Result, SubscriptionStream, TxEventSourceCmd};
 use crate::{
     chain::tracking::TrackingId,
-    event::{
-        bus::EventBus,
-        error::*,
-        IbcEventWithHeight,
-    },
+    event::{bus::EventBus, error::*, IbcEventWithHeight},
     telemetry,
     util::{
-        retry::{
-            retry_with_index,
-            RetryResult,
-        },
+        retry::{retry_with_index, RetryResult},
         stream::try_group_while_timeout,
     },
 };
@@ -164,7 +128,7 @@ impl EventSource {
             rx_cmd,
             ws_url,
             rpc_compat,
-            subscriptions: Box::new(futures::stream::empty()),
+            subscriptions: Box::new(stream::empty()),
         };
 
         Ok((source, TxEventSourceCmd(tx_cmd)))
@@ -330,8 +294,7 @@ impl EventSource {
 
     async fn run_loop(&mut self) -> Next {
         // Take ownership of the subscriptions
-        let subscriptions =
-            core::mem::replace(&mut self.subscriptions, Box::new(futures::stream::empty()));
+        let subscriptions = core::mem::replace(&mut self.subscriptions, Box::new(stream::empty()));
 
         // Convert the stream of RPC events into a stream of event batches.
         let batches = stream_batches(subscriptions, self.chain_id.clone(), self.batch_delay);

@@ -1,26 +1,13 @@
 //! Utility methods for querying packet event data.
 
-use ibc_relayer_types::{
-    core::ics04_channel::packet::Sequence,
-    events::WithBlockDataType,
-    Height,
-};
+use ibc_relayer_types::{core::ics04_channel::packet::Sequence, events::WithBlockDataType, Height};
 use itertools::Itertools;
-use tracing::{
-    info,
-    span,
-    warn,
-    Level,
-};
+use tracing::{info, span, warn, Level};
 
 use crate::{
     chain::{
         handle::ChainHandle,
-        requests::{
-            Qualified,
-            QueryHeight,
-            QueryPacketEventDataRequest,
-        },
+        requests::{Qualified, QueryHeight, QueryPacketEventDataRequest},
     },
     error::Error,
     event::IbcEventWithHeight,
@@ -55,14 +42,21 @@ where
             Ok(events) => {
                 events_left -= chunk.len();
 
-                info!(
-                    events.total = %events_total,
-                    events.left = %events_left,
-                    "pulled packet data for {} events out of {} sequences: {};",
-                    events.len(),
-                    chunk.len(),
-                    chunk.iter().copied().collated().format(", "),
-                );
+                if events.is_empty() && !chunk.is_empty() {
+                    warn!("no packet data was pulled at height {query_height} for sequences {}, this might be due to the data not being available on the configured endpoint. \
+                    Please verify that the RPC endpoint has the required packet data, for more details see https://hermes.informal.systems/advanced/troubleshooting/cross-comp-config.html#uncleared-pending-packets",
+                    chunk.iter().copied().collated().format(", "));
+                } else {
+                    info!(
+                        events.total = %events_total,
+                        events.left = %events_left,
+                        "pulled packet data for {} out of {} events: {}",
+                        events.len(),
+                        chunk.len(),
+                        chunk.iter().copied().collated().format(", "),
+                    );
+                }
+
 
                 // Because we use the first event height to do the client update,
                 // if the heights of the events differ, we get proof verification failures.

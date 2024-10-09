@@ -1,13 +1,8 @@
-use flex_error::{
-    define_error,
-    TraceError,
-};
+use flex_error::{define_error, TraceError};
+use itertools::Itertools;
 use tendermint_proto::Error as TendermintError;
 
-use super::{
-    packet::Sequence,
-    timeout::TimeoutHeight,
-};
+use super::{packet::Sequence, timeout::TimeoutHeight};
 use crate::{
     core::{
         ics02_client::error as client_error,
@@ -15,12 +10,7 @@ use crate::{
         ics04_channel::channel::State,
         ics24_host::{
             error::ValidationError,
-            identifier::{
-                ChannelId,
-                ClientId,
-                ConnectionId,
-                PortId,
-            },
+            identifier::{ChannelId, ClientId, ConnectionId, PortId},
         },
     },
     proofs::ProofError,
@@ -39,6 +29,14 @@ define_error! {
         UnknownState
             { state: i32 }
             | e | { format_args!("channel state unknown: {}", e.state) },
+
+        UnknownFlushStatus
+            { state: i32 }
+            | e | { format_args!("flush status unknown: {}", e.state) },
+
+        UnknownFlushStatusType
+            { type_id: String }
+            | e | { format_args!("flush status unknown: {}", e.type_id) },
 
         Identifier
             [ ValidationError ]
@@ -68,6 +66,11 @@ define_error! {
             [ TraceError<TendermintError> ]
             | _ | { "invalid version" },
 
+        InvalidFlushStatus
+            { flush_status: i32 }
+            | e | { format_args!("invalid flush_status value: {}", e.flush_status) },
+
+
         Signer
             [ SignerError ]
             | _ | { "invalid signer address" },
@@ -96,6 +99,10 @@ define_error! {
         InvalidTimeoutHeight
             | _ | { "invalid timeout height for the packet" },
 
+        InvalidTimeoutTimestamp
+            [ crate::timestamp::ParseTimestampError ]
+            | _ | { "invalid timeout timestamp" },
+
         InvalidPacket
             | _ | { "invalid packet" },
 
@@ -109,10 +116,31 @@ define_error! {
             | _ | { "missing counterparty" },
 
         NoCommonVersion
-            | _ | { "no commong version" },
+            | _ | { "no common version" },
 
         MissingChannel
             | _ | { "missing channel end" },
+
+        MissingUpgradeTimeout
+            | _ | { "missing upgrade timeout, either a height or a timestamp must be set" },
+
+        MissingUpgrade
+            | _ | { "missing upgrade" },
+
+        MissingUpgradeFields
+            | _ | { "missing upgrade fields" },
+
+        MissingUpgradeErrorReceipt
+            | _ | { "missing upgrade error receipt" },
+
+        MissingProposedUpgradeChannel
+            | _ | { "missing proposed upgrade channel" },
+
+        MissingProofHeight
+            | _ | { "missing proof height" },
+
+        InvalidProofHeight
+            | _ | { "invalid proof height" },
 
         InvalidVersionLengthConnection
             | _ | { "single version must be negotiated on connection before opening channel" },
@@ -204,6 +232,22 @@ define_error! {
                 format_args!(
                     "Invalid packet sequence {0} ≠ next send sequence {1}",
                     e.given_sequence, e.next_sequence)
+            },
+
+        InvalidPacketData
+            {
+                data: String,
+            }
+            | e | {
+                format_args!("Invalid packet data, not a valid hex-encoded string: {}", e.data)
+            },
+
+        InvalidPacketAck
+            {
+                ack: String,
+            }
+            | e | {
+                format_args!("Invalid packet ack, not a valid hex-encoded string: {}", e.ack)
             },
 
         LowPacketHeight
@@ -358,7 +402,25 @@ define_error! {
 
         AbciConversionFailed
             { abci_event: String }
-            | e | { format_args!("Failed to convert abci event to IbcEvent: {}", e.abci_event)}
+            | e | { format_args!("Failed to convert abci event to IbcEvent: {}", e.abci_event)},
+
+        ParseConnectionHopsVector
+            { failures: Vec<(String, ValidationError)> }
+            | e | {
+                let failures = e.failures
+                    .iter()
+                    .map(|(s, e)| format!("\"{}\": {}", s, e))
+                    .join(", ");
+
+                format!("error parsing a vector of ConnectionId: {}", failures)
+            },
+
+        MalformedEventAttributeKey
+            | _ | { format_args!("event attribute key is not valid UTF-8") },
+
+        MalformedEventAttributeValue
+            { key: String }
+            | e | { format_args!("event attribute value for key {} is not valid UTF-8", e.key) },
     }
 }
 

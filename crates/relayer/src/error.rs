@@ -1,79 +1,42 @@
-//! This module defines the various errors that be raised in the relayer.
-
 use core::time::Duration;
 
-use flex_error::{
-    define_error,
-    DisplayOnly,
-    TraceError,
-};
+use flex_error::{define_error, DisplayOnly, TraceError};
 use http::uri::InvalidUri;
 use humantime::format_duration;
-use ibc_relayer_types::{
-    applications::{
-        ics29_fee::error::Error as FeeError,
-        ics31_icq::error::Error as CrossChainQueryError,
-    },
-    clients::ics07_tendermint::error as tendermint_error,
-    core::{
-        ics02_client::{
-            client_type::ClientType,
-            error as client_error,
-        },
-        ics03_connection::error as connection_error,
-        ics23_commitment::error as commitment_error,
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            ConnectionId,
-        },
-    },
-    proofs::ProofError,
-};
-use prost::{
-    DecodeError,
-    EncodeError,
-};
+use prost::{DecodeError, EncodeError};
 use regex::Regex;
-use tendermint::{
-    abci,
-    Error as TendermintError,
-};
-use tendermint_light_client::{
-    builder::error::Error as LightClientBuilderError,
-    components::io::IoError as LightClientIoError,
-    errors::{
-        Error as LightClientError,
-        ErrorDetail as LightClientErrorDetail,
-    },
-};
-use tendermint_proto::Error as TendermintProtoError;
-use tendermint_rpc::{
-    endpoint::{
-        abci_query::AbciQuery,
-        broadcast::tx_sync::Response as TxSyncResponse,
-    },
-    Error as TendermintRpcError,
-};
 use tonic::{
-    metadata::errors::InvalidMetadataValue,
-    transport::Error as TransportError,
+    metadata::errors::InvalidMetadataValue, transport::Error as TransportError,
     Status as GrpcStatus,
 };
 
-use crate::{
-    chain::cosmos::{
-        version,
-        BLOCK_MAX_BYTES_MAX_FRACTION,
-    },
-    config::Error as ConfigError,
-    event::source,
-    keyring::{
-        errors::Error as KeyringError,
-        KeyType,
-    },
-    sdk_error::SdkError,
+use tendermint::abci;
+use tendermint::Error as TendermintError;
+use tendermint_light_client::builder::error::Error as LightClientBuilderError;
+use tendermint_light_client::components::io::IoError as LightClientIoError;
+use tendermint_light_client::errors::{
+    Error as LightClientError, ErrorDetail as LightClientErrorDetail,
 };
+use tendermint_proto::Error as TendermintProtoError;
+use tendermint_rpc::endpoint::abci_query::AbciQuery;
+use tendermint_rpc::endpoint::broadcast::tx_sync::Response as TxSyncResponse;
+use tendermint_rpc::Error as TendermintRpcError;
+
+use ibc_relayer_types::applications::ics29_fee::error::Error as FeeError;
+use ibc_relayer_types::applications::ics31_icq::error::Error as CrossChainQueryError;
+use ibc_relayer_types::clients::ics07_tendermint::error as tendermint_error;
+use ibc_relayer_types::core::ics02_client::{client_type::ClientType, error as client_error};
+use ibc_relayer_types::core::ics03_connection::error as connection_error;
+use ibc_relayer_types::core::ics23_commitment::error as commitment_error;
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, ConnectionId};
+use ibc_relayer_types::proofs::ProofError;
+
+use crate::chain::cosmos::version;
+use crate::chain::cosmos::BLOCK_MAX_BYTES_MAX_FRACTION;
+use crate::config::Error as ConfigError;
+use crate::event::source;
+use crate::keyring::{errors::Error as KeyringError, KeyType};
+use crate::sdk_error::SdkError;
 
 define_error! {
     Error {
@@ -181,6 +144,9 @@ define_error! {
 
         EmptyUpgradedClientState
             |_| { "found no upgraded client state" },
+
+        EmptyConnectionParams
+            |_| { "connection params not found" },
 
         ConsensusStateTypeMismatch
             {
@@ -429,7 +395,6 @@ define_error! {
                 address: String,
                 endpoint: String,
             }
-            [ DisplayOnly<tonic::transport::Error> ]
             |e| {
                 format!("failed while fetching version info from endpoint {0} on the gRPC interface of chain {1}:{2}",
                     e.endpoint, e.chain_id, e.address)
@@ -533,14 +498,14 @@ define_error! {
                 format!("semantic config validation failed for option `gas_multiplier` of chain '{}', reason: gas multiplier ({}) is smaller than `1.1`, which could trigger gas fee errors in production", e.chain_id, e.gas_multiplier)
             },
 
-        SdkModuleVersion
+        CompatCheckFailed
             {
                 chain_id: ChainId,
                 address: String,
                 cause: String
             }
             |e| {
-                format!("Hermes health check failed while verifying the application compatibility for chain {0}:{1}; caused by: {2}",
+                format!("compatibility check failed for chain '{0}' at '{1}': {2}",
                     e.chain_id, e.address, e.cause)
             },
 
@@ -558,6 +523,10 @@ define_error! {
         EmptyQueryAccount
             { address: String }
             |e| { format!("Query/Account RPC returned an empty account for address: {}", e.address) },
+
+        EmptyProposal
+            { proposal_id: String }
+            |e| { format!("Query/Proposal RPC returned an empty proposal for proposal id: {}", e.proposal_id) },
 
         NoHistoricalEntries
             { chain_id: ChainId }
@@ -626,10 +595,50 @@ define_error! {
             [ TendermintRpcError ]
             |_| { "Invalid CompatMode queried from chain and no `compat_mode` configured in Hermes. This can be fixed by specifying a `compat_mode` in Hermes config.toml" },
 
-        Other {
-            source: Box<dyn std::error::Error + Send + Sync>,
-        }
-            |e| { format!("other error: {}", e.source) },
+        HttpRequest
+            [ TraceError<reqwest::Error> ]
+            |_| { "HTTP request error" },
+
+        HttpResponse
+            { status: reqwest::StatusCode }
+            |e| { format!("HTTP response error with status code {}", e.status) },
+
+        HttpResponseBody
+            [ TraceError<reqwest::Error> ]
+            |_| { "HTTP response body error" },
+
+        JsonDeserialize
+            [ TraceError<serde_json::Error> ]
+            |_| { "JSON deserialization error" },
+
+        JsonField
+            { field: String }
+            |e| { format!("Missing or invalid JSON field: {}", e.field) },
+
+        ParseFloat
+            [ TraceError<std::num::ParseFloatError> ]
+            |_| { "Error parsing float" },
+
+        ParseInt
+            [ TraceError<std::num::ParseIntError> ]
+            |_| { "Error parsing integer" },
+
+        Base64Decode
+            [ TraceError<subtle_encoding::Error> ]
+            |_| { "Error decoding base64-encoded data" },
+
+        InvalidPortString
+            { port: String }
+            |e| { format!("invalid port string {}", e.port) },
+
+        InvalidChannelString
+            { channel: String }
+            |e| { format!("invalid channel string {}", e.channel) },
+
+            Other {
+                source: Box<dyn std::error::Error + Send + Sync>,
+            }
+                |e| { format!("other error: {}", e.source) },
     }
 }
 
@@ -720,6 +729,14 @@ impl GrpcStatusSubdetail {
             None => false,
             Some((expected, got)) => expected < got,
         }
+    }
+
+    /// Check whether this gRPC error message contains the string "invalid empty tx".
+    ///
+    /// ## Note
+    /// This error may happen for older chains that does not properly support simulation.
+    pub fn is_empty_tx_error(&self) -> bool {
+        self.status.message().contains("invalid empty tx")
     }
 }
 

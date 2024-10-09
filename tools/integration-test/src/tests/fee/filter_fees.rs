@@ -1,20 +1,12 @@
+#![allow(clippy::mutable_key_type)]
+
 use std::collections::HashMap;
 
-use ibc_relayer::config::{
-    filter::{
-        ChannelPolicy,
-        FeePolicy,
-        FilterPattern,
-        MinFee,
-    },
-    ChainConfig,
-    PacketFilter,
-};
+use ibc_relayer::config::filter::{ChannelPolicy, FeePolicy, FilterPattern, MinFee};
+use ibc_relayer::config::{ChainConfig, PacketFilter};
 use ibc_relayer_types::core::ics04_channel::version::Version;
-use ibc_test_framework::{
-    prelude::*,
-    util::random::random_u128_range,
-};
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::util::random::random_u128_range;
 
 #[test]
 fn test_filter_incentivized_fees_relayer() -> Result<(), Error> {
@@ -85,9 +77,7 @@ impl BinaryChannelTest for FilterIncentivizedFeesRelayerTest {
             let ack_fee = random_u128_range(200, 300);
             let timeout_fee = random_u128_range(100, 200);
 
-            let total_sent_fail = send_amount + receive_fee_fail + ack_fee + timeout_fee;
-
-            let balance_a2_fail = balance_a1 - total_sent_fail;
+            let balance_a2 = balance_a1.clone() - send_amount;
 
             chain_driver_a.ibc_token_transfer_with_fee(
                 &port_a,
@@ -109,16 +99,18 @@ impl BinaryChannelTest for FilterIncentivizedFeesRelayerTest {
 
             std::thread::sleep(Duration::from_secs(10));
 
-            chain_driver_a
-                .assert_eventual_wallet_amount(&user_a.address(), &balance_a2_fail.as_ref())?;
+            chain_driver_a.assert_eventual_escrowed_amount_ics29(
+                &user_a.address(),
+                &balance_a2.as_ref(),
+                receive_fee_fail,
+                ack_fee,
+                timeout_fee,
+            )?;
 
             chain_driver_b.assert_eventual_wallet_amount(
                 &user_b.address(),
                 &denom_b.with_amount(0u128).as_ref(),
             )?;
-
-            chain_driver_a
-                .assert_eventual_wallet_amount(&user_a.address(), &(balance_a2_fail).as_ref())?;
 
             chain_driver_a.assert_eventual_wallet_amount(
                 &relayer_a.address(),
@@ -128,17 +120,13 @@ impl BinaryChannelTest for FilterIncentivizedFeesRelayerTest {
 
         {
             info!("Verify that packet with enough fees is relayed");
-            let balance_a1 = chain_driver_a.query_balance(&user_a.address(), &denom_a)?;
+            let balance_a = chain_driver_a.query_balance(&user_a.address(), &denom_a)?;
             let relayer_balance_a = chain_driver_a.query_balance(&relayer_a.address(), &denom_a)?;
 
             let send_amount = random_u128_range(1000, 2000);
             let receive_fee_success = 50u128;
             let ack_fee = random_u128_range(200, 300);
             let timeout_fee = random_u128_range(100, 200);
-
-            let total_sent_success = send_amount + receive_fee_success + ack_fee + timeout_fee;
-
-            let balance_a2_success = balance_a1 - total_sent_success;
 
             chain_driver_a.ibc_token_transfer_with_fee(
                 &port_a,
@@ -158,9 +146,6 @@ impl BinaryChannelTest for FilterIncentivizedFeesRelayerTest {
                 &denom_a,
             )?;
 
-            chain_driver_a
-                .assert_eventual_wallet_amount(&user_a.address(), &balance_a2_success.as_ref())?;
-
             chain_driver_b.assert_eventual_wallet_amount(
                 &user_b.address(),
                 &denom_b.with_amount(send_amount).as_ref(),
@@ -169,6 +154,11 @@ impl BinaryChannelTest for FilterIncentivizedFeesRelayerTest {
             chain_driver_a.assert_eventual_wallet_amount(
                 &relayer_a.address(),
                 &(relayer_balance_a + receive_fee_success + ack_fee).as_ref(),
+            )?;
+
+            chain_driver_a.assert_eventual_wallet_amount(
+                &user_a.address(),
+                &(balance_a - send_amount - receive_fee_success - ack_fee).as_ref(),
             )?;
         }
 
@@ -234,9 +224,7 @@ impl BinaryChannelTest for FilterByChannelIncentivizedFeesRelayerTest {
         let ack_fee = random_u128_range(200, 300);
         let timeout_fee = random_u128_range(100, 200);
 
-        let total_sent = send_amount + receive_fee + ack_fee + timeout_fee;
-
-        let balance_a2 = balance_a1 - total_sent;
+        let balance_a2 = balance_a1.clone() - send_amount;
 
         let denom_b = derive_ibc_denom(
             &channel.port_b.as_ref(),
@@ -258,7 +246,13 @@ impl BinaryChannelTest for FilterByChannelIncentivizedFeesRelayerTest {
             Duration::from_secs(60),
         )?;
 
-        chain_driver_a.assert_eventual_wallet_amount(&user_a.address(), &balance_a2.as_ref())?;
+        chain_driver_a.assert_eventual_escrowed_amount_ics29(
+            &user_a.address(),
+            &balance_a2.as_ref(),
+            receive_fee,
+            ack_fee,
+            timeout_fee,
+        )?;
 
         chain_driver_b.assert_eventual_wallet_amount(
             &user_b.address(),
@@ -267,7 +261,7 @@ impl BinaryChannelTest for FilterByChannelIncentivizedFeesRelayerTest {
 
         chain_driver_a.assert_eventual_wallet_amount(
             &user_a.address(),
-            &(balance_a2 + timeout_fee).as_ref(),
+            &(balance_a1 - send_amount - receive_fee - ack_fee).as_ref(),
         )?;
 
         chain_driver_a.assert_eventual_wallet_amount(

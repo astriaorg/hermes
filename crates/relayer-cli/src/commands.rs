@@ -22,40 +22,16 @@ use core::time::Duration;
 use std::path::PathBuf;
 
 use abscissa_core::{
-    clap::Parser,
-    config::Override,
-    Command,
-    Configurable,
-    FrameworkError,
-    Runnable,
+    clap::Parser, config::Override, Command, Configurable, FrameworkError, Runnable,
 };
-use ibc_relayer::config::{
-    ChainConfig,
-    Config,
-};
-use tracing::{
-    error,
-    info,
-};
+use ibc_relayer::config::{ChainConfig, Config};
+use tracing::{error, info};
 
 use self::{
-    clear::ClearCmds,
-    completions::CompletionsCmd,
-    config::ConfigCmd,
-    create::CreateCmds,
-    evidence::EvidenceCmd,
-    fee::FeeCmd,
-    health::HealthCheckCmd,
-    keys::KeysCmd,
-    listen::ListenCmd,
-    logs::LogsCmd,
-    misbehaviour::MisbehaviourCmd,
-    query::QueryCmd,
-    start::StartCmd,
-    tx::TxCmd,
-    update::UpdateCmds,
-    upgrade::UpgradeCmds,
-    version::VersionCmd,
+    clear::ClearCmds, completions::CompletionsCmd, config::ConfigCmd, create::CreateCmds,
+    evidence::EvidenceCmd, fee::FeeCmd, health::HealthCheckCmd, keys::KeysCmd, listen::ListenCmd,
+    logs::LogsCmd, misbehaviour::MisbehaviourCmd, query::QueryCmd, start::StartCmd, tx::TxCmd,
+    update::UpdateCmds, upgrade::UpgradeCmds, version::VersionCmd,
 };
 use crate::DEFAULT_CONFIG_PATH;
 
@@ -124,7 +100,7 @@ pub enum CliCmd {
     /// The `version` subcommand, retained for backward compatibility.
     Version(VersionCmd),
 
-    /// Performs a health check of all chains in the the config
+    /// Performs a health check of all chains in the config
     HealthCheck(HealthCheckCmd),
 
     /// Generate auto-complete scripts for different shells.
@@ -175,7 +151,11 @@ impl Configurable<Config> for CliCmd {
         for ccfg in config.chains.iter_mut() {
             #[allow(irrefutable_let_patterns)]
             if let ChainConfig::CosmosSdk(ref mut cosmos_ccfg) = ccfg {
-                cosmos_ccfg.memo_prefix.apply_suffix(&suffix);
+                if let Some(memo) = &cosmos_ccfg.memo_overwrite {
+                    cosmos_ccfg.memo_prefix = memo.clone();
+                } else {
+                    cosmos_ccfg.memo_prefix.apply_suffix(&suffix);
+                }
             }
         }
 

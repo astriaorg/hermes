@@ -1,9 +1,5 @@
 use core::{
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
+    fmt::{Display, Error as FmtError, Formatter},
     time::Duration,
 };
 use std::thread;
@@ -13,63 +9,35 @@ use ibc_relayer_types::{
     core::{
         ics02_client::height::Height,
         ics03_connection::{
-            connection::{
-                ConnectionEnd,
-                Counterparty,
-                IdentifiedConnectionEnd,
-                State,
-            },
+            connection::{ConnectionEnd, Counterparty, IdentifiedConnectionEnd, State},
             msgs::{
-                conn_open_ack::MsgConnectionOpenAck,
-                conn_open_confirm::MsgConnectionOpenConfirm,
-                conn_open_init::MsgConnectionOpenInit,
-                conn_open_try::MsgConnectionOpenTry,
+                conn_open_ack::MsgConnectionOpenAck, conn_open_confirm::MsgConnectionOpenConfirm,
+                conn_open_init::MsgConnectionOpenInit, conn_open_try::MsgConnectionOpenTry,
             },
         },
-        ics24_host::identifier::{
-            ClientId,
-            ConnectionId,
-        },
+        ics24_host::identifier::{ClientId, ConnectionId},
     },
     events::IbcEvent,
     timestamp::ZERO_DURATION,
     tx_msg::Msg,
 };
 use serde::Serialize;
-use tracing::{
-    debug,
-    error,
-    info,
-    warn,
-};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     chain::{
         counterparty::connection_state_on_destination,
         handle::ChainHandle,
         requests::{
-            IncludeProof,
-            PageRequest,
-            QueryConnectionRequest,
-            QueryConnectionsRequest,
-            QueryHeight,
+            IncludeProof, PageRequest, QueryConnectionRequest, QueryConnectionsRequest, QueryHeight,
         },
         tracking::TrackedMsgs,
     },
-    foreign_client::{
-        ForeignClient,
-        HasExpiredOrFrozenError,
-    },
+    foreign_client::{ForeignClient, HasExpiredOrFrozenError},
     object::Connection as WorkerConnectionObject,
     util::{
-        pretty::{
-            PrettyDuration,
-            PrettyOption,
-        },
-        retry::{
-            retry_with_index,
-            RetryResult,
-        },
+        pretty::{PrettyDuration, PrettyOption},
+        retry::{retry_with_index, RetryResult},
         task::Next,
     },
 };
@@ -84,36 +52,32 @@ mod handshake_retry {
     //! Provides utility methods and constants to configure the retry behavior
     //! for the connection handshake algorithm.
 
+    use crate::connection::ConnectionError;
+    use crate::util::retry::{clamp, ConstantGrowth};
     use core::time::Duration;
 
-    use crate::{
-        connection::ConnectionError,
-        util::retry::{
-            clamp_total,
-            ConstantGrowth,
-        },
-    };
+    use crate::util::retry::clamp_total;
 
     /// Approximate number of retries per block.
-    const PER_BLOCK_RETRIES: u32 = 10;
+    const PER_BLOCK_RETRIES: u32 = 5;
 
     /// Defines the increment in delay between subsequent retries.
     /// A value of `0` will make the retry delay constant.
-    const DELAY_INCREMENT: u64 = 0;
+    const DELAY_INCREMENT: Duration = Duration::from_secs(0);
 
-    /// Maximum retry delay expressed in number of blocks
-    const BLOCK_NUMBER_DELAY: u32 = 10;
+    /// Maximum number of retries
+    const MAX_RETRIES: u32 = 10;
 
     /// The default retry strategy.
     /// We retry with a constant backoff strategy. The strategy is parametrized by the
     /// maximum block time expressed as a `Duration`.
-    pub fn default_strategy(max_block_times: Duration) -> impl Iterator<Item = Duration> {
-        let retry_delay = max_block_times / PER_BLOCK_RETRIES;
+    pub fn default_strategy(max_block_time: Duration) -> impl Iterator<Item = Duration> {
+        let retry_delay = max_block_time / PER_BLOCK_RETRIES;
 
-        clamp_total(
-            ConstantGrowth::new(retry_delay, Duration::from_secs(DELAY_INCREMENT)),
-            retry_delay,
-            max_block_times * BLOCK_NUMBER_DELAY,
+        clamp(
+            ConstantGrowth::new(retry_delay, DELAY_INCREMENT),
+            retry_delay + DELAY_INCREMENT * MAX_RETRIES,
+            MAX_RETRIES as usize,
         )
     }
 
@@ -1415,7 +1379,9 @@ fn check_destination_connection_state(
         && existing_connection.counterparty().client_id()
             == expected_connection.counterparty().client_id();
 
-    let good_state = *existing_connection.state() as u32 <= *expected_connection.state() as u32;
+    let good_state = existing_connection
+        .state()
+        .less_or_equal_progress(*expected_connection.state());
 
     let good_connection_ids = existing_connection.counterparty().connection_id().is_none()
         || existing_connection.counterparty().connection_id()

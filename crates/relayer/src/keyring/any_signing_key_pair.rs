@@ -1,11 +1,6 @@
 use serde::Serialize;
 
-use super::{
-    Ed25519KeyPair,
-    KeyType,
-    Secp256k1KeyPair,
-    SigningKeyPair,
-};
+use super::{Ed25519KeyPair, KeyType, Secp256k1KeyPair, SigningKeyPair};
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(untagged)]
@@ -35,7 +30,7 @@ impl AnySigningKeyPair {
             Self::Ed25519(key_pair) => key_pair.as_any(),
         }
         .downcast_ref::<T>()
-        .map(T::clone)
+        .cloned()
     }
 }
 

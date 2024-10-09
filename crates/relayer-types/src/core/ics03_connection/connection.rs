@@ -1,41 +1,24 @@
-use std::{
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
-    str::FromStr,
-    time::Duration,
-    u64,
-};
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
+use std::time::Duration;
 
 use ibc_proto::{
     ibc::core::connection::v1::{
-        ConnectionEnd as RawConnectionEnd,
-        Counterparty as RawCounterparty,
+        ConnectionEnd as RawConnectionEnd, Counterparty as RawCounterparty,
         IdentifiedConnection as RawIdentifiedConnection,
     },
     Protobuf,
 };
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     core::{
         ics02_client::error::Error as ClientError,
-        ics03_connection::{
-            error::Error,
-            version::Version,
-        },
+        ics03_connection::{error::Error, version::Version},
         ics23_commitment::commitment::CommitmentPrefix,
         ics24_host::{
             error::ValidationError,
-            identifier::{
-                ClientId,
-                ConnectionId,
-            },
+            identifier::{ClientId, ConnectionId},
         },
     },
     timestamp::ZERO_DURATION,
@@ -408,6 +391,6 @@ impl TryFrom<i32> for State {
 
 impl From<State> for i32 {
     fn from(value: State) -> Self {
-        value.into()
+        value as i32
     }
 }

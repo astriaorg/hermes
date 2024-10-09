@@ -1,21 +1,11 @@
-use ibc_relayer::{
-    chain::counterparty::{
-        channel_on_destination,
-        pending_packet_summary,
-    },
-    link::{
-        Link,
-        LinkParameters,
-    },
-};
-use ibc_test_framework::{
-    prelude::*,
-    relayer::{
-        channel::query_identified_channel_end,
-        connection::query_identified_connection_end,
-    },
-    util::random::random_u128_range,
-};
+use ibc_relayer::chain::counterparty::{channel_on_destination, pending_packet_summary};
+use ibc_relayer::chain::requests::Paginate;
+use ibc_relayer::link::{Link, LinkParameters};
+
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::relayer::channel::query_identified_channel_end;
+use ibc_test_framework::relayer::connection::query_identified_connection_end;
+use ibc_test_framework::util::random::random_u128_range;
 
 #[test]
 fn test_query_packet_pending() -> Result<(), Error> {
@@ -73,7 +63,17 @@ impl BinaryChannelTest for QueryPacketPendingTest {
             src_channel_id: channel.channel_id_a.clone().into_value(),
             max_memo_size: packet_config.ics20_max_memo_size,
             max_receiver_size: packet_config.ics20_max_receiver_size,
+            exclude_src_sequences: vec![],
         };
+
+        let rev_opts = LinkParameters {
+            src_port_id: channel.port_b.clone().into_value(),
+            src_channel_id: channel.channel_id_b.clone().into_value(),
+            max_memo_size: packet_config.ics20_max_memo_size,
+            max_receiver_size: packet_config.ics20_max_receiver_size,
+            exclude_src_sequences: vec![],
+        };
+
         let link = Link::new_from_opts(
             chains.handle_a().clone(),
             chains.handle_b().clone(),
@@ -88,8 +88,12 @@ impl BinaryChannelTest for QueryPacketPendingTest {
             channel.port_a.as_ref(),
         )?;
 
-        let summary =
-            pending_packet_summary(chains.handle_a(), chains.handle_b(), channel_end.value())?;
+        let summary = pending_packet_summary(
+            chains.handle_a(),
+            chains.handle_b(),
+            channel_end.value(),
+            Paginate::All,
+        )?;
 
         assert_eq!(summary.unreceived_packets, [1.into()]);
         assert!(summary.unreceived_acks.is_empty());
@@ -97,18 +101,34 @@ impl BinaryChannelTest for QueryPacketPendingTest {
         // Receive the packet on the destination chain
         link.relay_recv_packet_and_timeout_messages(vec![])?;
 
-        let summary =
-            pending_packet_summary(chains.handle_a(), chains.handle_b(), channel_end.value())?;
+        let summary = pending_packet_summary(
+            chains.handle_a(),
+            chains.handle_b(),
+            channel_end.value(),
+            Paginate::All,
+        )?;
 
         assert!(summary.unreceived_packets.is_empty());
         assert_eq!(summary.unreceived_acks, [1.into()]);
 
         // Acknowledge the packet on the source chain
-        let link = link.reverse(false, false)?;
-        link.relay_ack_packet_messages(vec![])?;
 
-        let summary =
-            pending_packet_summary(chains.handle_a(), chains.handle_b(), channel_end.value())?;
+        let rev_link = Link::new_from_opts(
+            chains.handle_b().clone(),
+            chains.handle_a().clone(),
+            rev_opts,
+            false,
+            false,
+        )?;
+
+        rev_link.relay_ack_packet_messages(vec![])?;
+
+        let summary = pending_packet_summary(
+            chains.handle_a(),
+            chains.handle_b(),
+            channel_end.value(),
+            Paginate::All,
+        )?;
 
         assert!(summary.unreceived_packets.is_empty());
         assert!(summary.unreceived_acks.is_empty());
@@ -147,6 +167,7 @@ impl BinaryChannelTest for QueryPacketPendingTest {
             chains.handle_b(),
             chains.handle_a(),
             &counterparty_channel_end,
+            Paginate::All,
         )?;
 
         assert_eq!(summary.unreceived_packets, [1.into()]);

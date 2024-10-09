@@ -1,30 +1,15 @@
 use core::str::FromStr;
 
-use bech32::{
-    ToBase32,
-    Variant,
-};
+use bech32::{ToBase32, Variant};
 use ibc_proto::{
     cosmos::tx::v1beta1::{
-        mode_info::{
-            Single,
-            Sum,
-        },
-        AuthInfo,
-        Fee,
-        ModeInfo,
-        SignDoc,
-        SignerInfo,
-        TxBody,
-        TxRaw,
+        mode_info::{Single, Sum},
+        AuthInfo, Fee, ModeInfo, SignDoc, SignerInfo, TxBody, TxRaw,
     },
     google::protobuf::Any,
 };
 use ibc_relayer_types::{
-    core::{
-        ics02_client::error::Error as ClientError,
-        ics24_host::identifier::ChainId,
-    },
+    core::{ics02_client::error::Error as ClientError, ics24_host::identifier::ChainId},
     signer::Signer,
 };
 use prost::Message;
@@ -32,23 +17,13 @@ use tendermint::account::Id as AccountId;
 
 use crate::{
     chain::cosmos::types::{
-        account::{
-            Account,
-            AccountNumber,
-            AccountSequence,
-        },
+        account::{Account, AccountNumber, AccountSequence},
         config::TxConfig,
         tx::SignedTx,
     },
-    config::{
-        types::Memo,
-        AddressType,
-    },
+    config::{types::Memo, AddressType},
     error::Error,
-    keyring::{
-        Secp256k1KeyPair,
-        SigningKeyPair,
-    },
+    keyring::{Secp256k1KeyPair, SigningKeyPair},
 };
 
 pub fn sign_and_encode_tx(
@@ -145,7 +120,7 @@ pub fn sign_tx(
 fn encode_key_bytes(key_pair: &Secp256k1KeyPair) -> Result<Vec<u8>, Error> {
     let mut pk_buf = Vec::new();
 
-    prost::Message::encode(&key_pair.public_key.serialize().to_vec(), &mut pk_buf)
+    Message::encode(&key_pair.public_key.serialize().to_vec(), &mut pk_buf)
         .map_err(|e| Error::protobuf_encode("PublicKey".into(), e))?;
 
     Ok(pk_buf)
@@ -167,7 +142,7 @@ fn encode_sign_doc(
 
     // A protobuf serialization of a SignDoc
     let mut signdoc_buf = Vec::new();
-    prost::Message::encode(&sign_doc, &mut signdoc_buf).unwrap();
+    Message::encode(&sign_doc, &mut signdoc_buf).unwrap();
 
     let signed = key_pair.sign(&signdoc_buf).map_err(Error::key_base)?;
 
@@ -203,7 +178,7 @@ fn encode_signer_info(
 
 fn encode_tx_raw(tx_raw: TxRaw) -> Result<Vec<u8>, Error> {
     let mut tx_bytes = Vec::new();
-    prost::Message::encode(&tx_raw, &mut tx_bytes)
+    Message::encode(&tx_raw, &mut tx_bytes)
         .map_err(|e| Error::protobuf_encode("Transaction".to_string(), e))?;
 
     Ok(tx_bytes)
@@ -231,7 +206,7 @@ fn auth_info_and_bytes(signer_info: SignerInfo, fee: Fee) -> Result<(AuthInfo, V
     // A protobuf serialization of a AuthInfo
     let mut auth_buf = Vec::new();
 
-    prost::Message::encode(&auth_info, &mut auth_buf)
+    Message::encode(&auth_info, &mut auth_buf)
         .map_err(|e| Error::protobuf_encode(String::from("AuthInfo"), e))?;
 
     Ok((auth_info, auth_buf))
@@ -254,7 +229,7 @@ fn tx_body_and_bytes(
     // A protobuf serialization of a TxBody
     let mut body_buf = Vec::new();
 
-    prost::Message::encode(&body, &mut body_buf)
+    Message::encode(&body, &mut body_buf)
         .map_err(|e| Error::protobuf_encode(String::from("TxBody"), e))?;
 
     Ok((body, body_buf))

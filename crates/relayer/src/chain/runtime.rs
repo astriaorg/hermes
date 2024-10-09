@@ -2,80 +2,45 @@ use alloc::sync::Arc;
 use std::thread;
 
 use crossbeam_channel as channel;
-use ibc_proto::ibc::apps::fee::v1::{
-    QueryIncentivizedPacketRequest,
-    QueryIncentivizedPacketResponse,
+use tokio::runtime::Runtime as TokioRuntime;
+use tracing::{error, Span};
+
+use ibc_proto::ibc::{
+    apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
+    core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest},
 };
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     core::{
-        ics02_client::{
-            events::UpdateClient,
-            header::AnyHeader,
-        },
+        ics02_client::{events::UpdateClient, header::AnyHeader},
         ics03_connection::{
-            connection::{
-                ConnectionEnd,
-                IdentifiedConnectionEnd,
-            },
+            connection::{ConnectionEnd, IdentifiedConnectionEnd},
             version::Version,
         },
         ics04_channel::{
-            channel::{
-                ChannelEnd,
-                IdentifiedChannelEnd,
-            },
-            packet::{
-                PacketMsgType,
-                Sequence,
-            },
+            channel::{ChannelEnd, IdentifiedChannelEnd},
+            packet::{PacketMsgType, Sequence},
+            upgrade::{ErrorReceipt, Upgrade},
         },
-        ics23_commitment::{
-            commitment::CommitmentPrefix,
-            merkle::MerkleProof,
-        },
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            ClientId,
-            ConnectionId,
-            PortId,
-        },
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
     },
     proofs::Proofs,
     signer::Signer,
     Height,
 };
-use tokio::runtime::Runtime as TokioRuntime;
-use tracing::{
-    error,
-    Span,
-};
 
 use super::{
     client::ClientSettings,
     cosmos::version::Specs,
-    endpoint::{
-        ChainEndpoint,
-        ChainStatus,
-        HealthCheck,
-    },
-    handle::{
-        ChainHandle,
-        ChainRequest,
-        ReplyTo,
-        Subscription,
-    },
+    endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
+    handle::{ChainHandle, ChainRequest, ReplyTo, Subscription},
     requests::*,
     tracking::TrackedMsgs,
 };
 use crate::{
     account::Balance,
-    chain::requests::QueryPacketEventDataRequest,
-    client_state::{
-        AnyClientState,
-        IdentifiedAnyClientState,
-    },
+    client_state::{AnyClientState, IdentifiedAnyClientState},
     config::ChainConfig,
     connection::ConnectionMsgType,
     consensus_state::AnyConsensusState,
@@ -387,6 +352,14 @@ where
 
                         ChainRequest::QueryConsumerChains { reply_to } => {
                             self.query_consumer_chains(reply_to)?
+                        },
+
+                        ChainRequest::QueryUpgrade { request, height, include_proof, reply_to } => {
+                            self.query_upgrade(request, height, include_proof, reply_to)?
+                        },
+
+                        ChainRequest::QueryUpgradeError { request, height, include_proof, reply_to } => {
+                            self.query_upgrade_error(request, height, include_proof, reply_to)?
                         },
                     }
                 },
@@ -895,6 +868,34 @@ where
         reply_to: ReplyTo<Vec<(ChainId, ClientId)>>,
     ) -> Result<(), Error> {
         let result = self.chain.query_consumer_chains();
+        reply_to.send(result).map_err(Error::send)?;
+
+        Ok(())
+    }
+
+    fn query_upgrade(
+        &self,
+        request: QueryUpgradeRequest,
+        height: Height,
+        include_proof: IncludeProof,
+        reply_to: ReplyTo<(Upgrade, Option<MerkleProof>)>,
+    ) -> Result<(), Error> {
+        let result = self.chain.query_upgrade(request, height, include_proof);
+        reply_to.send(result).map_err(Error::send)?;
+
+        Ok(())
+    }
+
+    fn query_upgrade_error(
+        &self,
+        request: QueryUpgradeErrorRequest,
+        height: Height,
+        include_proof: IncludeProof,
+        reply_to: ReplyTo<(ErrorReceipt, Option<MerkleProof>)>,
+    ) -> Result<(), Error> {
+        let result = self
+            .chain
+            .query_upgrade_error(request, height, include_proof);
         reply_to.send(result).map_err(Error::send)?;
 
         Ok(())

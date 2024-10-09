@@ -1,39 +1,19 @@
-use std::{
-    fmt::{
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
-    str::FromStr,
+use crate::utils::pretty::PrettySlice;
+
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
+
+use ibc_proto::Protobuf;
+use serde::{Deserialize, Serialize};
+
+use ibc_proto::ibc::core::channel::v1::{
+    Channel as RawChannel, Counterparty as RawCounterparty,
+    IdentifiedChannel as RawIdentifiedChannel,
 };
 
-use ibc_proto::{
-    ibc::core::channel::v1::{
-        Channel as RawChannel,
-        Counterparty as RawCounterparty,
-        IdentifiedChannel as RawIdentifiedChannel,
-    },
-    Protobuf,
-};
-use serde::{
-    Deserialize,
-    Serialize,
-};
-
-use crate::{
-    core::{
-        ics04_channel::{
-            error::Error,
-            version::Version,
-        },
-        ics24_host::identifier::{
-            ChannelId,
-            ConnectionId,
-            PortId,
-        },
-    },
-    utils::pretty::PrettySlice,
-};
+use crate::core::ics04_channel::packet::Sequence;
+use crate::core::ics04_channel::{error::Error, version::Version};
+use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IdentifiedChannelEnd {
@@ -64,6 +44,7 @@ impl TryFrom<RawIdentifiedChannel> for IdentifiedChannelEnd {
             counterparty: value.counterparty,
             connection_hops: value.connection_hops,
             version: value.version,
+            upgrade_sequence: value.upgrade_sequence,
         };
 
         Ok(IdentifiedChannelEnd {
@@ -77,7 +58,7 @@ impl TryFrom<RawIdentifiedChannel> for IdentifiedChannelEnd {
 impl From<IdentifiedChannelEnd> for RawIdentifiedChannel {
     fn from(value: IdentifiedChannelEnd) -> Self {
         RawIdentifiedChannel {
-            state: value.channel_end.state as i32,
+            state: value.channel_end.state.as_i32(),
             ordering: value.channel_end.ordering as i32,
             counterparty: Some(value.channel_end.counterparty().clone().into()),
             connection_hops: value
@@ -89,6 +70,7 @@ impl From<IdentifiedChannelEnd> for RawIdentifiedChannel {
             version: value.channel_end.version.to_string(),
             port_id: value.port_id.to_string(),
             channel_id: value.channel_id.to_string(),
+            upgrade_sequence: value.channel_end.upgrade_sequence.into(),
         }
     }
 }
@@ -100,14 +82,15 @@ pub struct ChannelEnd {
     pub remote: Counterparty,
     pub connection_hops: Vec<ConnectionId>,
     pub version: Version,
+    pub upgrade_sequence: Sequence,
 }
 
 impl Display for ChannelEnd {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(
             f,
-            "ChannelEnd {{ state: {}, ordering: {}, remote: {}, connection_hops: {}, version: {} }}",
-            self.state, self.ordering, self.remote, PrettySlice(&self.connection_hops), self.version
+            "ChannelEnd {{ state: {}, ordering: {}, remote: {}, connection_hops: {}, version: {}, upgrade_sequence: {} }}",
+            self.state, self.ordering, self.remote, PrettySlice(&self.connection_hops), self.version, self.upgrade_sequence
         )
     }
 }
@@ -120,6 +103,7 @@ impl Default for ChannelEnd {
             remote: Counterparty::default(),
             connection_hops: Vec::new(),
             version: Version::default(),
+            upgrade_sequence: Sequence::from(0), // The value of 0 indicates the channel has never been upgraded
         }
     }
 }
@@ -160,6 +144,7 @@ impl TryFrom<RawChannel> for ChannelEnd {
             remote,
             connection_hops,
             version,
+            value.upgrade_sequence.into(),
         ))
     }
 }
@@ -167,7 +152,7 @@ impl TryFrom<RawChannel> for ChannelEnd {
 impl From<ChannelEnd> for RawChannel {
     fn from(value: ChannelEnd) -> Self {
         RawChannel {
-            state: value.state as i32,
+            state: value.state.as_i32(),
             ordering: value.ordering as i32,
             counterparty: Some(value.counterparty().clone().into()),
             connection_hops: value
@@ -176,6 +161,7 @@ impl From<ChannelEnd> for RawChannel {
                 .map(|v| v.as_str().to_string())
                 .collect(),
             version: value.version.to_string(),
+            upgrade_sequence: value.upgrade_sequence.into(),
         }
     }
 }
@@ -188,6 +174,7 @@ impl ChannelEnd {
         remote: Counterparty,
         connection_hops: Vec<ConnectionId>,
         version: Version,
+        upgrade_sequence: Sequence,
     ) -> Self {
         Self {
             state,
@@ -195,6 +182,7 @@ impl ChannelEnd {
             remote,
             connection_hops,
             version,
+            upgrade_sequence,
         }
     }
 
@@ -211,9 +199,11 @@ impl ChannelEnd {
         self.remote.channel_id = Some(c);
     }
 
-    /// Returns `true` if this `ChannelEnd` is in state [`State::Open`].
+    /// Returns `true` if this `ChannelEnd` is in state [`State::Open`]
+    /// [`State::Open(UpgradeState::Upgrading)`] is only used in the channel upgrade
+    /// handshake so this method matches with [`State::Open(UpgradeState::NotUpgrading)`].
     pub fn is_open(&self) -> bool {
-        self.state_matches(&State::Open)
+        self.state_matches(&State::Open(UpgradeState::NotUpgrading))
     }
 
     pub fn state(&self) -> &State {
@@ -248,25 +238,35 @@ impl ChannelEnd {
 
     /// Helper function to compare the state of this end with another state.
     pub fn state_matches(&self, other: &State) -> bool {
-        self.state.eq(other)
+        self.state() == other
     }
 
     /// Helper function to compare the order of this end with another order.
     pub fn order_matches(&self, other: &Ordering) -> bool {
-        self.ordering.eq(other)
+        self.ordering() == other
     }
 
-    #[allow(clippy::ptr_arg)]
     pub fn connection_hops_matches(&self, other: &Vec<ConnectionId>) -> bool {
-        self.connection_hops.eq(other)
+        self.connection_hops() == other
     }
 
     pub fn counterparty_matches(&self, other: &Counterparty) -> bool {
-        self.counterparty().eq(other)
+        self.counterparty() == other
     }
 
     pub fn version_matches(&self, other: &Version) -> bool {
-        self.version().eq(other)
+        self.version() == other
+    }
+
+    /// Returns whether or not the channel with this state is
+    /// being upgraded.
+    pub fn is_upgrading(&self) -> bool {
+        use State::*;
+
+        matches!(
+            self.state,
+            Open(UpgradeState::Upgrading) | Flushing | FlushComplete
+        )
     }
 }
 
@@ -392,13 +392,61 @@ impl FromStr for Ordering {
     }
 }
 
+/// This enum is used to differentiate if a channel is being upgraded when
+/// a `UpgradeInitChannel` or a `UpgradeOpenChannel` is received.
+/// See `handshake_step` method in `crates/relayer/src/channel.rs`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UpgradeState {
+    Upgrading,
+    NotUpgrading,
+}
+
+/// The possible state variants that a channel can exhibit.
+///
+/// These are encoded with integer discriminants so that there is
+/// an easy way to compare channel states against one another. More
+/// explicitly, this is an attempt to capture the lifecycle of a
+/// channel, beginning from the `Uninitialized` state, through the
+/// `Open` state, before finally being `Closed`.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize)]
 pub enum State {
-    Uninitialized = 0,
-    Init = 1,
-    TryOpen = 2,
-    Open = 3,
-    Closed = 4,
+    /// Default state
+    Uninitialized,
+    /// A channel has just started the opening handshake.
+    Init,
+    /// A channel has acknowledged the handshake step on the counterparty chain.
+    TryOpen,
+    /// A channel has completed the handshake step. Open channels are ready to
+    /// send and receive packets.
+    /// During some steps of channel upgrades, the state is still in Open. The
+    /// `UpgradeState` is used to differentiate these states during the upgrade
+    /// handshake.
+    /// <https://github.com/cosmos/ibc/blob/main/spec/core/ics-004-channel-and-packet-semantics/UPGRADES.md#upgrade-handshake>
+    Open(UpgradeState),
+    /// A channel has been closed and can no longer be used to send or receive
+    /// packets.
+    Closed,
+    /// A channel has just accepted the upgrade handshake attempt and is flushing in-flight packets.
+    Flushing,
+    /// A channel has just completed flushing any in-flight packets.
+    FlushComplete,
+}
+
+impl Serialize for State {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Uninitialized => serializer.serialize_str("Uninitialized"),
+            Self::Init => serializer.serialize_str("Init"),
+            Self::TryOpen => serializer.serialize_str("TryOpen"),
+            Self::Open(_) => serializer.serialize_str("Open"),
+            Self::Closed => serializer.serialize_str("Closed"),
+            Self::Flushing => serializer.serialize_str("Flushing"),
+            Self::FlushComplete => serializer.serialize_str("FlushComplete"),
+        }
+    }
 }
 
 impl State {
@@ -408,8 +456,10 @@ impl State {
             Self::Uninitialized => "UNINITIALIZED",
             Self::Init => "INIT",
             Self::TryOpen => "TRYOPEN",
-            Self::Open => "OPEN",
+            Self::Open(_) => "OPEN",
             Self::Closed => "CLOSED",
+            Self::Flushing => "FLUSHING",
+            Self::FlushComplete => "FLUSHCOMPLETE",
         }
     }
 
@@ -419,15 +469,30 @@ impl State {
             0 => Ok(Self::Uninitialized),
             1 => Ok(Self::Init),
             2 => Ok(Self::TryOpen),
-            3 => Ok(Self::Open),
+            3 => Ok(Self::Open(UpgradeState::NotUpgrading)),
             4 => Ok(Self::Closed),
+            5 => Ok(Self::Flushing),
+            6 => Ok(Self::FlushComplete),
             _ => Err(Error::unknown_state(s)),
+        }
+    }
+
+    // Parses the State out from a i32.
+    pub fn as_i32(&self) -> i32 {
+        match self {
+            State::Uninitialized => 0,
+            State::Init => 1,
+            State::TryOpen => 2,
+            State::Open(_) => 3,
+            State::Closed => 4,
+            State::Flushing => 5,
+            State::FlushComplete => 6,
         }
     }
 
     /// Returns whether or not this channel state is `Open`.
     pub fn is_open(self) -> bool {
-        self == State::Open
+        self == State::Open(UpgradeState::NotUpgrading)
     }
 
     /// Returns whether or not this channel state is `Closed`.
@@ -437,6 +502,7 @@ impl State {
 
     /// Returns whether or not the channel with this state
     /// has progressed less or the same than the argument.
+    /// This only takes into account the open channel handshake.
     ///
     /// # Example
     /// ```rust,ignore
@@ -445,7 +511,16 @@ impl State {
     /// assert!(!State::Closed.less_or_equal_progress(State::Open));
     /// ```
     pub fn less_or_equal_progress(self, other: Self) -> bool {
-        self as u32 <= other as u32
+        use State::*;
+
+        match self {
+            Uninitialized => true,
+
+            Init => !matches!(other, Uninitialized),
+            TryOpen => !matches!(other, Uninitialized | Init),
+            Open(UpgradeState::NotUpgrading) => !matches!(other, Uninitialized | Init | TryOpen),
+            _ => false,
+        }
     }
 }
 
@@ -459,15 +534,10 @@ impl Display for State {
 #[cfg(test)]
 pub mod test_util {
     use ibc_proto::ibc::core::channel::v1::{
-        Channel as RawChannel,
-        Counterparty as RawCounterparty,
+        Channel as RawChannel, Counterparty as RawCounterparty,
     };
 
-    use crate::core::ics24_host::identifier::{
-        ChannelId,
-        ConnectionId,
-        PortId,
-    };
+    use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
 
     /// Returns a dummy `RawCounterparty`, for testing only!
     /// Can be optionally parametrized with a specific channel identifier.
@@ -486,6 +556,7 @@ pub mod test_util {
             counterparty: Some(get_dummy_raw_counterparty()),
             connection_hops: vec![ConnectionId::default().to_string()],
             version: "ics20".to_string(), // The version is not validated.
+            upgrade_sequence: 0, // The value of 0 indicates the channel has never been upgraded
         }
     }
 }
@@ -498,10 +569,7 @@ mod tests {
     use ibc_proto::ibc::core::channel::v1::Channel as RawChannel;
     use test_log::test;
 
-    use crate::core::ics04_channel::channel::{
-        test_util::get_dummy_raw_channel_end,
-        ChannelEnd,
-    };
+    use crate::core::ics04_channel::channel::{test_util::get_dummy_raw_channel_end, ChannelEnd};
 
     #[test]
     fn channel_end_try_from_raw() {
@@ -625,6 +693,121 @@ mod tests {
             match Ordering::from_str(test.ordering) {
                 Ok(res) => assert_eq!(test.want_res, Some(res)),
                 Err(_) => assert!(test.want_res.is_none(), "parse failed"),
+            }
+        }
+    }
+
+    #[test]
+    fn less_or_equal_progress_uninitialized() {
+        use crate::core::ics04_channel::channel::State;
+        use crate::core::ics04_channel::channel::UpgradeState;
+
+        let higher_or_equal_states = vec![
+            State::Uninitialized,
+            State::Init,
+            State::TryOpen,
+            State::Open(UpgradeState::NotUpgrading),
+            State::Open(UpgradeState::Upgrading),
+            State::Closed,
+            State::Flushing,
+            State::FlushComplete,
+        ];
+        for state in higher_or_equal_states {
+            assert!(State::Uninitialized.less_or_equal_progress(state))
+        }
+    }
+
+    #[test]
+    fn less_or_equal_progress_init() {
+        use crate::core::ics04_channel::channel::State;
+        use crate::core::ics04_channel::channel::UpgradeState;
+
+        let lower_states = vec![State::Uninitialized];
+        let higher_or_equal_states = vec![
+            State::Init,
+            State::TryOpen,
+            State::Open(UpgradeState::NotUpgrading),
+            State::Open(UpgradeState::Upgrading),
+            State::Closed,
+            State::Flushing,
+            State::FlushComplete,
+        ];
+        for state in lower_states {
+            assert!(!State::Init.less_or_equal_progress(state));
+        }
+        for state in higher_or_equal_states {
+            assert!(State::Init.less_or_equal_progress(state))
+        }
+    }
+
+    #[test]
+    fn less_or_equal_progress_tryopen() {
+        use crate::core::ics04_channel::channel::State;
+        use crate::core::ics04_channel::channel::UpgradeState;
+
+        let lower_states = vec![State::Uninitialized, State::Init];
+        let higher_or_equal_states = vec![
+            State::TryOpen,
+            State::Open(UpgradeState::NotUpgrading),
+            State::Open(UpgradeState::Upgrading),
+            State::Closed,
+            State::Flushing,
+            State::FlushComplete,
+        ];
+        for state in lower_states {
+            assert!(!State::TryOpen.less_or_equal_progress(state));
+        }
+        for state in higher_or_equal_states {
+            assert!(State::TryOpen.less_or_equal_progress(state))
+        }
+    }
+
+    #[test]
+    fn less_or_equal_progress_open_not_upgrading() {
+        use crate::core::ics04_channel::channel::State;
+        use crate::core::ics04_channel::channel::UpgradeState;
+
+        let lower_states = vec![State::Uninitialized, State::Init, State::TryOpen];
+        let higher_or_equal_states = vec![
+            State::Open(UpgradeState::NotUpgrading),
+            State::Open(UpgradeState::Upgrading),
+            State::Closed,
+            State::Flushing,
+            State::FlushComplete,
+        ];
+        for state in lower_states {
+            assert!(!State::Open(UpgradeState::NotUpgrading).less_or_equal_progress(state));
+        }
+        for state in higher_or_equal_states {
+            assert!(State::Open(UpgradeState::NotUpgrading).less_or_equal_progress(state))
+        }
+    }
+
+    #[test]
+    fn less_or_equal_progress_upgrading_states() {
+        use crate::core::ics04_channel::channel::State;
+        use crate::core::ics04_channel::channel::UpgradeState;
+
+        let states = [
+            State::Uninitialized,
+            State::Init,
+            State::TryOpen,
+            State::Open(UpgradeState::NotUpgrading),
+            State::Open(UpgradeState::Upgrading),
+            State::Closed,
+            State::Flushing,
+            State::FlushComplete,
+        ];
+
+        let upgrading_states = vec![
+            State::Open(UpgradeState::Upgrading),
+            State::Closed,
+            State::Flushing,
+            State::FlushComplete,
+        ];
+        for upgrade_state in upgrading_states {
+            for state in states.iter() {
+                assert!(!upgrade_state.less_or_equal_progress(*state));
             }
         }
     }

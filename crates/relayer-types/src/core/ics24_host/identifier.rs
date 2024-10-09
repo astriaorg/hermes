@@ -1,28 +1,12 @@
-use std::{
-    convert::{
-        From,
-        Infallible,
-    },
-    fmt::{
-        Debug,
-        Display,
-        Error as FmtError,
-        Formatter,
-    },
-    str::FromStr,
-};
+use std::convert::Infallible;
+use std::fmt::{Debug, Display, Error as FmtError, Formatter};
+use std::str::FromStr;
 
 use regex::Regex;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use super::validate::*;
-use crate::core::{
-    ics02_client::client_type::ClientType,
-    ics24_host::error::ValidationError,
-};
+use crate::core::{ics02_client::client_type::ClientType, ics24_host::error::ValidationError};
 
 /// This type is subject to future changes.
 ///
@@ -192,9 +176,6 @@ impl ClientId {
     pub fn prefix(client_type: ClientType) -> &'static str {
         match client_type {
             ClientType::Tendermint => ClientType::Tendermint.as_str(),
-
-            #[cfg(any(test, feature = "mocks"))]
-            ClientType::Mock => ClientType::Mock.as_str(),
         }
     }
 

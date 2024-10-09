@@ -1,15 +1,9 @@
-use flex_error::{
-    define_error,
-    TraceError,
-};
+use flex_error::{define_error, TraceError};
 use prost::EncodeError;
 
 use crate::{
     applications::transfer::error::Error as TransferError,
-    core::{
-        ics04_channel::error::Error as ChannelError,
-        ics24_host::error::ValidationError,
-    },
+    core::{ics04_channel::error::Error as ChannelError, ics24_host::error::ValidationError},
     signer::SignerError,
 };
 
@@ -44,6 +38,10 @@ define_error! {
 
         EventAttributeNotFound
             { key: String }
-            | e | { format_args!("IBC event attribute not found for key: {}", e.key) },
+            | e | { format_args!("IBC event attribute not found for key `{}`", e.key) },
+
+        EventAttributeInvalidUtf8
+            { key: String }
+            | e | { format_args!("IBC event attribute value for key `{}` is not a valid UTF-8 string", e.key) },
     }
 }

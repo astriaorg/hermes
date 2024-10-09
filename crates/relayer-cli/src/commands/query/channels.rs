@@ -1,52 +1,23 @@
-use core::fmt::{
-    Debug,
-    Error,
-    Formatter,
-};
+use core::fmt::{Debug, Error, Formatter};
 
-use abscissa_core::{
-    clap::Parser,
-    Runnable,
-};
-use eyre::eyre;
-use ibc_relayer::{
-    chain::{
-        handle::{
-            BaseChainHandle,
-            ChainHandle,
-        },
-        requests::{
-            IncludeProof,
-            PageRequest,
-            QueryChannelRequest,
-            QueryChannelsRequest,
-            QueryClientStateRequest,
-            QueryConnectionRequest,
-            QueryHeight,
-        },
-    },
-    registry::Registry,
-};
-use ibc_relayer_types::core::{
-    ics04_channel::channel::{
-        ChannelEnd,
-        State,
-    },
-    ics24_host::identifier::{
-        ChainId,
-        ChannelId,
-        ConnectionId,
-        PortChannelId,
-        PortId,
-    },
-};
+use abscissa_core::clap::Parser;
 use serde::Serialize;
 
-use crate::{
-    commands::query::channel_ends::ChannelEnds,
-    conclude::Output,
-    prelude::*,
+use eyre::eyre;
+use ibc_relayer::chain::handle::{BaseChainHandle, ChainHandle};
+use ibc_relayer::chain::requests::{
+    IncludeProof, PageRequest, QueryChannelRequest, QueryChannelsRequest, QueryClientStateRequest,
+    QueryConnectionRequest, QueryHeight,
 };
+use ibc_relayer::registry::Registry;
+use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, State};
+use ibc_relayer_types::core::ics24_host::identifier::{
+    ChainId, ChannelId, ConnectionId, PortChannelId, PortId,
+};
+
+use crate::commands::query::channel_ends::ChannelEnds;
+use crate::conclude::Output;
+use crate::prelude::*;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct QueryChannelsCmd {

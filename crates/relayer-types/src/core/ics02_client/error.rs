@@ -1,20 +1,11 @@
-use flex_error::{
-    define_error,
-    TraceError,
-};
+use flex_error::{define_error, TraceError};
 use tendermint_proto::Error as TendermintProtoError;
 
 use crate::{
     core::{
-        ics02_client::{
-            client_type::ClientType,
-            height::HeightError,
-        },
+        ics02_client::{client_type::ClientType, height::HeightError},
         ics23_commitment::error::Error as Ics23Error,
-        ics24_host::{
-            error::ValidationError,
-            identifier::ClientId,
-        },
+        ics24_host::{error::ValidationError, identifier::ClientId},
     },
     signer::SignerError,
     timestamp::Timestamp,
@@ -291,5 +282,12 @@ define_error! {
         ClientSpecific
             { description: String }
             | e | { format_args!("client specific error: {0}", e.description) },
+
+        MalformedEventAttributeKey
+            | _ | { format_args!("event attribute key is not valid UTF-8") },
+
+        MalformedEventAttributeValue
+            { key: String }
+            | e | { format_args!("event attribute value for key {} is not valid UTF-8", e.key) },
     }
 }

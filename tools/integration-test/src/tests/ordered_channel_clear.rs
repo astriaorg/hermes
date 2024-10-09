@@ -1,23 +1,9 @@
-use ibc_relayer::{
-    config::{
-        types::MaxMsgNum,
-        ChainConfig,
-    },
-    link::{
-        Link,
-        LinkParameters,
-    },
-    transfer::{
-        build_and_send_transfer_messages,
-        TransferOptions,
-    },
-};
+use ibc_relayer::config::{types::MaxMsgNum, ChainConfig};
+use ibc_relayer::link::{Link, LinkParameters};
+use ibc_relayer::transfer::{build_and_send_transfer_messages, TransferOptions};
 use ibc_relayer_types::events::IbcEvent;
-use ibc_test_framework::{
-    ibc::denom::derive_ibc_denom,
-    prelude::*,
-    util::random::random_u64_range,
-};
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::util::random::random_u64_range;
 
 #[test]
 fn test_ordered_channel_clear_no_conf_parallel() -> Result<(), Error> {
@@ -61,6 +47,7 @@ impl OrderedChannelClearTest {
 impl TestOverrides for OrderedChannelClearTest {
     fn modify_relayer_config(&self, config: &mut Config) {
         config.mode.packets.tx_confirmation = self.tx_confirmation;
+        config.mode.packets.clear_limit = 150;
         {
             let chain_a = &mut config.chains[0];
             match chain_a {
@@ -134,6 +121,7 @@ impl BinaryChannelTest for OrderedChannelClearTest {
             src_channel_id: channel.channel_id_a.clone().into_value(),
             max_memo_size: packet_config.ics20_max_memo_size,
             max_receiver_size: packet_config.ics20_max_receiver_size,
+            exclude_src_sequences: vec![],
         };
 
         let chain_a_link = Link::new_from_opts(
@@ -149,6 +137,7 @@ impl BinaryChannelTest for OrderedChannelClearTest {
             src_channel_id: channel.channel_id_b.clone().into_value(),
             max_memo_size: packet_config.ics20_max_memo_size,
             max_receiver_size: packet_config.ics20_max_receiver_size,
+            exclude_src_sequences: vec![],
         };
 
         let chain_b_link = Link::new_from_opts(
@@ -161,7 +150,8 @@ impl BinaryChannelTest for OrderedChannelClearTest {
 
         // Send the transfer (recv) packets from A to B over the channel.
         let mut relay_path_a_to_b = chain_a_link.a_to_b;
-        relay_path_a_to_b.schedule_packet_clearing(None)?;
+        relay_path_a_to_b
+            .schedule_packet_clearing(None, relayer.config.mode.packets.clear_limit)?;
         relay_path_a_to_b.execute_schedule()?;
 
         sleep(Duration::from_secs(10));
@@ -180,7 +170,8 @@ impl BinaryChannelTest for OrderedChannelClearTest {
 
         // Send the packet acknowledgments from B to A.
         let mut relay_path_b_to_a = chain_b_link.a_to_b;
-        relay_path_b_to_a.schedule_packet_clearing(None)?;
+        relay_path_b_to_a
+            .schedule_packet_clearing(None, relayer.config.mode.packets.clear_limit)?;
         relay_path_b_to_a.execute_schedule()?;
 
         sleep(Duration::from_secs(10));
@@ -285,6 +276,7 @@ impl BinaryChannelTest for OrderedChannelClearEqualCLITest {
             src_channel_id: channel.channel_id_a.into_value(),
             max_memo_size: packet_config.ics20_max_memo_size,
             max_receiver_size: packet_config.ics20_max_receiver_size,
+            exclude_src_sequences: vec![],
         };
 
         let chain_a_link = Link::new_from_opts(

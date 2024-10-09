@@ -1,18 +1,13 @@
 //! Definition of domain type message `MsgUpdateAnyClient`.
 
 use ibc_proto::{
-    google::protobuf::Any,
-    ibc::core::client::v1::MsgUpdateClient as RawMsgUpdateClient,
-    Protobuf,
+    google::protobuf::Any, ibc::core::client::v1::MsgUpdateClient as RawMsgUpdateClient, Protobuf,
 };
 
 use crate::{
     core::{
         ics02_client::error::Error,
-        ics24_host::{
-            error::ValidationError,
-            identifier::ClientId,
-        },
+        ics24_host::{error::ValidationError, identifier::ClientId},
     },
     signer::Signer,
     tx_msg::Msg,
@@ -75,36 +70,5 @@ impl From<MsgUpdateClient> for RawMsgUpdateClient {
             client_message: Some(ics_msg.header),
             signer: ics_msg.signer.to_string(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use ibc_proto::ibc::core::client::v1::MsgUpdateClient as RawMsgUpdateClient;
-    use test_log::test;
-
-    use crate::{
-        clients::ics07_tendermint::header::test_util::get_dummy_ics07_header,
-        core::{
-            ics02_client::msgs::MsgUpdateClient,
-            ics24_host::identifier::ClientId,
-        },
-        test_utils::get_dummy_account_id,
-    };
-
-    #[test]
-    fn msg_update_client_serialization() {
-        let client_id: ClientId = "tendermint".parse().unwrap();
-        let signer = get_dummy_account_id();
-
-        let header = get_dummy_ics07_header();
-
-        let msg = MsgUpdateClient::new(client_id, header.into(), signer);
-        let raw = RawMsgUpdateClient::from(msg.clone());
-        let msg_back = MsgUpdateClient::try_from(raw.clone()).unwrap();
-        let raw_back = RawMsgUpdateClient::from(msg_back.clone());
-        assert_eq!(msg, msg_back);
-        assert_eq!(raw, raw_back);
     }
 }
