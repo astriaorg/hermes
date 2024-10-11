@@ -158,6 +158,11 @@ fn encode_sign_doc(
     auth_info_bytes: Vec<u8>,
     body_bytes: Vec<u8>,
 ) -> Result<Vec<u8>, Error> {
+    println!(
+        "encode_sign_doc chain_id {} account_number {}",
+        chain_id.to_string(),
+        account_number.to_u64()
+    );
     let sign_doc = SignDoc {
         body_bytes,
         auth_info_bytes,
