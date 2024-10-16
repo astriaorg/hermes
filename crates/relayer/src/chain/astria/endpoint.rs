@@ -235,9 +235,9 @@ impl AstriaEndpoint {
                 SigningKey,
                 VerificationKey,
             },
-            generated::protocol::transaction::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
+            generated::protocol::transaction::v1::Ics20Withdrawal as RawIcs20Withdrawal,
             primitive::v1::Address,
-            protocol::transaction::v1alpha1::{
+            protocol::transaction::v1::{
                 action::Ics20Withdrawal,
                 Action,
                 TransactionBody,
@@ -599,7 +599,7 @@ impl ChainEndpoint for AstriaEndpoint {
     ) -> Result<Balance, Error> {
         use astria_core::{
             crypto::VerificationKey,
-            protocol::account::v1alpha1::AssetBalance,
+            protocol::account::v1::AssetBalance,
         };
         use astria_sequencer_client::{
             Address,

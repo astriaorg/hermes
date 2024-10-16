@@ -409,7 +409,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 [[package]]
 name = "astria-core"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?branch=ENG-912/rename-signed-transaction#60c0026253ca53999cf3b582c956f0836c5fe366"
+source = "git+https://github.com/astriaorg/astria?branch=joroshiba/proto-v1-upgrade#6497e040da48ba519c699d834c2927b462bf8e7e"
 dependencies = [
  "astria-merkle",
  "base64 0.21.7",
@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "astria-eyre"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?branch=ENG-912/rename-signed-transaction#60c0026253ca53999cf3b582c956f0836c5fe366"
+source = "git+https://github.com/astriaorg/astria?branch=joroshiba/proto-v1-upgrade#6497e040da48ba519c699d834c2927b462bf8e7e"
 dependencies = [
  "eyre",
  "itoa",
@@ -445,7 +445,7 @@ dependencies = [
 [[package]]
 name = "astria-merkle"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?branch=ENG-912/rename-signed-transaction#60c0026253ca53999cf3b582c956f0836c5fe366"
+source = "git+https://github.com/astriaorg/astria?branch=joroshiba/proto-v1-upgrade#6497e040da48ba519c699d834c2927b462bf8e7e"
 dependencies = [
  "sha2 0.10.8",
 ]
@@ -453,7 +453,7 @@ dependencies = [
 [[package]]
 name = "astria-sequencer-client"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?branch=ENG-912/rename-signed-transaction#60c0026253ca53999cf3b582c956f0836c5fe366"
+source = "git+https://github.com/astriaorg/astria?branch=joroshiba/proto-v1-upgrade#6497e040da48ba519c699d834c2927b462bf8e7e"
 dependencies = [
  "astria-core",
  "astria-eyre",
