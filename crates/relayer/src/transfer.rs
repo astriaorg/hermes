@@ -208,22 +208,22 @@ fn build_transfer_message_astria(
     let timeout_height = match timeout_height {
         // TODO: update astria IbcHeight to support optional?
         TimeoutHeight::At(height) => {
-            astria_core::generated::protocol::transactions::v1alpha1::IbcHeight {
+            astria_core::generated::protocol::transaction::v1alpha1::IbcHeight {
                 revision_number: height.revision_number(),
                 revision_height: height.revision_height(),
             }
         }
         TimeoutHeight::Never => {
-            astria_core::generated::protocol::transactions::v1alpha1::IbcHeight {
+            astria_core::generated::protocol::transaction::v1alpha1::IbcHeight {
                 revision_number: 0,
                 revision_height: u64::MAX,
             }
         }
     };
 
-    let msg = astria_core::generated::protocol::transactions::v1alpha1::Ics20Withdrawal {
+    let msg = astria_core::generated::protocol::transaction::v1alpha1::Ics20Withdrawal {
         source_channel: src_channel_id.to_string(),
-        denom: denom,
+        denom,
         amount: Some(
             u128::try_from(amount.0)
                 .expect("amount can fit into u128")
@@ -240,6 +240,7 @@ fn build_transfer_message_astria(
             .to_string(),
         memo: String::new(),
         bridge_address: None,
+        use_compat_address: false,
     };
 
     Any {
