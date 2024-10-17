@@ -133,12 +133,16 @@ impl BinaryChainTest for ClientFailsTest {
         let chains2 = override_connected_chains(
             chains,
             |config| {
-                {
-                    let ChainConfig::CosmosSdk(config_chain_a) = &mut config.chains[0];
-                    config_chain_a.gas_multiplier = Some(GasMultiplier::unsafe_new(0.8));
-                }
+                let config_chain_a = match config.chains[0] {
+                    ChainConfig::CosmosSdk(ref mut config) => config,
+                    ChainConfig::Astria(ref mut config) => config,
+                };
+                config_chain_a.gas_multiplier = Some(GasMultiplier::unsafe_new(0.8));
 
-                let ChainConfig::CosmosSdk(config_chain_b) = &mut config.chains[1];
+                let config_chain_b = match config.chains[1] {
+                    ChainConfig::CosmosSdk(ref mut config) => config,
+                    ChainConfig::Astria(ref mut config) => config,
+                };
                 config_chain_b.gas_multiplier = Some(GasMultiplier::unsafe_new(0.8));
             },
             config,

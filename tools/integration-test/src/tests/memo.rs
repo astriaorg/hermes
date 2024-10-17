@@ -37,6 +37,9 @@ impl TestOverrides for MemoTest {
                 ChainConfig::CosmosSdk(chain_config) => {
                     chain_config.memo_prefix = self.memo.clone();
                 }
+                ChainConfig::Astria(chain_config) => {
+                    chain_config.memo_prefix = self.memo.clone();
+                }
             }
         }
     }

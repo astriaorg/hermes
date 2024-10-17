@@ -229,7 +229,7 @@ where
 mod tests {
     use std::str::FromStr;
 
-    use abscissa_core::clap::Parser;
+    use clap::Parser as _;
     use ibc_relayer_types::core::{
         ics04_channel::packet::Sequence,
         ics24_host::identifier::{
@@ -238,6 +238,8 @@ mod tests {
             PortId,
         },
     };
+
+    use crate::commands::clear::ClearPacketsCmd;
 
     #[test]
     fn test_clear_packets_required_only() {
