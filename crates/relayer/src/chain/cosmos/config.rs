@@ -108,7 +108,7 @@ pub struct CosmosSdkConfig {
 
     /// The trusting period specifies how long a validator set is trusted for
     /// (must be shorter than the chain's unbonding period).
-    #[serde(default, with = "humantime_serde")]
+    #[serde(default = "default::trusting_period", with = "humantime_serde")]
     pub trusting_period: Option<Duration>,
 
     /// The rate at which to refresh the client referencing this chain,
