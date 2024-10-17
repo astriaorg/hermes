@@ -235,13 +235,12 @@ impl AstriaEndpoint {
                 SigningKey,
                 VerificationKey,
             },
-            generated::protocol::transactions::v1alpha1::Ics20Withdrawal as RawIcs20Withdrawal,
+            generated::protocol::transaction::v1::Ics20Withdrawal as RawIcs20Withdrawal,
             primitive::v1::Address,
-            protocol::transaction::v1alpha1::{
+            protocol::transaction::v1::{
                 action::Ics20Withdrawal,
                 Action,
-                TransactionParams,
-                UnsignedTransaction,
+                TransactionBody,
             },
             Protobuf as _,
         };
@@ -287,20 +286,19 @@ impl AstriaEndpoint {
             .await
             .map_err(|e| Error::other(Box::new(e)))?;
 
-        let unsigned_tx = UnsignedTransaction {
-            params: TransactionParams::builder()
-                .nonce(nonce.nonce)
-                .chain_id(self.id().to_string())
-                .build(),
-            actions,
-        };
-
-        let signed_tx = unsigned_tx.into_signed(&SigningKey::from(signing_key.to_bytes()));
-        let tx_bytes = signed_tx.into_raw().encode_to_vec();
+        let tx = TransactionBody::builder()
+            .nonce(nonce.nonce)
+            .chain_id(self.id().to_string())
+            .actions(actions)
+            .try_build()
+            .map_err(|e| Error::other_with_string(format!("{e:?}")))?
+            .sign(&SigningKey::from(signing_key.to_bytes()))
+            .into_raw()
+            .encode_to_vec();
 
         let resp = self
             .sequencer_client
-            .broadcast_tx_sync(tx_bytes)
+            .broadcast_tx_sync(tx)
             .await
             .map_err(|e| Error::other(e.into()))?;
         Ok(resp)
@@ -601,7 +599,7 @@ impl ChainEndpoint for AstriaEndpoint {
     ) -> Result<Balance, Error> {
         use astria_core::{
             crypto::VerificationKey,
-            protocol::account::v1alpha1::AssetBalance,
+            protocol::account::v1::AssetBalance,
         };
         use astria_sequencer_client::{
             Address,

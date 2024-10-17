@@ -409,7 +409,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 [[package]]
 name = "astria-core"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?tag=sequencer-v0.16.0#6251eaae61cb0f22b4c9f1f6cf6dcbf980a8c95f"
+source = "git+https://github.com/astriaorg/astria?rev=812960f713d07d7aeed479c5e805d6238fe20312#812960f713d07d7aeed479c5e805d6238fe20312"
 dependencies = [
  "astria-merkle",
  "base64 0.21.7",
@@ -434,9 +434,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "astria-eyre"
+version = "0.1.0"
+source = "git+https://github.com/astriaorg/astria?rev=812960f713d07d7aeed479c5e805d6238fe20312#812960f713d07d7aeed479c5e805d6238fe20312"
+dependencies = [
+ "eyre",
+ "itoa",
+]
+
+[[package]]
 name = "astria-merkle"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?tag=sequencer-v0.16.0#6251eaae61cb0f22b4c9f1f6cf6dcbf980a8c95f"
+source = "git+https://github.com/astriaorg/astria?rev=812960f713d07d7aeed479c5e805d6238fe20312#812960f713d07d7aeed479c5e805d6238fe20312"
 dependencies = [
  "sha2 0.10.8",
 ]
@@ -444,13 +453,15 @@ dependencies = [
 [[package]]
 name = "astria-sequencer-client"
 version = "0.1.0"
-source = "git+https://github.com/astriaorg/astria?tag=sequencer-v0.16.0#6251eaae61cb0f22b4c9f1f6cf6dcbf980a8c95f"
+source = "git+https://github.com/astriaorg/astria?rev=812960f713d07d7aeed479c5e805d6238fe20312#812960f713d07d7aeed479c5e805d6238fe20312"
 dependencies = [
  "astria-core",
+ "astria-eyre",
  "async-trait",
  "futures",
  "futures-util",
  "hex",
+ "humantime",
  "prost 0.12.6",
  "tendermint",
  "tendermint-proto",
@@ -459,6 +470,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "tryhard",
 ]
 
 [[package]]
@@ -5590,6 +5602,17 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "tryhard"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c9f0a709784e86923586cff0d872dba54cd2d2e116b3bc57587d15737cfce9d"
+dependencies = [
+ "futures",
+ "pin-project-lite",
+ "tokio",
+]
 
 [[package]]
 name = "tungstenite"

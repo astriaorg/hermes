@@ -7,7 +7,7 @@ readme       = "README.md"
 keywords     = ["blockchain", "consensus", "cosmos", "ibc", "tendermint"]
 repository   = "https://github.com/informalsystems/hermes"
 authors      = ["Informal Systems <hello@informal.systems>"]
-rust-version = "1.71"
+rust-version = "1.81"
 description  = """
     Implementation of an IBC Relayer in Rust, as a library
 """
@@ -24,8 +24,8 @@ ibc-proto         = { version = "0.41.0", features = ["serde"] }
 ibc-telemetry     = { version = "0.26.4", path = "../telemetry", optional = true }
 ibc-relayer-types = { version = "0.26.4", path = "../relayer-types", features = ["mocks"] }
 
-astria-core = { git = "https://github.com/astriaorg/astria", tag = "sequencer-v0.16.0" }
-astria-sequencer-client = { git = "https://github.com/astriaorg/astria", tag = "sequencer-v0.16.0", features = [ "http" ] }
+astria-core = { git = "https://github.com/astriaorg/astria", rev = "812960f713d07d7aeed479c5e805d6238fe20312" }
+astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "812960f713d07d7aeed479c5e805d6238fe20312", features = [ "http" ] }
 ed25519-consensus = "2.1.0"
 ibc-types = "0.12.0"
 jmt = "0.6"
