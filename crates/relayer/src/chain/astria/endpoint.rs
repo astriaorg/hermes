@@ -1456,13 +1456,9 @@ impl ChainEndpoint for AstriaEndpoint {
 
         let ClientSettings::Tendermint(settings) = settings;
 
-        // two hour duration
-        // TODO what is this?
-        let two_hours = Duration::from_secs(2 * 60 * 60);
-        let unbonding_period = two_hours;
-        let trusting_period_default = 2 * unbonding_period / 3;
-        let trusting_period = settings.trusting_period.unwrap_or(trusting_period_default);
-
+        let trusting_period = self.config.trusting_period();
+        // Note: Astria does not have an unbonding period, so we set it to 3/2 of the trusting period.
+        let unbonding_period = trusting_period * 3 / 2;
         let proof_specs = crate::chain::astria::proof_specs::proof_spec_with_prehash();
 
         Self::ClientState::new(
