@@ -19,8 +19,8 @@ all-features = true
 default   = ["flex-error/std", "flex-error/eyre_tracer"]
 
 [dependencies]
-astria-core = { git = "https://github.com/astriaorg/astria", rev = "070cfee5b87c82819f87dc62a48870c5c22bc108" }
-astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "070cfee5b87c82819f87dc62a48870c5c22bc108", features = [ "http" ] }
+astria-core = { git = "https://github.com/astriaorg/astria", tag = "sequencer-v1.0.0-rc.1" }
+astria-sequencer-client = { git = "https://github.com/astriaorg/astria",  tag = "sequencer-v1.0.0-rc.1", features = [ "http" ] }
 ed25519-consensus = "2.1.0"
 ibc-types = "0.14"
 jmt = "0.10"
