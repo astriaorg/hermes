@@ -28,6 +28,7 @@
 use ibc_relayer::config::ChainConfig;
 use ibc_relayer::keyring::Store;
 use ibc_test_framework::prelude::*;
+use prost::bytes::buf::Chain;
 use std::env;
 use std::path::PathBuf;
 
@@ -48,7 +49,13 @@ impl TestOverrides for Test {
                     // keys are stored to ~/.hermes/keys so that we can use them
                     // with external relayer commands.
                     chain_config.key_store_type = Store::Test;
-                }
+                },
+                ChainConfig::Astria(chain_config) => {
+                    // Modify the key store type to `Store::Test` so that the wallet
+                    // keys are stored to ~/.hermes/keys so that we can use them
+                    // with external relayer commands.
+                    chain_config.key_store_type = Store::Test;
+                },
             }
         }
     }

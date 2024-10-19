@@ -49,7 +49,13 @@ impl TestOverrides for Test {
                     // keys are stored to ~/.hermes/keys so that we can use them
                     // with external relayer commands.
                     chain_config.key_store_type = Store::Test;
-                }
+                },
+                ChainConfig::Astria(chain_config) => {
+                    // Modify the key store type to `Store::Test` so that the wallet
+                    // keys are stored to ~/.hermes/keys so that we can use them
+                    // with external relayer commands.
+                    chain_config.key_store_type = Store::Test;
+                },
             }
         }
     }
