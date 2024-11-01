@@ -493,14 +493,10 @@ mod tests {
     };
     use ibc_relayer_types::{
         clients::ics07_tendermint::header::test_util::get_dummy_ics07_header,
-        core::{
-            ics02_client::header::{
-                decode_header,
-                AnyHeader,
-            },
-            ics04_channel::packet::Sequence,
+        core::ics02_client::header::{
+            decode_header,
+            AnyHeader,
         },
-        timestamp::Timestamp,
     };
 
     use super::*;
