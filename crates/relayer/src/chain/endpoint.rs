@@ -385,7 +385,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error>;
+    ) -> Result<(Sequence, Option<(MerkleProof, ICSHeight)>), Error>;
 
     fn query_txs(&self, request: QueryTxRequest) -> Result<Vec<IbcEventWithHeight>, Error>;
 
@@ -625,18 +625,18 @@ pub trait ChainEndpoint: Sized {
                 (proof_and_height.1, proof_and_height.0, None)
             }
             PacketMsgType::TimeoutOrdered => {
-                let (_, maybe_packet_proof) = self.query_next_sequence_receive(
+                let (_, proof_and_height) = self.query_next_sequence_receive(
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        height: QueryHeight::Specific(query_height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
 
-                let maybe_packet_proof =
-                    maybe_packet_proof.ok_or_else(Error::queried_proof_not_found)?;
-                (query_height, maybe_packet_proof, None)
+                let proof_and_height =
+                    proof_and_height.ok_or_else(Error::queried_proof_not_found)?;
+                (proof_and_height.1, proof_and_height.0, None)
             }
             PacketMsgType::TimeoutOnCloseUnordered => {
                 let (_, packet_and_height) = self.query_packet_receipt(
@@ -675,11 +675,23 @@ pub trait ChainEndpoint: Sized {
                 (packet_and_height.1, packet_and_height.0, channel_proof)
             }
             PacketMsgType::TimeoutOnCloseOrdered => {
+                let (_, packet_and_height) = self.query_next_sequence_receive(
+                    QueryNextSequenceReceiveRequest {
+                        port_id: port_id.clone(),
+                        channel_id: channel_id.clone(),
+                        height: QueryHeight::Latest,
+                    },
+                    IncludeProof::Yes,
+                )?;
+
+                let packet_and_height =
+                    packet_and_height.ok_or_else(Error::queried_proof_not_found)?;
+
                 let channel_proof = {
                     let (_, maybe_channel_proof) = self.query_channel(
                         QueryChannelRequest {
-                            port_id: port_id.clone(),
-                            channel_id: channel_id.clone(),
+                            port_id,
+                            channel_id,
                             height: QueryHeight::Specific(query_height),
                         },
                         IncludeProof::Yes,
@@ -694,20 +706,8 @@ pub trait ChainEndpoint: Sized {
                             .map_err(Error::malformed_proof)?,
                     )
                 };
-                let (_, maybe_packet_proof) = self.query_next_sequence_receive(
-                    QueryNextSequenceReceiveRequest {
-                        port_id,
-                        channel_id,
-                        height: QueryHeight::Specific(query_height),
-                    },
-                    IncludeProof::Yes,
-                )?;
 
-                (
-                    query_height,
-                    maybe_packet_proof.ok_or_else(Error::queried_proof_not_found)?,
-                    channel_proof,
-                )
+                (packet_and_height.1, packet_and_height.0, channel_proof)
             }
         };
 

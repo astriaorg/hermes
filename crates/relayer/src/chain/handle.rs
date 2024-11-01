@@ -312,7 +312,7 @@ pub enum ChainRequest {
     QueryNextSequenceReceive {
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Sequence, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Sequence, Option<(MerkleProof, Height)>)>,
     },
 
     BuildChannelProofs {
@@ -546,7 +546,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error>;
+    ) -> Result<(Sequence, Option<(MerkleProof, Height)>), Error>;
 
     /// Performs a query to retrieve all the channels of a chain.
     fn query_channels(

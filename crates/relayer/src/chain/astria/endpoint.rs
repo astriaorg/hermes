@@ -1381,7 +1381,7 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<(MerkleProof, Height)>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let request = tonic::Request::new(request.into());
 
@@ -1391,10 +1391,20 @@ impl ChainEndpoint for AstriaEndpoint {
             .into_inner();
 
         match include_proof {
-            IncludeProof::Yes => Ok((
-                response.next_sequence_receive.into(),
-                Some(decode_merkle_proof(response.proof)?),
-            )),
+            IncludeProof::Yes => {
+                let proof = decode_merkle_proof(response.proof)?;
+                let height = response
+                    .proof_height
+                    .ok_or(Error::grpc_response_param("proof_height".to_string()))?;
+                Ok((
+                    response.next_sequence_receive.into(),
+                    Some((
+                        proof,
+                        Height::new(height.revision_number, height.revision_height - 1)
+                            .map_err(|e| Error::other(Box::new(e)))?,
+                    )),
+                ))
+            }
             IncludeProof::No => Ok((response.next_sequence_receive.into(), None)),
         }
     }

@@ -312,7 +312,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<(MerkleProof, Height)>), Error> {
         self.send(|reply_to| ChainRequest::QueryNextSequenceReceive {
             request,
             include_proof,

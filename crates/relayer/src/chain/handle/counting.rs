@@ -334,7 +334,7 @@ impl<Handle: ChainHandle> ChainHandle for CountingChainHandle<Handle> {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<(MerkleProof, Height)>), Error> {
         self.inc_metric("query_next_sequence_receive");
         self.inner()
             .query_next_sequence_receive(request, include_proof)

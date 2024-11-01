@@ -2086,7 +2086,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<(MerkleProof, ibc_relayer_types::Height)>), Error> {
         crate::time!(
             "query_next_sequence_receive",
             {
@@ -2115,7 +2115,8 @@ impl ChainEndpoint for CosmosSdkChain {
         let seq: Sequence = Bytes::from(res.value).get_u64().into();
 
         let proof = if prove {
-            Some(res.proof.ok_or_else(Error::empty_response_proof)?)
+            let height = ibc_relayer_types::Height::from_tm(res.height, &self.config.id);
+            Some((res.proof.ok_or_else(Error::empty_response_proof)?, height))
         } else {
             None
         };

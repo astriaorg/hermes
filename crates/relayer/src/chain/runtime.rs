@@ -808,7 +808,7 @@ where
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Sequence, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Sequence, Option<(MerkleProof, Height)>)>,
     ) -> Result<(), Error> {
         let result = self
             .chain
