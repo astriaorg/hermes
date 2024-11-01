@@ -334,7 +334,7 @@ pub enum ChainRequest {
     QueryPacketCommitment {
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<(MerkleProof, Height)>)>,
     },
 
     QueryPacketCommitments {
@@ -345,7 +345,7 @@ pub enum ChainRequest {
     QueryPacketReceipt {
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<(MerkleProof, Height)>)>,
     },
 
     QueryUnreceivedPackets {
@@ -356,7 +356,7 @@ pub enum ChainRequest {
     QueryPacketAcknowledgement {
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<(MerkleProof, Height)>)>,
     },
 
     QueryPacketAcknowledgements {
@@ -628,7 +628,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error>;
 
     /// Performs a query to retrieve all the packet commitments hashes
     /// associated with a channel. Returns the corresponding packet sequence
@@ -644,7 +644,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error>;
 
     /// Performs a query about which IBC packets in the specified list has not
     /// been received. Returns the sequence numbers of the packets that were not
@@ -665,7 +665,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error>;
 
     /// Performs a query to retrieve all the packet acknowledgements associated
     /// with a channel. Returns the corresponding packet sequence numbers and

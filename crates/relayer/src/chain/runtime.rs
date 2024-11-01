@@ -740,7 +740,7 @@ where
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<(MerkleProof, Height)>)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_packet_commitment(request, include_proof);
         reply_to.send(result).map_err(Error::send)
@@ -759,7 +759,7 @@ where
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<(MerkleProof, Height)>)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_packet_receipt(request, include_proof);
         reply_to.send(result).map_err(Error::send)
@@ -778,7 +778,7 @@ where
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<(MerkleProof, Height)>)>,
     ) -> Result<(), Error> {
         let result = self
             .chain

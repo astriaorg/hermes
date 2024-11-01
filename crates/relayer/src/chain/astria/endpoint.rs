@@ -26,6 +26,7 @@ use ibc_relayer_types::{
         ics02_client::{
             client_type::ClientType,
             events::UpdateClient,
+            height::Height,
         },
         ics03_connection::connection::{
             ConnectionEnd,
@@ -1107,7 +1108,7 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryPacketCommitmentRequest {
             port_id: request.port_id.to_string(),
@@ -1132,10 +1133,20 @@ impl ChainEndpoint for AstriaEndpoint {
             .into_inner();
 
         match include_proof {
-            IncludeProof::Yes => Ok((
-                response.commitment,
-                Some(decode_merkle_proof(response.proof)?),
-            )),
+            IncludeProof::Yes => {
+                let proof = decode_merkle_proof(response.proof)?;
+                let height = response
+                    .proof_height
+                    .ok_or(Error::grpc_response_param("proof_height".to_string()))?;
+                Ok((
+                    response.commitment,
+                    Some((
+                        proof,
+                        Height::new(height.revision_number, height.revision_height)
+                            .map_err(|e| Error::other(Box::new(e)))?,
+                    )),
+                ))
+            }
             IncludeProof::No => Ok((response.commitment, None)),
         }
     }
@@ -1176,7 +1187,7 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryPacketReceiptRequest {
             port_id: request.port_id.to_string(),
@@ -1200,14 +1211,26 @@ impl ChainEndpoint for AstriaEndpoint {
             .map_err(|e| Error::grpc_status(e, "query_packet_receipt".to_owned()))?
             .into_inner();
 
-        // TODO: is this right?
         let value = match response.received {
             true => vec![1],
             false => vec![0],
         };
 
         match include_proof {
-            IncludeProof::Yes => Ok((value, Some(decode_merkle_proof(response.proof)?))),
+            IncludeProof::Yes => {
+                let proof = decode_merkle_proof(response.proof)?;
+                let height = response
+                    .proof_height
+                    .ok_or(Error::grpc_response_param("proof_height".to_string()))?;
+                Ok((
+                    value,
+                    Some((
+                        proof,
+                        Height::new(height.revision_number, height.revision_height)
+                            .map_err(|e| Error::other(Box::new(e)))?,
+                    )),
+                ))
+            }
             IncludeProof::No => Ok((value, None)),
         }
     }
@@ -1247,7 +1270,7 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryPacketAcknowledgementRequest {
             port_id: request.port_id.to_string(),
@@ -1272,10 +1295,20 @@ impl ChainEndpoint for AstriaEndpoint {
             .into_inner();
 
         match include_proof {
-            IncludeProof::Yes => Ok((
-                response.acknowledgement,
-                Some(decode_merkle_proof(response.proof)?),
-            )),
+            IncludeProof::Yes => {
+                let proof = decode_merkle_proof(response.proof)?;
+                let height = response
+                    .proof_height
+                    .ok_or(Error::grpc_response_param("proof_height".to_string()))?;
+                Ok((
+                    response.acknowledgement,
+                    Some((
+                        proof,
+                        Height::new(height.revision_number, height.revision_height)
+                            .map_err(|e| Error::other(Box::new(e)))?,
+                    )),
+                ))
+            }
             IncludeProof::No => Ok((response.acknowledgement, None)),
         }
     }

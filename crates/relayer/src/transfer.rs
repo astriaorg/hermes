@@ -207,18 +207,14 @@ fn build_transfer_message_astria(
 
     let timeout_height = match timeout_height {
         // TODO: update astria IbcHeight to support optional?
-        TimeoutHeight::At(height) => {
-            astria_core::generated::protocol::transaction::v1::IbcHeight {
-                revision_number: height.revision_number(),
-                revision_height: height.revision_height(),
-            }
-        }
-        TimeoutHeight::Never => {
-            astria_core::generated::protocol::transaction::v1::IbcHeight {
-                revision_number: 0,
-                revision_height: u64::MAX,
-            }
-        }
+        TimeoutHeight::At(height) => astria_core::generated::protocol::transaction::v1::IbcHeight {
+            revision_number: height.revision_number(),
+            revision_height: height.revision_height(),
+        },
+        TimeoutHeight::Never => astria_core::generated::protocol::transaction::v1::IbcHeight {
+            revision_number: 0,
+            revision_height: u64::MAX,
+        },
     };
 
     let msg = astria_core::generated::protocol::transaction::v1::Ics20Withdrawal {

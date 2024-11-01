@@ -1832,7 +1832,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, ibc_relayer_types::Height)>), Error> {
         let res = self.query(
             CommitmentsPath {
                 port_id: request.port_id,
@@ -1846,8 +1846,8 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-
-                Ok((res.value, Some(proof)))
+                let height = ibc_relayer_types::Height::from_tm(res.height, &self.config.id);
+                Ok((res.value, Some((proof, height))))
             }
             IncludeProof::No => Ok((res.value, None)),
         }
@@ -1904,7 +1904,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, ibc_relayer_types::Height)>), Error> {
         let res = self.query(
             ReceiptsPath {
                 port_id: request.port_id,
@@ -1918,8 +1918,8 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-
-                Ok((res.value, Some(proof)))
+                let height = ibc_relayer_types::Height::from_tm(res.height, &self.config.id);
+                Ok((res.value, Some((proof, height))))
             }
             IncludeProof::No => Ok((res.value, None)),
         }
@@ -1969,7 +1969,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, ibc_relayer_types::Height)>), Error> {
         let res = self.query(
             AcksPath {
                 port_id: request.port_id,
@@ -1983,8 +1983,8 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-
-                Ok((res.value, Some(proof)))
+                let height = ibc_relayer_types::Height::from_tm(res.height, &self.config.id);
+                Ok((res.value, Some((proof, height))))
             }
             IncludeProof::No => Ok((res.value, None)),
         }

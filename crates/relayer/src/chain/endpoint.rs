@@ -319,7 +319,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, ICSHeight)>), Error>;
 
     /// Performs a query to retrieve all the packet commitments hashes
     /// associated with a channel. Returns the corresponding packet sequence
@@ -335,7 +335,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, ICSHeight)>), Error>;
 
     /// Performs a query about which IBC packets in the specified list has not
     /// been received. Returns the sequence numbers of the packets that were not
@@ -356,7 +356,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, ICSHeight)>), Error>;
 
     /// Performs a query to retrieve all the packet acknowledgements associated
     /// with a channel. Returns the corresponding packet sequence numbers and
@@ -576,67 +576,88 @@ pub trait ChainEndpoint: Sized {
         port_id: PortId,
         channel_id: ChannelId,
         sequence: Sequence,
-        height: ICSHeight,
+        query_height: ICSHeight,
     ) -> Result<Proofs, Error> {
-        let (maybe_packet_proof, channel_proof) = match packet_type {
+        let (height, packet_proof, channel_proof) = match packet_type {
             PacketMsgType::Recv => {
-                let (_, maybe_packet_proof) = self.query_packet_commitment(
+                let (_, proof_and_height) = self.query_packet_commitment(
                     QueryPacketCommitmentRequest {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
 
-                (maybe_packet_proof, None)
+                let proof_and_height =
+                    proof_and_height.ok_or_else(Error::queried_proof_not_found)?;
+                (proof_and_height.1, proof_and_height.0, None)
             }
             PacketMsgType::Ack => {
-                let (_, maybe_packet_proof) = self.query_packet_acknowledgement(
+                let (_, proof_and_height) = self.query_packet_acknowledgement(
                     QueryPacketAcknowledgementRequest {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
 
-                (maybe_packet_proof, None)
+                let proof_and_height =
+                    proof_and_height.ok_or_else(Error::queried_proof_not_found)?;
+                (proof_and_height.1, proof_and_height.0, None)
             }
             PacketMsgType::TimeoutUnordered => {
-                let (_, maybe_packet_proof) = self.query_packet_receipt(
+                let (_, proof_and_height) = self.query_packet_receipt(
                     QueryPacketReceiptRequest {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
 
-                (maybe_packet_proof, None)
+                let proof_and_height =
+                    proof_and_height.ok_or_else(Error::queried_proof_not_found)?;
+                (proof_and_height.1, proof_and_height.0, None)
             }
             PacketMsgType::TimeoutOrdered => {
                 let (_, maybe_packet_proof) = self.query_next_sequence_receive(
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Specific(query_height),
                     },
                     IncludeProof::Yes,
                 )?;
 
-                (maybe_packet_proof, None)
+                let maybe_packet_proof =
+                    maybe_packet_proof.ok_or_else(Error::queried_proof_not_found)?;
+                (query_height, maybe_packet_proof, None)
             }
             PacketMsgType::TimeoutOnCloseUnordered => {
+                let (_, packet_and_height) = self.query_packet_receipt(
+                    QueryPacketReceiptRequest {
+                        port_id: port_id.clone(),
+                        channel_id: channel_id.clone(),
+                        sequence,
+                        height: QueryHeight::Latest,
+                    },
+                    IncludeProof::Yes,
+                )?;
+
+                let packet_and_height =
+                    packet_and_height.ok_or_else(Error::queried_proof_not_found)?;
+
                 let channel_proof = {
                     let (_, maybe_channel_proof) = self.query_channel(
                         QueryChannelRequest {
-                            port_id: port_id.clone(),
-                            channel_id: channel_id.clone(),
-                            height: QueryHeight::Specific(height),
+                            port_id: port_id,
+                            channel_id: channel_id,
+                            height: QueryHeight::Specific(packet_and_height.1),
                         },
                         IncludeProof::Yes,
                     )?;
@@ -651,17 +672,7 @@ pub trait ChainEndpoint: Sized {
                     )
                 };
 
-                let (_, maybe_packet_proof) = self.query_packet_receipt(
-                    QueryPacketReceiptRequest {
-                        port_id,
-                        channel_id,
-                        sequence,
-                        height: QueryHeight::Specific(height),
-                    },
-                    IncludeProof::Yes,
-                )?;
-
-                (maybe_packet_proof, channel_proof)
+                (packet_and_height.1, packet_and_height.0, channel_proof)
             }
             PacketMsgType::TimeoutOnCloseOrdered => {
                 let channel_proof = {
@@ -669,7 +680,7 @@ pub trait ChainEndpoint: Sized {
                         QueryChannelRequest {
                             port_id: port_id.clone(),
                             channel_id: channel_id.clone(),
-                            height: QueryHeight::Specific(height),
+                            height: QueryHeight::Specific(query_height),
                         },
                         IncludeProof::Yes,
                     )?;
@@ -687,17 +698,17 @@ pub trait ChainEndpoint: Sized {
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Specific(query_height),
                     },
                     IncludeProof::Yes,
                 )?;
 
-                (maybe_packet_proof, channel_proof)
+                (
+                    query_height,
+                    maybe_packet_proof.ok_or_else(Error::queried_proof_not_found)?,
+                    channel_proof,
+                )
             }
-        };
-
-        let Some(packet_proof) = maybe_packet_proof else {
-            return Err(Error::queried_proof_not_found());
         };
 
         let proofs = Proofs::new(
@@ -706,7 +717,7 @@ pub trait ChainEndpoint: Sized {
             None,
             None,
             channel_proof,
-            height.increment(),
+            height.increment(), // TODO: do we need to increment (as penumbra already increments when returning the height)?
         )
         .map_err(Error::malformed_proof)?;
 

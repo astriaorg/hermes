@@ -468,7 +468,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.inner().query_packet_commitment(request, include_proof)
     }
 
@@ -483,7 +483,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.inner().query_packet_receipt(request, include_proof)
     }
 
@@ -498,7 +498,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.inner()
             .query_packet_acknowledgement(request, include_proof)
     }

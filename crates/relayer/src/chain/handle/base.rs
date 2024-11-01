@@ -452,7 +452,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.send(|reply_to| ChainRequest::QueryPacketCommitment {
             request,
             include_proof,
@@ -471,7 +471,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.send(|reply_to| ChainRequest::QueryPacketReceipt {
             request,
             include_proof,
@@ -490,7 +490,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.send(|reply_to| ChainRequest::QueryPacketAcknowledgement {
             request,
             include_proof,
