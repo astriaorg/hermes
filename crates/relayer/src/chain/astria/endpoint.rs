@@ -1142,7 +1142,12 @@ impl ChainEndpoint for AstriaEndpoint {
                     response.commitment,
                     Some((
                         proof,
-                        Height::new(height.revision_number, height.revision_height)
+                        // TODO: subtracting from the height is jank but due to penumbra incrementing the proof height
+                        // in the response, and the caller of this method (`build_packet_proofs`) also incrementing the proof
+                        // height. the cosmos endpoint doesn't increment the height in the response (i believe) so changing
+                        // the caller to not increment is potentially more confusing.
+                        // needs a better fix.
+                        Height::new(height.revision_number, height.revision_height - 1)
                             .map_err(|e| Error::other(Box::new(e)))?,
                     )),
                 ))
@@ -1226,7 +1231,7 @@ impl ChainEndpoint for AstriaEndpoint {
                     value,
                     Some((
                         proof,
-                        Height::new(height.revision_number, height.revision_height)
+                        Height::new(height.revision_number, height.revision_height - 1)
                             .map_err(|e| Error::other(Box::new(e)))?,
                     )),
                 ))
@@ -1304,7 +1309,7 @@ impl ChainEndpoint for AstriaEndpoint {
                     response.acknowledgement,
                     Some((
                         proof,
-                        Height::new(height.revision_number, height.revision_height)
+                        Height::new(height.revision_number, height.revision_height - 1)
                             .map_err(|e| Error::other(Box::new(e)))?,
                     )),
                 ))
