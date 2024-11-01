@@ -362,7 +362,7 @@ where
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.value().query_packet_commitment(request, include_proof)
     }
 
@@ -377,7 +377,7 @@ where
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.value().query_packet_receipt(request, include_proof)
     }
 
@@ -392,7 +392,7 @@ where
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<(MerkleProof, Height)>), Error> {
         self.value()
             .query_packet_acknowledgement(request, include_proof)
     }
