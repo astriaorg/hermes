@@ -4995,8 +4995,7 @@ dependencies = [
 [[package]]
 name = "tendermint"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15ab8f0a25d0d2ad49ac615da054d6a76aa6603ff95f7d18bafdd34450a1a04b"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "bytes",
  "digest 0.10.7",
@@ -5026,8 +5025,7 @@ dependencies = [
 [[package]]
 name = "tendermint-config"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1a02da769166e2052cd537b1a97c78017632c2d9e19266367b27e73910434fc"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "flex-error",
  "serde",
@@ -5040,8 +5038,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc60a09541be13b8f8be305c260eb6144e48e01299302f71956c6e5284f2e4d6"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "contracts",
  "crossbeam-channel 0.4.4",
@@ -5065,8 +5062,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client-detector"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6af616fb578fec00cb6466d57718ad962de8482e77a7b647f4c8acf3538913e4"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "crossbeam-channel 0.4.4",
  "derive_more",
@@ -5088,8 +5084,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client-verifier"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b8090d0eef9ad57b1b913b5e358e26145c86017e87338136509b94383a4af25"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "derive_more",
  "flex-error",
@@ -5101,8 +5096,7 @@ dependencies = [
 [[package]]
 name = "tendermint-proto"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b797dd3d2beaaee91d2f065e7bdf239dc8d80bba4a183a288bc1279dd5a69a1e"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "bytes",
  "flex-error",
@@ -5119,8 +5113,7 @@ dependencies = [
 [[package]]
 name = "tendermint-rpc"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71afae8bb5f6b14ed48d4e1316a643b6c2c3cbad114f510be77b4ed20b7b3e42"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -5153,8 +5146,7 @@ dependencies = [
 [[package]]
 name = "tendermint-testgen"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae652e9e8b23f27f6a4fbeb29ead22ff4c2256b8d32df226b73258ba2a4ce11e"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
 dependencies = [
  "ed25519-consensus",
  "gumdrop",
