@@ -4995,7 +4995,7 @@ dependencies = [
 [[package]]
 name = "tendermint"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "bytes",
  "digest 0.10.7",
@@ -5025,7 +5025,7 @@ dependencies = [
 [[package]]
 name = "tendermint-config"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "flex-error",
  "serde",
@@ -5038,7 +5038,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "contracts",
  "crossbeam-channel 0.4.4",
@@ -5062,7 +5062,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client-detector"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "crossbeam-channel 0.4.4",
  "derive_more",
@@ -5084,7 +5084,7 @@ dependencies = [
 [[package]]
 name = "tendermint-light-client-verifier"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "derive_more",
  "flex-error",
@@ -5096,7 +5096,7 @@ dependencies = [
 [[package]]
 name = "tendermint-proto"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "bytes",
  "flex-error",
@@ -5113,7 +5113,7 @@ dependencies = [
 [[package]]
 name = "tendermint-rpc"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -5146,7 +5146,7 @@ dependencies = [
 [[package]]
 name = "tendermint-testgen"
 version = "0.34.1"
-source = "git+https://github.com/astriaorg/tendermint-rs.git?branch=joroshiba/patch-serde#769c6a683d00813a4815e3a02da0cec197414f9a"
+source = "git+https://github.com/astriaorg/tendermint-rs.git?rev=07e084c4ededd1a24e19030e53041aabe5b1d7a0#07e084c4ededd1a24e19030e53041aabe5b1d7a0"
 dependencies = [
  "ed25519-consensus",
  "gumdrop",
