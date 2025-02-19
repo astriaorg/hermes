@@ -22,10 +22,10 @@ exclude = [
 overflow-checks = true
 
 [patch.crates-io]
-# tendermint                       = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
-# tendermint-rpc                   = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
-# tendermint-proto                 = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
-# tendermint-light-client          = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
-# tendermint-light-client-verifier = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
-# tendermint-light-client-detector = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
-# tendermint-testgen               = { git = "https://github.com/informalsystems/tendermint-rs.git", branch = "main" }
+tendermint                       = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
+tendermint-rpc                   = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
+tendermint-proto                 = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
+tendermint-light-client          = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
+tendermint-light-client-verifier = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
+tendermint-light-client-detector = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
+tendermint-testgen               = { git = "https://github.com/astriaorg/tendermint-rs.git", rev = "07e084c4ededd1a24e19030e53041aabe5b1d7a0" }
