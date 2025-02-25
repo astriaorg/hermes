@@ -869,7 +869,7 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
             .duration_since(&consensus_state_timestamp)
             .unwrap_or_default();
 
-        if client_state.expired(elapsed) {
+        if client_state.expired(elapsed) && !client_state.allow_expired() {
             Ok(ConsensusStateTrusted::NotTrusted {
                 elapsed,
                 network_timestamp: current_src_network_time,

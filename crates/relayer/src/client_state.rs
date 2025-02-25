@@ -133,6 +133,15 @@ impl AnyClientState {
             Self::Mock(state) => state.client_type(),
         }
     }
+
+    pub fn allow_expired(&self) -> bool {
+        match self {
+            Self::Tendermint(state) => state.allow_update.after_expiry,
+
+            #[cfg(test)]
+            Self::Mock(state) => false,
+        }
+    }
 }
 
 impl Protobuf<Any> for AnyClientState {}
