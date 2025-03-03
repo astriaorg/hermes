@@ -787,6 +787,13 @@ impl ChainConfig {
             Self::Astria(config) => config.query_packets_chunk_size = query_packets_chunk_size,
         }
     }
+
+    pub fn denom(&self) -> &str {
+        match self {
+            Self::CosmosSdk(config) => &config.gas_price.denom,
+            Self::Astria(config) => &config.gas_price.denom,
+        }
+    }
 }
 
 /// Attempt to load and parse the TOML config file as a `Config`.

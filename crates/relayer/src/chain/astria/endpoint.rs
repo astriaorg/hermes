@@ -619,8 +619,7 @@ impl ChainEndpoint for AstriaEndpoint {
             .block_on(self.sequencer_client.get_latest_balance(address))
             .map_err(|e| Error::other(Box::new(e)))?;
 
-        // TODO: set this via the config
-        let denom = denom.unwrap_or("nria");
+        let denom = denom.unwrap_or(&self.config.denom());
 
         let balance: Vec<AssetBalance> = balance
             .balances
@@ -644,7 +643,35 @@ impl ChainEndpoint for AstriaEndpoint {
     /// Query the balances of the given account for all the denom.
     /// If no account is given, behavior must be specified, e.g. retrieve it from configuration file.
     fn query_all_balances(&self, _key_name: Option<&str>) -> Result<Vec<Balance>, Error> {
-        todo!()
+        use astria_core::crypto::VerificationKey;
+        use astria_sequencer_client::{
+            Address,
+            SequencerClientExt as _,
+        };
+
+        let signing_key: ed25519_consensus::SigningKey =
+            (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
+        let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
+            .map_err(|e| Error::other(e.into()))?;
+        let address = Address::builder()
+            .verification_key(&verification_key)
+            .prefix("astria")
+            .try_build()
+            .map_err(|e| Error::other(e.into()))?;
+        let balance_resp = self
+            .block_on(self.sequencer_client.get_latest_balance(address))
+            .map_err(|e| Error::other(Box::new(e)))?;
+
+        let balances: Vec<Balance> = balance_resp
+            .balances
+            .into_iter()
+            .map(|b| Balance {
+                amount: b.balance.to_string(),
+                denom: b.denom.to_string(),
+            })
+            .collect();
+
+        Ok(balances)
     }
 
     /// Query the denomination trace given a trace hash.
