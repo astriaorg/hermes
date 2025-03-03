@@ -644,9 +644,7 @@ impl ChainEndpoint for AstriaEndpoint {
     /// Query the balances of the given account for all the denom.
     /// If no account is given, behavior must be specified, e.g. retrieve it from configuration file.
     fn query_all_balances(&self, _key_name: Option<&str>) -> Result<Vec<Balance>, Error> {
-        use astria_core::{
-            crypto::VerificationKey,
-        };
+        use astria_core::crypto::VerificationKey;
         use astria_sequencer_client::{
             Address,
             SequencerClientExt as _,
