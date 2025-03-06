@@ -3,17 +3,22 @@
 */
 
 use core::time::Duration;
-use eyre::eyre;
-use ibc_relayer::chain::handle::ChainHandle;
-use ibc_relayer::foreign_client::ForeignClient;
 
-use crate::bootstrap::binary::connection::{bootstrap_connection, BootstrapConnectionOptions};
-use crate::error::Error;
-use crate::types::binary::connection::ConnectedConnection;
-use crate::types::binary::foreign_client::ForeignClientPair;
-use crate::types::nary::connection::{ConnectedConnections, DynamicConnectedConnections};
-use crate::types::nary::foreign_client::ForeignClientPairs;
-use crate::util::two_dim_hash_map::TwoDimMap;
+use eyre::eyre;
+use ibc_relayer::{chain::handle::ChainHandle, foreign_client::ForeignClient};
+
+use crate::{
+    bootstrap::binary::connection::{bootstrap_connection, BootstrapConnectionOptions},
+    error::Error,
+    types::{
+        binary::{connection::ConnectedConnection, foreign_client::ForeignClientPair},
+        nary::{
+            connection::{ConnectedConnections, DynamicConnectedConnections},
+            foreign_client::ForeignClientPairs,
+        },
+    },
+    util::two_dim_hash_map::TwoDimMap,
+};
 
 /**
    Bootstrap a dynamic number of connections based on the

@@ -1,24 +1,30 @@
-use ibc_relayer_types::applications::ics31_icq::events::CrossChainQueryPacket;
-use ibc_relayer_types::core::ics02_client::height::HeightErrorDetail;
-use ibc_relayer_types::core::ics04_channel::error::Error;
-use ibc_relayer_types::core::ics04_channel::events::{
-    AcknowledgePacket, Attributes, CloseConfirm, CloseInit, EventType, OpenAck, OpenConfirm,
-    OpenInit, OpenTry, SendPacket, TimeoutPacket, UpgradeAttributes, UpgradeInit,
-    WriteAcknowledgement, PKT_ACK_ATTRIBUTE_KEY, PKT_DATA_ATTRIBUTE_KEY,
-    PKT_DST_CHANNEL_ATTRIBUTE_KEY, PKT_DST_PORT_ATTRIBUTE_KEY, PKT_SEQ_ATTRIBUTE_KEY,
-    PKT_SRC_CHANNEL_ATTRIBUTE_KEY, PKT_SRC_PORT_ATTRIBUTE_KEY, PKT_TIMEOUT_HEIGHT_ATTRIBUTE_KEY,
-    PKT_TIMEOUT_TIMESTAMP_ATTRIBUTE_KEY,
+use ibc_relayer_types::{
+    applications::ics31_icq::events::CrossChainQueryPacket,
+    core::{
+        ics02_client::height::HeightErrorDetail,
+        ics04_channel::{
+            error::Error,
+            events::{
+                AcknowledgePacket, Attributes, CloseConfirm, CloseInit, EventType, OpenAck,
+                OpenConfirm, OpenInit, OpenTry, ReceivePacket, SendPacket, TimeoutOnClosePacket,
+                TimeoutPacket, UpgradeAttributes, UpgradeInit, WriteAcknowledgement,
+                PKT_ACK_ATTRIBUTE_KEY, PKT_DATA_ATTRIBUTE_KEY, PKT_DST_CHANNEL_ATTRIBUTE_KEY,
+                PKT_DST_PORT_ATTRIBUTE_KEY, PKT_SEQ_ATTRIBUTE_KEY, PKT_SRC_CHANNEL_ATTRIBUTE_KEY,
+                PKT_SRC_PORT_ATTRIBUTE_KEY, PKT_TIMEOUT_HEIGHT_ATTRIBUTE_KEY,
+                PKT_TIMEOUT_TIMESTAMP_ATTRIBUTE_KEY,
+            },
+            packet::Packet,
+            timeout::TimeoutHeight,
+        },
+        ics24_host::identifier::ChainId,
+    },
+    events::Error as EventError,
+    Height,
 };
-use ibc_relayer_types::core::ics04_channel::events::{ReceivePacket, TimeoutOnClosePacket};
-use ibc_relayer_types::core::ics04_channel::packet::Packet;
-use ibc_relayer_types::core::ics04_channel::timeout::TimeoutHeight;
-use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-use ibc_relayer_types::events::Error as EventError;
-use ibc_relayer_types::Height;
 
-use crate::chain::cosmos::types::events::raw_object::extract_attribute;
-use crate::chain::cosmos::types::events::raw_object::maybe_extract_attribute;
-use crate::chain::cosmos::types::events::raw_object::RawObject;
+use crate::chain::cosmos::types::events::raw_object::{
+    extract_attribute, maybe_extract_attribute, RawObject,
+};
 
 fn extract_attributes(object: &RawObject<'_>, namespace: &str) -> Result<Attributes, EventError> {
     Ok(Attributes {

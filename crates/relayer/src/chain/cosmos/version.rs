@@ -5,9 +5,8 @@
 use core::fmt::{Display, Error as FmtError, Formatter};
 
 use flex_error::define_error;
-use tracing::trace;
-
 use ibc_proto::cosmos::base::tendermint::v1beta1::{Module, VersionInfo};
+use tracing::trace;
 
 use crate::chain::version::ConsensusVersion;
 

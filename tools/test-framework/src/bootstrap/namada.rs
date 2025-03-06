@@ -2,33 +2,36 @@
    Helper functions for bootstrapping a single full node.
 */
 use core::time::Duration;
+use std::{
+    env, fs,
+    path::PathBuf,
+    process::{Command, Stdio},
+    str,
+    sync::{Arc, RwLock},
+    thread::sleep,
+};
+
 use eyre::eyre;
-use std::env;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use ibc_relayer::{
+    chain::namada::wallet::CliWalletUtils,
+    keyring::{KeyRing, NamadaKeyPair, Store},
+};
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 use toml;
 
-use ibc_relayer::chain::namada::wallet::CliWalletUtils;
-use ibc_relayer::keyring::{KeyRing, NamadaKeyPair, Store};
-use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-
-use crate::chain::builder::ChainBuilder;
-use crate::chain::config;
-use crate::chain::exec::{simple_exec, simple_exec_with_envs};
-use crate::chain::ext::bootstrap::ChainBootstrapMethodsExt;
-use crate::error::Error;
-use crate::ibc::denom::Denom;
-use crate::prelude::{TestWallets, Wallet};
-use crate::types::single::node::FullNode;
-use crate::util::namada::get_namada_denom_address;
-
-use std::fs;
-use std::process::{Command, Stdio};
-use std::str;
-use std::thread::sleep;
-
-use crate::types::process::ChildProcess;
-use crate::util::file::pipe_to_file;
+use crate::{
+    chain::{
+        builder::ChainBuilder,
+        config,
+        exec::{simple_exec, simple_exec_with_envs},
+        ext::bootstrap::ChainBootstrapMethodsExt,
+    },
+    error::Error,
+    ibc::denom::Denom,
+    prelude::{TestWallets, Wallet},
+    types::{process::ChildProcess, single::node::FullNode},
+    util::{file::pipe_to_file, namada::get_namada_denom_address},
+};
 
 /**
    Bootstrap a single Namada full node with the provided [`ChainBuilder`] and

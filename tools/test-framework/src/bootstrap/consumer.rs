@@ -1,20 +1,25 @@
 /*!
 Helper functions for bootstrapping a consumer full node.
 */
+use std::{
+    sync::{Arc, RwLock},
+    thread,
+    time::Duration,
+};
+
 use eyre::eyre;
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::time::Duration;
 use toml;
 use tracing::info;
 
-use crate::chain::builder::ChainBuilder;
-use crate::chain::cli::provider::validator_opt_in;
-use crate::chain::config;
-use crate::chain::ext::bootstrap::ChainBootstrapMethodsExt;
-use crate::error::Error;
-use crate::prelude::{ChainDriver, Denom, FullNode, TestWallets, Token};
-use crate::util::random::random_u128_range;
+use crate::{
+    chain::{
+        builder::ChainBuilder, cli::provider::validator_opt_in, config,
+        ext::bootstrap::ChainBootstrapMethodsExt,
+    },
+    error::Error,
+    prelude::{ChainDriver, Denom, FullNode, TestWallets, Token},
+    util::random::random_u128_range,
+};
 
 pub fn bootstrap_consumer_node(
     builder: &ChainBuilder,

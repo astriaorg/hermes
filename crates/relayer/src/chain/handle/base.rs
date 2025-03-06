@@ -1,8 +1,6 @@
 use core::fmt::{Debug, Display, Error as FmtError, Formatter};
 
 use crossbeam_channel as channel;
-use tracing::Span;
-
 use ibc_proto::ibc::{
     apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
     core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest},
@@ -30,7 +28,9 @@ use ibc_relayer_types::{
     signer::Signer,
     Height,
 };
+use tracing::Span;
 
+use super::{reply_channel, ChainHandle, ChainRequest, HealthCheck, ReplyTo, Subscription};
 use crate::{
     account::Balance,
     chain::{
@@ -47,8 +47,6 @@ use crate::{
     keyring::AnySigningKeyPair,
     misbehaviour::MisbehaviourEvidence,
 };
-
-use super::{reply_channel, ChainHandle, ChainRequest, HealthCheck, ReplyTo, Subscription};
 
 /// A basic chain handle implementation.
 /// For use in interactive CLIs, e.g., `query`, `tx`, etc.

@@ -1,14 +1,12 @@
-use crate::chain::config::cosmos::set_voting_period;
-use crate::prelude::*;
+use ibc_relayer::{chain::tracking::TrackedMsgs, config::ChainConfig, event::IbcEventWithHeight};
+use ibc_relayer_types::{
+    applications::ics27_ica::{msgs::send_tx::MsgSendTx, packet_data::InterchainAccountPacketData},
+    signer::Signer,
+    timestamp::Timestamp,
+    tx_msg::Msg,
+};
 
-use ibc_relayer::chain::tracking::TrackedMsgs;
-use ibc_relayer::config::ChainConfig;
-use ibc_relayer::event::IbcEventWithHeight;
-use ibc_relayer_types::applications::ics27_ica::msgs::send_tx::MsgSendTx;
-use ibc_relayer_types::applications::ics27_ica::packet_data::InterchainAccountPacketData;
-use ibc_relayer_types::signer::Signer;
-use ibc_relayer_types::timestamp::Timestamp;
-use ibc_relayer_types::tx_msg::Msg;
+use crate::{chain::config::cosmos::set_voting_period, prelude::*};
 
 pub fn update_genesis_for_consumer_chain(genesis: &mut serde_json::Value) -> Result<(), Error> {
     // Consumer chain doesn't have a gov key.
@@ -29,13 +27,13 @@ pub fn update_relayer_config_for_consumer_chain(config: &mut Config) {
     // the proposal.
     for chain_config in config.chains.iter_mut() {
         match chain_config {
-            ChainConfig::CosmosSdk(chain_config)
+            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Astria(chain_config)
                 if chain_config.id == ChainId::from_string("ibcconsumer") =>
             {
                 chain_config.ccv_consumer_chain = true;
                 chain_config.trusting_period = Some(Duration::from_secs(99));
             }
-            ChainConfig::CosmosSdk(_) | ChainConfig::Namada(_) => {}
+            ChainConfig::CosmosSdk(_) | ChainConfig::Namada(_) | ChainConfig::Astria(_) => {}
             ChainConfig::Penumbra(_) => { /* no-op Penumbra does not support CCV */ }
         }
     }

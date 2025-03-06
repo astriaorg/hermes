@@ -6,41 +6,47 @@
 //! - `ChannelUpgradeICAUnordered` tests that after the after sending a packet on an ordered
 //!   ICA channel, the upgrade handshake is completed when the channel is upgraded to unordered.
 
-use serde_json as json;
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
-use ibc_relayer::chain::requests::{IncludeProof, QueryChannelRequest, QueryHeight};
-use ibc_relayer::chain::tracking::TrackedMsgs;
-use ibc_relayer::config::{
-    filter::{ChannelFilters, ChannelPolicy, FilterPattern},
-    ChainConfig, PacketFilter,
-};
-use ibc_relayer::event::IbcEventWithHeight;
-
-use ibc_relayer_types::applications::{
-    ics27_ica,
-    ics27_ica::{
-        cosmos_tx::CosmosTx, msgs::send_tx::MsgSendTx, packet_data::InterchainAccountPacketData,
+use ibc_relayer::{
+    chain::{
+        requests::{IncludeProof, QueryChannelRequest, QueryHeight},
+        tracking::TrackedMsgs,
     },
-    transfer::{msgs::send::MsgSend, Amount, Coin},
+    config::{
+        filter::{ChannelFilters, ChannelPolicy, FilterPattern},
+        ChainConfig, PacketFilter,
+    },
+    event::IbcEventWithHeight,
 };
-use ibc_relayer_types::bigint::U256;
-use ibc_relayer_types::core::ics04_channel::packet::Sequence;
-use ibc_relayer_types::core::ics04_channel::version::Version;
-use ibc_relayer_types::signer::Signer;
-use ibc_relayer_types::timestamp::Timestamp;
-use ibc_relayer_types::tx_msg::Msg;
-
-use ibc_test_framework::chain::config::cosmos::{
-    add_allow_message_interchainaccounts, set_max_deposit_period, set_voting_period,
+use ibc_relayer_types::{
+    applications::{
+        ics27_ica,
+        ics27_ica::{
+            cosmos_tx::CosmosTx, msgs::send_tx::MsgSendTx, packet_data::InterchainAccountPacketData,
+        },
+        transfer::{msgs::send::MsgSend, Amount, Coin},
+    },
+    bigint::U256,
+    core::ics04_channel::{packet::Sequence, version::Version},
+    signer::Signer,
+    timestamp::Timestamp,
+    tx_msg::Msg,
 };
-use ibc_test_framework::chain::ext::ica::register_ordered_interchain_account;
-use ibc_test_framework::prelude::*;
-use ibc_test_framework::relayer::channel::{
-    assert_eventually_channel_closed, assert_eventually_channel_established,
-    assert_eventually_channel_upgrade_open, ChannelUpgradableAttributes,
+use ibc_test_framework::{
+    chain::{
+        config::cosmos::{
+            add_allow_message_interchainaccounts, set_max_deposit_period, set_voting_period,
+        },
+        ext::ica::register_ordered_interchain_account,
+    },
+    prelude::*,
+    relayer::channel::{
+        assert_eventually_channel_closed, assert_eventually_channel_established,
+        assert_eventually_channel_upgrade_open, ChannelUpgradableAttributes,
+    },
 };
+use serde_json as json;
 
 #[test]
 fn test_channel_upgrade_ica_close_channel() -> Result<(), Error> {
@@ -320,6 +326,9 @@ impl TestOverrides for ChannelUpgradeICAUnordered {
                 }
                 ChainConfig::Penumbra(_) => {
                     panic!("running tests with Penumbra chain not supported")
+                }
+                ChainConfig::Astria(_) => {
+                    panic!("running tests with Astria chain not supported")
                 }
             }
         }

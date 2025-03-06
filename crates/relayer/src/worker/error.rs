@@ -1,13 +1,14 @@
 use crossbeam_channel::RecvError;
 use flex_error::{define_error, DisplayOnly};
-use ibc_relayer_types::applications::ics31_icq::error::Error as Ics31Error;
-use ibc_relayer_types::core::ics02_client::error::Error as Ics02Error;
+use ibc_relayer_types::{
+    applications::ics31_icq::error::Error as Ics31Error,
+    core::ics02_client::error::Error as Ics02Error,
+};
 
-use crate::channel::ChannelError;
-use crate::connection::ConnectionError;
-use crate::error::Error as RelayerError;
-use crate::foreign_client::ForeignClientError;
-use crate::link::error::LinkError;
+use crate::{
+    channel::ChannelError, connection::ConnectionError, error::Error as RelayerError,
+    foreign_client::ForeignClientError, link::error::LinkError,
+};
 
 define_error! {
     RunError {

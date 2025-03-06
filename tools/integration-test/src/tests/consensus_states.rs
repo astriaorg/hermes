@@ -5,9 +5,7 @@ use ibc_relayer::{
     },
     config::ChainConfig,
 };
-
-use ibc_test_framework::prelude::*;
-use ibc_test_framework::util::namada;
+use ibc_test_framework::{prelude::*, util::namada};
 
 #[test]
 fn test_consensus_state_heights() -> Result<(), Error> {

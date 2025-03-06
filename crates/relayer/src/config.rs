@@ -10,39 +10,39 @@ pub mod refresh_rate;
 pub mod types;
 
 use alloc::collections::BTreeMap;
-use core::cmp::Ordering;
-use core::fmt::{Display, Error as FmtError, Formatter};
-use core::str::FromStr;
-use core::time::Duration;
-use ibc_relayer_types::core::ics04_channel::packet::Sequence;
-use std::borrow::Cow;
-use std::{fs, fs::File, io::Write, ops::Range, path::Path};
+use core::{
+    cmp::Ordering,
+    fmt::{Display, Error as FmtError, Formatter},
+    str::FromStr,
+    time::Duration,
+};
+use std::{borrow::Cow, fs, fs::File, io::Write, ops::Range, path::Path};
 
 use byte_unit::Byte;
+pub use error::Error;
+pub use filter::PacketFilter;
+use ibc_proto::google::protobuf::Any;
+use ibc_relayer_types::{
+    core::{
+        ics04_channel::packet::Sequence,
+        ics24_host::identifier::{ChainId, ChannelId, PortId},
+    },
+    timestamp::ZERO_DURATION,
+};
+pub use refresh_rate::RefreshRate;
 use serde::{Deserialize, Serialize};
 use tendermint::block::Height as BlockHeight;
-use tendermint_rpc::Url;
-use tendermint_rpc::WebSocketClientUrl;
-
-use ibc_proto::google::protobuf::Any;
-use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
-use ibc_relayer_types::timestamp::ZERO_DURATION;
-
-use crate::chain::cosmos::config::CosmosSdkConfig;
-use crate::chain::penumbra::config::PenumbraConfig;
-use crate::config::types::ics20_field_size_limit::Ics20FieldSizeLimit;
-use crate::config::types::TrustThreshold;
-use crate::error::Error as RelayerError;
-use crate::extension_options::ExtensionOptionDynamicFeeTx;
-use crate::keyring::{AnySigningKeyPair, KeyRing, Store};
-
-use crate::keyring;
+use tendermint_rpc::{Url, WebSocketClientUrl};
 
 pub use crate::config::Error as ConfigError;
-pub use error::Error;
-
-pub use filter::PacketFilter;
-pub use refresh_rate::RefreshRate;
+use crate::{
+    chain::{cosmos::config::CosmosSdkConfig, penumbra::config::PenumbraConfig},
+    config::types::{ics20_field_size_limit::Ics20FieldSizeLimit, TrustThreshold},
+    error::Error as RelayerError,
+    extension_options::ExtensionOptionDynamicFeeTx,
+    keyring,
+    keyring::{AnySigningKeyPair, KeyRing, Store},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GasPrice {
@@ -323,7 +323,9 @@ impl Config {
             }
 
             match chain_config {
-                ChainConfig::CosmosSdk(cosmos_config) | ChainConfig::Namada(cosmos_config) => {
+                ChainConfig::CosmosSdk(cosmos_config)
+                | ChainConfig::Namada(cosmos_config)
+                | ChainConfig::Astria(cosmos_config) => {
                     cosmos_config
                         .validate()
                         .map_err(Into::<Diagnostic<Error>>::into)?;
@@ -660,6 +662,8 @@ pub enum ChainConfig {
     CosmosSdk(CosmosSdkConfig),
     // Reuse CosmosSdkConfig for tendermint light clients
     Namada(CosmosSdkConfig),
+    // Reuse CosmosSdkConfig for Astria
+    Astria(CosmosSdkConfig),
     Penumbra(PenumbraConfig),
 }
 
@@ -668,6 +672,7 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => &config.id,
             Self::Namada(config) => &config.id,
+            Self::Astria(config) => &config.id,
             Self::Penumbra(config) => &config.id,
         }
     }
@@ -676,6 +681,7 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => &config.packet_filter,
             Self::Namada(config) => &config.packet_filter,
+            Self::Astria(config) => &config.packet_filter,
             Self::Penumbra(config) => &config.packet_filter,
         }
     }
@@ -684,6 +690,7 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => config.max_block_time,
             Self::Namada(config) => config.max_block_time,
+            Self::Astria(config) => config.max_block_time,
             Self::Penumbra(config) => config.max_block_time,
         }
     }
@@ -692,6 +699,7 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => &config.key_name,
             Self::Namada(config) => &config.key_name,
+            Self::Astria(config) => &config.key_name,
             Self::Penumbra(config) => &config.stub_key_name,
         }
     }
@@ -700,6 +708,7 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => config.key_name = key_name,
             Self::Namada(config) => config.key_name = key_name,
+            Self::Astria(config) => config.key_name = key_name,
             Self::Penumbra(_) => { /* no-op */ }
         }
     }
@@ -728,6 +737,19 @@ impl ChainConfig {
                     .map(|(key_name, keys)| (key_name, keys.into()))
                     .collect()
             }
+            ChainConfig::Astria(config) => {
+                let keyring = KeyRing::new_secp256k1(
+                    Store::Test,
+                    &config.account_prefix,
+                    &config.id,
+                    &config.key_store_folder,
+                )?;
+                keyring
+                    .keys()?
+                    .into_iter()
+                    .map(|(key_name, keys)| (key_name, keys.into()))
+                    .collect()
+            }
             ChainConfig::Penumbra(_) => vec![],
         };
 
@@ -738,27 +760,32 @@ impl ChainConfig {
         match self {
             Self::CosmosSdk(config) => config.trust_threshold,
             Self::Namada(config) => config.trust_threshold,
+            Self::Astria(config) => config.trust_threshold,
             Self::Penumbra(config) => config.trust_threshold,
         }
     }
 
     pub fn clear_interval(&self) -> Option<u64> {
         match self {
-            Self::CosmosSdk(config) | Self::Namada(config) => config.clear_interval,
+            Self::CosmosSdk(config) | Self::Namada(config) | Self::Astria(config) => {
+                config.clear_interval
+            }
             Self::Penumbra(config) => config.clear_interval,
         }
     }
 
     pub fn query_packets_chunk_size(&self) -> usize {
         match self {
-            Self::CosmosSdk(config) | Self::Namada(config) => config.query_packets_chunk_size,
+            Self::CosmosSdk(config) | Self::Namada(config) | Self::Astria(config) => {
+                config.query_packets_chunk_size
+            }
             Self::Penumbra(config) => config.query_packets_chunk_size,
         }
     }
 
     pub fn set_query_packets_chunk_size(&mut self, query_packets_chunk_size: usize) {
         match self {
-            Self::CosmosSdk(config) | Self::Namada(config) => {
+            Self::CosmosSdk(config) | Self::Namada(config) | Self::Astria(config) => {
                 config.query_packets_chunk_size = query_packets_chunk_size
             }
             Self::Penumbra(config) => config.query_packets_chunk_size = query_packets_chunk_size,
@@ -767,7 +794,7 @@ impl ChainConfig {
 
     pub fn excluded_sequences(&self, channel_id: &ChannelId) -> Cow<'_, [Sequence]> {
         match self {
-            Self::CosmosSdk(config) | Self::Namada(config) => config
+            Self::CosmosSdk(config) | Self::Namada(config) | Self::Astria(config) => config
                 .excluded_sequences
                 .map
                 .get(channel_id)
@@ -779,21 +806,25 @@ impl ChainConfig {
 
     pub fn allow_ccq(&self) -> bool {
         match self {
-            Self::CosmosSdk(config) | Self::Namada(config) => config.allow_ccq,
+            Self::CosmosSdk(config) | Self::Namada(config) | Self::Astria(config) => {
+                config.allow_ccq
+            }
             Self::Penumbra(_config) => false,
         }
     }
 
     pub fn clock_drift(&self) -> Duration {
         match self {
-            Self::CosmosSdk(config) | Self::Namada(config) => config.clock_drift,
+            Self::CosmosSdk(config) | Self::Namada(config) | Self::Astria(config) => {
+                config.clock_drift
+            }
             Self::Penumbra(config) => config.clock_drift,
         }
     }
 
     pub fn keyring_support(&self) -> bool {
         match self {
-            Self::Namada(_) | Self::CosmosSdk(_) => true,
+            Self::Namada(_) | Self::CosmosSdk(_) | Self::Astria(_) => true,
             Self::Penumbra(_) => false,
         }
     }
@@ -826,6 +857,9 @@ impl<'de> Deserialize<'de> for ChainConfig {
             "Namada" => CosmosSdkConfig::deserialize(value)
                 .map(Self::Namada)
                 .map_err(|e| serde::de::Error::custom(format!("invalid Namada config: {e}"))),
+            "Astria" => CosmosSdkConfig::deserialize(value)
+                .map(Self::Astria)
+                .map_err(|e| serde::de::Error::custom(format!("invalid Astria config: {e}"))),
             //
             // <-- Add new chain types here -->
             "Penumbra" => PenumbraConfig::deserialize(value)
@@ -912,9 +946,10 @@ impl From<CosmosConfigError> for Error {
 mod tests {
     use core::str::FromStr;
 
+    use test_log::test;
+
     use super::{load, parse_gas_prices, store_writer, ChainConfig};
     use crate::config::GasPrice;
-    use test_log::test;
 
     #[test]
     fn parse_valid_config() {

@@ -2,27 +2,36 @@
    Methods for tagged version of the chain driver.
 */
 use eyre::eyre;
-use serde_json as json;
-
 use ibc_proto::google::protobuf::Any;
-use ibc_relayer::chain::cosmos::tx::simple_send_tx;
-use ibc_relayer::chain::cosmos::types::config::TxConfig;
-use ibc_relayer::config::compat_mode::CompatMode;
-use ibc_relayer::event::IbcEventWithHeight;
+use ibc_relayer::{
+    chain::cosmos::{tx::simple_send_tx, types::config::TxConfig},
+    config::compat_mode::CompatMode,
+    event::IbcEventWithHeight,
+};
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-use tendermint_rpc::client::{Client, HttpClient};
-use tendermint_rpc::Url;
+use serde_json as json;
+use tendermint_rpc::{
+    client::{Client, HttpClient},
+    Url,
+};
 use tracing::warn;
 
-use crate::chain::cli::query::query_auth_module;
-use crate::chain::cli::query::query_recipient_transactions;
-use crate::chain::driver::ChainDriver;
-use crate::error::{handle_generic_error, Error};
-use crate::ibc::denom::Denom;
-use crate::ibc::token::{TaggedDenomExt, TaggedToken, TaggedTokenRef};
-use crate::types::id::TaggedChainIdRef;
-use crate::types::tagged::*;
-use crate::types::wallet::{Wallet, WalletAddress};
+use crate::{
+    chain::{
+        cli::query::{query_auth_module, query_recipient_transactions},
+        driver::ChainDriver,
+    },
+    error::{handle_generic_error, Error},
+    ibc::{
+        denom::Denom,
+        token::{TaggedDenomExt, TaggedToken, TaggedTokenRef},
+    },
+    types::{
+        id::TaggedChainIdRef,
+        tagged::*,
+        wallet::{Wallet, WalletAddress},
+    },
+};
 
 /**
    A [`ChainDriver`] may be tagged with a `Chain` tag in the form
@@ -230,9 +239,10 @@ pub async fn fetch_compat_mode(
     rpc_addr: &Url,
     configured_mode: &Option<CompatMode>,
 ) -> Result<CompatMode, Error> {
-    use ibc_relayer::chain::cosmos::query::fetch_version_specs;
-    use ibc_relayer::util::compat_mode::compat_mode_from_node_version;
-    use ibc_relayer::util::compat_mode::compat_mode_from_version_specs;
+    use ibc_relayer::{
+        chain::cosmos::query::fetch_version_specs,
+        util::compat_mode::{compat_mode_from_node_version, compat_mode_from_version_specs},
+    };
 
     let version_specs = fetch_version_specs(id, client, rpc_addr).await;
 

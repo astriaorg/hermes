@@ -1,13 +1,22 @@
 use core::ops::{Add, Sub};
-use ibc_relayer_types::applications::transfer::amount::Amount;
-use ibc_relayer_types::applications::transfer::coin::{Coin, RawCoin};
-use ibc_relayer_types::bigint::U256;
 
-use crate::chain::chain_type::ChainType;
-use crate::error::Error;
-use crate::ibc::denom::{derive_ibc_denom, Denom, TaggedDenom, TaggedDenomRef};
-use crate::types::id::{TaggedChannelIdRef, TaggedPortIdRef};
-use crate::types::tagged::MonoTagged;
+use ibc_relayer_types::{
+    applications::transfer::{
+        amount::Amount,
+        coin::{Coin, RawCoin},
+    },
+    bigint::U256,
+};
+
+use crate::{
+    chain::chain_type::ChainType,
+    error::Error,
+    ibc::denom::{derive_ibc_denom, Denom, TaggedDenom, TaggedDenomRef},
+    types::{
+        id::{TaggedChannelIdRef, TaggedPortIdRef},
+        tagged::MonoTagged,
+    },
+};
 
 pub type Token = Coin<Denom>;
 

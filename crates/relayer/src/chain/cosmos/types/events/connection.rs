@@ -1,14 +1,14 @@
-use ibc_relayer_types::core::ics03_connection::events::Attributes;
-use ibc_relayer_types::core::ics03_connection::events::OpenAck;
-use ibc_relayer_types::core::ics03_connection::events::OpenConfirm;
-use ibc_relayer_types::core::ics03_connection::events::OpenInit;
-use ibc_relayer_types::core::ics03_connection::events::OpenTry;
-use ibc_relayer_types::core::ics04_channel::events::EventType;
-use ibc_relayer_types::events::Error as EventError;
+use ibc_relayer_types::{
+    core::{
+        ics03_connection::events::{Attributes, OpenAck, OpenConfirm, OpenInit, OpenTry},
+        ics04_channel::events::EventType,
+    },
+    events::Error as EventError,
+};
 
-use crate::chain::cosmos::types::events::raw_object::extract_attribute;
-use crate::chain::cosmos::types::events::raw_object::maybe_extract_attribute;
-use crate::chain::cosmos::types::events::raw_object::RawObject;
+use crate::chain::cosmos::types::events::raw_object::{
+    extract_attribute, maybe_extract_attribute, RawObject,
+};
 
 fn extract_attributes(object: &RawObject<'_>, namespace: &str) -> Result<Attributes, EventError> {
     Ok(Attributes {

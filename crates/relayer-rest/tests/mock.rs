@@ -1,15 +1,13 @@
 use std::{fmt::Debug, str::FromStr, time::Duration};
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
 use ibc_relayer::{
     config::ChainConfig,
     rest::request::{Request, VersionInfo},
     supervisor::dump_state::SupervisorState,
 };
-use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-
 use ibc_relayer_rest::spawn;
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 enum TestResult {
     Success,

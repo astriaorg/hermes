@@ -1,19 +1,24 @@
-use crate::utils::pretty::PrettySlice;
-
-use std::fmt::{Display, Error as FmtError, Formatter};
-use std::str::FromStr;
-
-use ibc_proto::Protobuf;
-use serde::{Deserialize, Serialize};
-
-use ibc_proto::ibc::core::channel::v1::{
-    Channel as RawChannel, Counterparty as RawCounterparty,
-    IdentifiedChannel as RawIdentifiedChannel,
+use std::{
+    fmt::{Display, Error as FmtError, Formatter},
+    str::FromStr,
 };
 
-use crate::core::ics04_channel::packet::Sequence;
-use crate::core::ics04_channel::{error::Error, version::Version};
-use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
+use ibc_proto::{
+    ibc::core::channel::v1::{
+        Channel as RawChannel, Counterparty as RawCounterparty,
+        IdentifiedChannel as RawIdentifiedChannel,
+    },
+    Protobuf,
+};
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    core::{
+        ics04_channel::{error::Error, packet::Sequence, version::Version},
+        ics24_host::identifier::{ChannelId, ConnectionId, PortId},
+    },
+    utils::pretty::PrettySlice,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IdentifiedChannelEnd {
@@ -533,10 +538,11 @@ impl Display for State {
 
 #[cfg(test)]
 pub mod test_util {
-    use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
+    use ibc_proto::ibc::core::channel::v1::{
+        Channel as RawChannel, Counterparty as RawCounterparty,
+    };
 
-    use ibc_proto::ibc::core::channel::v1::Channel as RawChannel;
-    use ibc_proto::ibc::core::channel::v1::Counterparty as RawCounterparty;
+    use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
 
     /// Returns a dummy `RawCounterparty`, for testing only!
     /// Can be optionally parametrized with a specific channel identifier.
@@ -564,12 +570,11 @@ pub mod test_util {
 mod tests {
 
     use core::str::FromStr;
-    use test_log::test;
 
     use ibc_proto::ibc::core::channel::v1::Channel as RawChannel;
+    use test_log::test;
 
-    use crate::core::ics04_channel::channel::test_util::get_dummy_raw_channel_end;
-    use crate::core::ics04_channel::channel::ChannelEnd;
+    use crate::core::ics04_channel::channel::{test_util::get_dummy_raw_channel_end, ChannelEnd};
 
     #[test]
     fn channel_end_try_from_raw() {
@@ -699,8 +704,7 @@ mod tests {
 
     #[test]
     fn less_or_equal_progress_uninitialized() {
-        use crate::core::ics04_channel::channel::State;
-        use crate::core::ics04_channel::channel::UpgradeState;
+        use crate::core::ics04_channel::channel::{State, UpgradeState};
 
         let higher_or_equal_states = vec![
             State::Uninitialized,
@@ -719,8 +723,7 @@ mod tests {
 
     #[test]
     fn less_or_equal_progress_init() {
-        use crate::core::ics04_channel::channel::State;
-        use crate::core::ics04_channel::channel::UpgradeState;
+        use crate::core::ics04_channel::channel::{State, UpgradeState};
 
         let lower_states = vec![State::Uninitialized];
         let higher_or_equal_states = vec![
@@ -742,8 +745,7 @@ mod tests {
 
     #[test]
     fn less_or_equal_progress_tryopen() {
-        use crate::core::ics04_channel::channel::State;
-        use crate::core::ics04_channel::channel::UpgradeState;
+        use crate::core::ics04_channel::channel::{State, UpgradeState};
 
         let lower_states = vec![State::Uninitialized, State::Init];
         let higher_or_equal_states = vec![
@@ -764,8 +766,7 @@ mod tests {
 
     #[test]
     fn less_or_equal_progress_open_not_upgrading() {
-        use crate::core::ics04_channel::channel::State;
-        use crate::core::ics04_channel::channel::UpgradeState;
+        use crate::core::ics04_channel::channel::{State, UpgradeState};
 
         let lower_states = vec![State::Uninitialized, State::Init, State::TryOpen];
         let higher_or_equal_states = vec![
@@ -785,8 +786,7 @@ mod tests {
 
     #[test]
     fn less_or_equal_progress_upgrading_states() {
-        use crate::core::ics04_channel::channel::State;
-        use crate::core::ics04_channel::channel::UpgradeState;
+        use crate::core::ics04_channel::channel::{State, UpgradeState};
 
         let states = [
             State::Uninitialized,

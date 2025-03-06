@@ -1,10 +1,8 @@
-use eyre::eyre;
-use std::collections::HashMap;
-use std::thread;
+use std::{collections::HashMap, thread};
 
-use crate::chain::exec::simple_exec;
-use crate::error::Error;
-use crate::prelude::*;
+use eyre::eyre;
+
+use crate::{chain::exec::simple_exec, error::Error, prelude::*};
 
 pub fn authz_grant(
     chain_id: &str,

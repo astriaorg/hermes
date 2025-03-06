@@ -2,16 +2,19 @@
    Constructs for N-ary connected channels.
 */
 use eyre::eyre;
-use ibc_relayer::chain::handle::ChainHandle;
-use ibc_relayer::channel::Channel;
+use ibc_relayer::{chain::handle::ChainHandle, channel::Channel};
 use ibc_relayer_types::core::ics24_host::identifier::{ChannelId, PortId};
 
 use super::aliases::NthChainHandle;
-use crate::error::Error;
-use crate::types::binary::channel::ConnectedChannel;
-use crate::types::env::{EnvWriter, ExportEnv};
-use crate::types::tagged::*;
-use crate::util::two_dim_hash_map::TwoDimMap;
+use crate::{
+    error::Error,
+    types::{
+        binary::channel::ConnectedChannel,
+        env::{EnvWriter, ExportEnv},
+        tagged::*,
+    },
+    util::two_dim_hash_map::TwoDimMap,
+};
 
 /**
    A two dimensional BTreeMap of connected channels as specified by `SIZE`

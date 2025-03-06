@@ -1,12 +1,14 @@
 use std::time::Instant;
 
-use ibc_relayer::chain::tracking::TrackedMsgs;
-use ibc_relayer::config::types::max_msg_num::MaxMsgNum;
-use ibc_relayer::config::ChainConfig;
-use ibc_test_framework::chain::chain_type::ChainType;
-use ibc_test_framework::chain::config;
-use ibc_test_framework::prelude::*;
-use ibc_test_framework::relayer::transfer::build_transfer_message;
+use ibc_relayer::{
+    chain::tracking::TrackedMsgs,
+    config::{types::max_msg_num::MaxMsgNum, ChainConfig},
+};
+use ibc_test_framework::{
+    chain::{chain_type::ChainType, config},
+    prelude::*,
+    relayer::transfer::build_transfer_message,
+};
 
 const MESSAGES_PER_BATCH: usize = 5;
 const TOTAL_TRANSACTIONS: usize = 5;

@@ -7,15 +7,13 @@ use std::str::FromStr;
 
 use toml;
 
-use crate::bootstrap::namada::bootstrap_namada_node;
-use crate::bootstrap::single::bootstrap_single_node;
-use crate::chain::builder::ChainBuilder;
-use crate::chain::chain_type::ChainType;
-use crate::error::Error;
-use crate::framework::base::HasOverrides;
-use crate::framework::base::{run_basic_test, BasicTest, TestConfigOverride};
-use crate::types::config::TestConfig;
-use crate::types::single::node::FullNode;
+use crate::{
+    bootstrap::{namada::bootstrap_namada_node, single::bootstrap_single_node},
+    chain::{builder::ChainBuilder, chain_type::ChainType},
+    error::Error,
+    framework::base::{run_basic_test, BasicTest, HasOverrides, TestConfigOverride},
+    types::{config::TestConfig, single::node::FullNode},
+};
 
 /**
    Runs a test case that implements [`BinaryNodeTest`].

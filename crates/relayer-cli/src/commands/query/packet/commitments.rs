@@ -1,17 +1,21 @@
 use abscissa_core::clap::Parser;
-
-use ibc_relayer::chain::counterparty::commitments_on_chain;
-use ibc_relayer::chain::handle::ChainHandle;
-use ibc_relayer::chain::requests::{Paginate, QueryHeight};
-use ibc_relayer_types::core::ics02_client::height::Height;
-use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
-
-use crate::cli_utils::spawn_chain_runtime;
-use crate::conclude::{exit_with_unrecoverable_error, Output};
-use crate::error::Error;
-use crate::prelude::*;
+use ibc_relayer::chain::{
+    counterparty::commitments_on_chain,
+    handle::ChainHandle,
+    requests::{Paginate, QueryHeight},
+};
+use ibc_relayer_types::core::{
+    ics02_client::height::Height,
+    ics24_host::identifier::{ChainId, ChannelId, PortId},
+};
 
 use super::util::PacketSeqs;
+use crate::{
+    cli_utils::spawn_chain_runtime,
+    conclude::{exit_with_unrecoverable_error, Output},
+    error::Error,
+    prelude::*,
+};
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct QueryPacketCommitmentsCmd {
@@ -94,12 +98,12 @@ impl Runnable for QueryPacketCommitmentsCmd {
 
 #[cfg(test)]
 mod tests {
-    use super::QueryPacketCommitmentsCmd;
-
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+
+    use super::QueryPacketCommitmentsCmd;
 
     #[test]
     fn test_query_packet_commitments() {

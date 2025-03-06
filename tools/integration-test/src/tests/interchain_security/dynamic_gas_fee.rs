@@ -14,14 +14,16 @@
 //! order to ensure that the first IBC transfer will cost more if dynamic
 //! gas is disabled.
 
-use ibc_relayer::config::dynamic_gas::DynamicGasPrice;
-use ibc_relayer::config::gas_multiplier::GasMultiplier;
-use ibc_relayer::config::ChainConfig;
-use ibc_relayer::config::GasPrice;
-use ibc_test_framework::framework::binary::channel::run_binary_interchain_security_channel_test;
-use ibc_test_framework::prelude::*;
-use ibc_test_framework::util::interchain_security::update_genesis_for_consumer_chain;
-use ibc_test_framework::util::interchain_security::update_relayer_config_for_consumer_chain;
+use ibc_relayer::config::{
+    dynamic_gas::DynamicGasPrice, gas_multiplier::GasMultiplier, ChainConfig, GasPrice,
+};
+use ibc_test_framework::{
+    framework::binary::channel::run_binary_interchain_security_channel_test,
+    prelude::*,
+    util::interchain_security::{
+        update_genesis_for_consumer_chain, update_relayer_config_for_consumer_chain,
+    },
+};
 
 #[test]
 fn test_fee_market_dynamic_gas_transfer() -> Result<(), Error> {

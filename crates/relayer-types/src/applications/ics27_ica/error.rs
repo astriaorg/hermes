@@ -1,8 +1,9 @@
-use crate::core::ics04_channel::error as channel_error;
-use crate::core::ics24_host::error::ValidationError;
-use crate::signer::SignerError;
-
 use flex_error::define_error;
+
+use crate::{
+    core::{ics04_channel::error as channel_error, ics24_host::error::ValidationError},
+    signer::SignerError,
+};
 
 define_error! {
     #[derive(Debug, PartialEq, Eq)]

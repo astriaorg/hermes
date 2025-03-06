@@ -1,21 +1,24 @@
 use alloc::collections::BTreeMap as HashMap;
-use ibc_relayer_types::applications::ics29_fee::events::DistributionType;
 
-use ibc_relayer_types::applications::ics31_icq;
-use tendermint_rpc::{event::Event as RpcEvent, event::EventData as RpcEventData};
+use ibc_relayer_types::{
+    applications::{
+        ics29_fee::events::DistributionType, ics31_icq, ics31_icq::events::CrossChainQueryPacket,
+    },
+    core::{
+        ics02_client::{events as ClientEvents, height::Height},
+        ics03_connection::events as ConnectionEvents,
+        ics04_channel::events as ChannelEvents,
+        ics24_host::identifier::ChainId,
+    },
+    events::IbcEvent,
+};
+use tendermint_rpc::event::{Event as RpcEvent, EventData as RpcEventData};
 
-use ibc_relayer_types::applications::ics31_icq::events::CrossChainQueryPacket;
-use ibc_relayer_types::core::ics02_client::{events as ClientEvents, height::Height};
-use ibc_relayer_types::core::ics03_connection::events as ConnectionEvents;
-use ibc_relayer_types::core::ics04_channel::events as ChannelEvents;
-use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-use ibc_relayer_types::events::IbcEvent;
-
-use crate::chain::cosmos::types::events::raw_object::RawObject;
-use crate::event::source::queries;
-use crate::telemetry;
-
-use crate::event::{ibc_event_try_from_abci_event, IbcEventWithHeight};
+use crate::{
+    chain::cosmos::types::events::raw_object::RawObject,
+    event::{ibc_event_try_from_abci_event, source::queries, IbcEventWithHeight},
+    telemetry,
+};
 
 /// Extract IBC events from Tendermint RPC events
 ///

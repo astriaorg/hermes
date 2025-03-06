@@ -2,20 +2,15 @@
 //! Contains struct to perform a health check on a gRPC/WebSocket endpoint and
 //! to retrieve the `max_block_size` from a RPC endpoint.
 
-use std::fmt::Debug;
-use std::str::FromStr;
+use std::{fmt::Debug, str::FromStr};
 
 use async_trait::async_trait;
 use futures::{stream::FuturesUnordered, StreamExt};
 use http::Uri;
-use tendermint_rpc::HttpClient;
-use tendermint_rpc::HttpClientUrl;
-use tracing::{debug, info};
-
 use ibc_proto::cosmos::bank::v1beta1::query_client::QueryClient;
-use ibc_relayer::util::create_grpc_client;
-use ibc_relayer::HERMES_VERSION;
-use tendermint_rpc::{Client, Url};
+use ibc_relayer::{util::create_grpc_client, HERMES_VERSION};
+use tendermint_rpc::{Client, HttpClient, HttpClientUrl, Url};
+use tracing::{debug, info};
 
 use crate::error::RegistryError;
 

@@ -2,15 +2,19 @@ use core::fmt::{Display, Error as FmtError, Formatter};
 use std::str::FromStr;
 
 use flex_error::{define_error, TraceError};
+use ibc_proto::{
+    ibc::core::{channel::v1::Timeout as RawTimeout, client::v1::Height as RawHeight},
+    Protobuf,
+};
 use serde::{Deserialize, Serialize};
 
-use ibc_proto::ibc::core::channel::v1::Timeout as RawTimeout;
-use ibc_proto::ibc::core::client::v1::Height as RawHeight;
-use ibc_proto::Protobuf;
-
-use crate::core::ics02_client::{error::Error as ICS2Error, height::Height};
-use crate::core::ics04_channel::error::Error as ChannelError;
-use crate::timestamp::{ParseTimestampError, Timestamp};
+use crate::{
+    core::{
+        ics02_client::{error::Error as ICS2Error, height::Height},
+        ics04_channel::error::Error as ChannelError,
+    },
+    timestamp::{ParseTimestampError, Timestamp},
+};
 
 /// Indicates a consensus height on the destination chain after which the packet
 /// will no longer be processed, and will instead count as having timed-out.
@@ -317,8 +321,9 @@ impl From<Timeout> for RawTimeout {
 
 #[cfg(test)]
 pub mod test_util {
-    use ibc_proto::ibc::core::channel::v1::Timeout as RawTimeout;
-    use ibc_proto::ibc::core::client::v1::Height as RawHeight;
+    use ibc_proto::ibc::core::{
+        channel::v1::Timeout as RawTimeout, client::v1::Height as RawHeight,
+    };
 
     use crate::core::ics02_client::height::Height;
 

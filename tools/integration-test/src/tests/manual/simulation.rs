@@ -11,8 +11,10 @@
    ```
 */
 
-use ibc_relayer::config::{types::MaxMsgNum, ChainConfig};
-use ibc_relayer::transfer::{build_and_send_transfer_messages, TransferOptions};
+use ibc_relayer::{
+    config::{types::MaxMsgNum, ChainConfig},
+    transfer::{build_and_send_transfer_messages, TransferOptions},
+};
 use ibc_relayer_types::events::IbcEvent;
 use ibc_test_framework::prelude::*;
 
@@ -34,6 +36,9 @@ impl TestOverrides for SimulationTest {
                 }
                 ChainConfig::Penumbra(_) => {
                     panic!("running tests with Penumbra chain not supported")
+                }
+                ChainConfig::Astria(_) => {
+                    panic!("running tests with Astria chain not supported")
                 }
             }
         }

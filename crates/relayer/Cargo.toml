@@ -29,6 +29,15 @@ penumbra-sdk-view        = "1.0.0"
 penumbra-sdk-transaction = { version = "1.0.0", features = ["download-proving-keys"] }
 pbjson-types = "0.7"
 
+
+astria-core = { git = "https://github.com/astriaorg/astria", rev = "b8d771be2ce76276ac85960293c3e186df542136" }
+astria-sequencer-client = { git = "https://github.com/astriaorg/astria", rev = "b8d771be2ce76276ac85960293c3e186df542136", features = [ "http" ] }
+ed25519-consensus = "2.1.0"
+ibc-types = "0.15"
+jmt = "0.11"
+#penumbra-ibc = { git = "https://github.com/penumbra-zone/penumbra.git", rev = "ac7abacc9bb09503d6fd6a396bc0b6850079084e", default-features = false }
+#penumbra-proto = { git = "https://github.com/penumbra-zone/penumbra.git", rev = "ac7abacc9bb09503d6fd6a396bc0b6850079084e" }
+
 ibc-proto         = { workspace = true, features = ["serde"] }
 ibc-telemetry     = { workspace = true }
 ibc-relayer-types = { workspace = true, features = ["clock"] }

@@ -1,12 +1,9 @@
 use http::uri::Uri;
+use ibc_proto::ibc::core::connection::v1::{
+    query_client::QueryClient, Params, QueryConnectionParamsRequest,
+};
 
-use ibc_proto::ibc::core::connection::v1::query_client::QueryClient;
-use ibc_proto::ibc::core::connection::v1::Params;
-use ibc_proto::ibc::core::connection::v1::QueryConnectionParamsRequest;
-
-use crate::config::default::max_grpc_decoding_size;
-use crate::error::Error;
-use crate::util::create_grpc_client;
+use crate::{config::default::max_grpc_decoding_size, error::Error, util::create_grpc_client};
 
 /// Uses the GRPC client to retrieve the connection params
 pub async fn query_connection_params(grpc_address: &Uri) -> Result<Params, Error> {

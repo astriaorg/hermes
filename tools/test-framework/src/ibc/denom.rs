@@ -3,14 +3,19 @@
 */
 
 use core::fmt::{self, Display};
+
 use eyre::Report as Error;
 use ibc_relayer_types::core::ics24_host::identifier::{ChannelId, PortId};
 use sha2::{Digest, Sha256};
 use subtle_encoding::hex;
 
-use crate::chain::chain_type::ChainType;
-use crate::types::id::{TaggedChannelIdRef, TaggedPortIdRef};
-use crate::types::tagged::*;
+use crate::{
+    chain::chain_type::ChainType,
+    types::{
+        id::{TaggedChannelIdRef, TaggedPortIdRef},
+        tagged::*,
+    },
+};
 
 /**
    A newtype wrapper to represent a denomination string.

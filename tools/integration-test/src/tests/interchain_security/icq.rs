@@ -10,21 +10,25 @@
 //! then processed.
 
 use ibc_relayer::config::ChainConfig;
-use ibc_test_framework::chain::cli::host_zone::register_host_zone;
-use ibc_test_framework::chain::config::cosmos::{
-    set_crisis_denom, set_mint_mint_denom, set_staking_bond_denom, set_staking_max_entries,
-    set_voting_period,
+use ibc_test_framework::{
+    chain::{
+        cli::host_zone::register_host_zone,
+        config::cosmos::{
+            set_crisis_denom, set_mint_mint_denom, set_staking_bond_denom, set_staking_max_entries,
+            set_voting_period,
+        },
+        ext::crosschainquery::CrossChainQueryMethodsExt,
+    },
+    framework::binary::channel::run_binary_interchain_security_channel_test,
+    prelude::*,
+    relayer::channel::{assert_eventually_channel_established, query_identified_channel_ends},
+    util::{
+        interchain_security::{
+            update_genesis_for_consumer_chain, update_relayer_config_for_consumer_chain,
+        },
+        random::random_u128_range,
+    },
 };
-use ibc_test_framework::chain::ext::crosschainquery::CrossChainQueryMethodsExt;
-use ibc_test_framework::framework::binary::channel::run_binary_interchain_security_channel_test;
-use ibc_test_framework::prelude::*;
-use ibc_test_framework::relayer::channel::{
-    assert_eventually_channel_established, query_identified_channel_ends,
-};
-use ibc_test_framework::util::interchain_security::{
-    update_genesis_for_consumer_chain, update_relayer_config_for_consumer_chain,
-};
-use ibc_test_framework::util::random::random_u128_range;
 
 #[test]
 fn test_ics31_cross_chain_queries() -> Result<(), Error> {

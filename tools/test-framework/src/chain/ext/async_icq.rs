@@ -1,8 +1,14 @@
-use crate::chain::cli::async_icq::{async_icq, update_oracle};
-use crate::chain::cli::wasm::contract::instantiate_wasm_contract;
-use crate::chain::cli::wasm::query::{query_wasm_list_code, query_wasm_list_contracts_by_code};
-use crate::prelude::*;
-use crate::types::tagged::*;
+use crate::{
+    chain::cli::{
+        async_icq::{async_icq, update_oracle},
+        wasm::{
+            contract::instantiate_wasm_contract,
+            query::{query_wasm_list_code, query_wasm_list_contracts_by_code},
+        },
+    },
+    prelude::*,
+    types::tagged::*,
+};
 
 pub trait AsyncIcqMethodsExt<Chain> {
     fn update_oracle(&self, relayer: &str, fees: &str, init_args: &str) -> Result<(), Error>;

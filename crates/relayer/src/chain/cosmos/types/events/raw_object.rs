@@ -1,7 +1,6 @@
 use alloc::collections::btree_map::BTreeMap as HashMap;
 
-use ibc_relayer_types::events::Error as EventError;
-use ibc_relayer_types::Height;
+use ibc_relayer_types::{events::Error as EventError, Height};
 
 #[derive(Debug, Clone)]
 pub struct RawObject<'a> {

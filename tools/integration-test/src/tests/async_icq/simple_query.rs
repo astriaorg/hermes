@@ -1,19 +1,21 @@
 use std::env;
 
-use ibc_relayer::channel::version::Version;
-use ibc_relayer::config::ChainConfig;
-use ibc_test_framework::chain::config::cosmos::{
-    add_allow_message_interchainquery, set_floor_gas_price, set_max_deposit_period,
-    set_min_deposit_amount, set_voting_period,
+use ibc_relayer::{channel::version::Version, config::ChainConfig};
+use ibc_test_framework::{
+    chain::{
+        config::cosmos::{
+            add_allow_message_interchainquery, set_floor_gas_price, set_max_deposit_period,
+            set_min_deposit_amount, set_voting_period,
+        },
+        ext::{
+            async_icq::AsyncIcqMethodsExt, bootstrap::ChainBootstrapMethodsExt,
+            wasm_client::StoreWasmClientCodeMethodsExt,
+        },
+    },
+    prelude::*,
+    relayer::channel::{assert_eventually_channel_established, init_channel_version},
+    util::proposal_status::ProposalStatus,
 };
-use ibc_test_framework::chain::ext::async_icq::AsyncIcqMethodsExt;
-use ibc_test_framework::chain::ext::bootstrap::ChainBootstrapMethodsExt;
-use ibc_test_framework::chain::ext::wasm_client::StoreWasmClientCodeMethodsExt;
-use ibc_test_framework::prelude::*;
-use ibc_test_framework::relayer::channel::{
-    assert_eventually_channel_established, init_channel_version,
-};
-use ibc_test_framework::util::proposal_status::ProposalStatus;
 use tendermint::abci::Event;
 use tendermint_rpc::{Client, HttpClient};
 

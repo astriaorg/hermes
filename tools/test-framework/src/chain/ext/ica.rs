@@ -1,17 +1,19 @@
-use ibc_relayer::upgrade_chain::requires_legacy_upgrade_proposal;
+use ibc_relayer::{chain::tracking::TrackedMsgs, upgrade_chain::requires_legacy_upgrade_proposal};
+use ibc_relayer_types::{
+    applications::ics27_ica::msgs::register::{
+        LegacyMsgRegisterInterchainAccount, MsgRegisterInterchainAccount,
+    },
+    core::ics04_channel::version::Version,
+    events::IbcEvent,
+    tx_msg::Msg,
+};
 use serde_json::json;
 
-use ibc_relayer::chain::tracking::TrackedMsgs;
-use ibc_relayer_types::applications::ics27_ica::msgs::register::{
-    LegacyMsgRegisterInterchainAccount, MsgRegisterInterchainAccount,
+use crate::{
+    chain::cli::ica::{query_interchain_account, register_interchain_account_cli},
+    prelude::*,
+    types::tagged::*,
 };
-use ibc_relayer_types::core::ics04_channel::version::Version;
-use ibc_relayer_types::events::IbcEvent;
-use ibc_relayer_types::tx_msg::Msg;
-
-use crate::chain::cli::ica::{query_interchain_account, register_interchain_account_cli};
-use crate::prelude::*;
-use crate::types::tagged::*;
 
 pub trait InterchainAccountMethodsExt<Chain> {
     fn register_interchain_account_cli<Counterparty>(

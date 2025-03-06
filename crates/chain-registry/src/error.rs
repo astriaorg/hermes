@@ -2,8 +2,7 @@ use std::path::PathBuf;
 
 use flex_error::{define_error, TraceError};
 use itertools::Itertools;
-use tokio::task::JoinError;
-use tokio::time::error::Elapsed;
+use tokio::{task::JoinError, time::error::Elapsed};
 
 define_error! {
     RegistryError {

@@ -8,8 +8,7 @@
 //!   `MsgTransfer` is not authorized and that the chain's `tx authz exec`
 //!   command fails.
 
-use ibc_test_framework::chain::ext::authz::AuthzMethodsExt;
-use ibc_test_framework::prelude::*;
+use ibc_test_framework::{chain::ext::authz::AuthzMethodsExt, prelude::*};
 
 #[test]
 fn test_authz() -> Result<(), Error> {

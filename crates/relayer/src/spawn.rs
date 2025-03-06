@@ -1,14 +1,13 @@
 use alloc::sync::Arc;
 
 use flex_error::define_error;
-use tokio::runtime::Runtime as TokioRuntime;
-
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use tokio::runtime::Runtime as TokioRuntime;
 
 use crate::{
     chain::{
-        cosmos::CosmosSdkChain, handle::ChainHandle, namada::NamadaChain, penumbra::PenumbraChain,
-        runtime::ChainRuntime,
+        astria::AstriaChain, cosmos::CosmosSdkChain, handle::ChainHandle, namada::NamadaChain,
+        penumbra::PenumbraChain, runtime::ChainRuntime,
     },
     config::{ChainConfig, Config},
     error::Error as RelayerError,
@@ -86,6 +85,7 @@ pub fn spawn_chain_runtime_with_config<Handle: ChainHandle>(
     let handle = match config {
         ChainConfig::CosmosSdk(_) => ChainRuntime::<CosmosSdkChain>::spawn(config, rt),
         ChainConfig::Namada(_) => ChainRuntime::<NamadaChain>::spawn(config, rt),
+        ChainConfig::Astria(_) => ChainRuntime::<AstriaChain>::spawn(config, rt), // Using AstriaChain implementation
         ChainConfig::Penumbra(_) => ChainRuntime::<PenumbraChain>::spawn(config, rt),
     }
     .map_err(SpawnError::relayer)?;

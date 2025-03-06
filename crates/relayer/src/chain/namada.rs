@@ -1,90 +1,92 @@
 use alloc::sync::Arc;
-use core::str::FromStr;
-use prost::Message;
+use core::{str::FromStr, time::Duration};
 use std::thread;
+
+use ibc_proto::ibc::{
+    applications::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
+    core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest},
+};
+use ibc_relayer_types::{
+    applications::{
+        ics28_ccv::msgs::{ConsumerChain, ConsumerId},
+        ics31_icq::response::CrossChainQueryResponse,
+    },
+    clients::ics07_tendermint::{
+        client_state::{AllowUpdate, ClientState as TmClientState},
+        consensus_state::ConsensusState as TmConsensusState,
+        header::Header as TmHeader,
+    },
+    core::{
+        ics02_client::events::UpdateClient,
+        ics03_connection::connection::{ConnectionEnd, IdentifiedConnectionEnd},
+        ics04_channel::{
+            channel::{ChannelEnd, IdentifiedChannelEnd},
+            packet::Sequence,
+            upgrade::{ErrorReceipt, Upgrade},
+        },
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics24_host::{
+            identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
+            path::{
+                AcksPath, ChannelEndsPath, ChannelUpgradeErrorPath, ChannelUpgradePath,
+                ClientConsensusStatePath, ClientStatePath, CommitmentsPath, ConnectionsPath,
+                ReceiptsPath, SeqRecvsPath,
+            },
+        },
+    },
+    signer::Signer,
+    Height as ICSHeight,
+};
+use namada_sdk::{
+    address::{Address, InternalAddress},
+    borsh::BorshDeserialize,
+    ibc::{core::host::types::path::UPGRADED_IBC_STATE, storage, COMMITMENT_PREFIX},
+    io::{Client, NamadaIo, NullIo},
+    masp::fs::FsShieldedUtils,
+    parameters::{storage as param_storage, EpochDuration},
+    proof_of_stake::{storage_key as pos_storage_key, OwnedPosParams},
+    rpc,
+    state::{ics23_specs::ibc_proof_specs, Sha256Hasher},
+    storage::{Key, KeySeg, PrefixValue},
+    token::{
+        storage_key::{balance_key, denom_key, is_any_token_balance_key},
+        Amount, DenominatedAmount, Denomination,
+    },
+    wallet::{Store, Wallet},
+    Namada, NamadaImpl,
+};
+use prost::Message;
+use tendermint::{block::Height as TmHeight, node, Time};
+use tendermint_proto::Protobuf as TmProtobuf;
+use tendermint_rpc::{client::CompatMode, endpoint::broadcast::tx_sync::Response, HttpClient, Url};
+use tokio::runtime::Runtime as TokioRuntime;
 use tracing::debug;
 
-use core::time::Duration;
-
-use ibc_proto::ibc::applications::fee::v1::{
-    QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse,
-};
-use ibc_proto::ibc::core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest};
-use ibc_relayer_types::applications::ics28_ccv::msgs::{ConsumerChain, ConsumerId};
-use ibc_relayer_types::applications::ics31_icq::response::CrossChainQueryResponse;
-use ibc_relayer_types::clients::ics07_tendermint::client_state::{
-    AllowUpdate, ClientState as TmClientState,
-};
-use ibc_relayer_types::clients::ics07_tendermint::consensus_state::ConsensusState as TmConsensusState;
-use ibc_relayer_types::clients::ics07_tendermint::header::Header as TmHeader;
-use ibc_relayer_types::core::ics02_client::events::UpdateClient;
-use ibc_relayer_types::core::ics03_connection::connection::{
-    ConnectionEnd, IdentifiedConnectionEnd,
-};
-use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, IdentifiedChannelEnd};
-use ibc_relayer_types::core::ics04_channel::packet::Sequence;
-use ibc_relayer_types::core::ics04_channel::upgrade::{ErrorReceipt, Upgrade};
-use ibc_relayer_types::core::ics23_commitment::commitment::CommitmentPrefix;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
-use ibc_relayer_types::core::ics24_host::identifier::{
-    ChainId, ChannelId, ClientId, ConnectionId, PortId,
-};
-use ibc_relayer_types::core::ics24_host::path::{
-    AcksPath, ChannelEndsPath, ChannelUpgradeErrorPath, ChannelUpgradePath,
-    ClientConsensusStatePath, ClientStatePath, CommitmentsPath, ConnectionsPath, ReceiptsPath,
-    SeqRecvsPath,
-};
-use ibc_relayer_types::signer::Signer;
-use ibc_relayer_types::Height as ICSHeight;
-use namada_sdk::address::{Address, InternalAddress};
-use namada_sdk::borsh::BorshDeserialize;
-use namada_sdk::ibc::core::host::types::path::UPGRADED_IBC_STATE;
-use namada_sdk::ibc::{storage, COMMITMENT_PREFIX};
-use namada_sdk::io::NullIo;
-use namada_sdk::io::{Client, NamadaIo};
-use namada_sdk::masp::fs::FsShieldedUtils;
-use namada_sdk::parameters::{storage as param_storage, EpochDuration};
-use namada_sdk::proof_of_stake::storage_key as pos_storage_key;
-use namada_sdk::proof_of_stake::OwnedPosParams;
-use namada_sdk::state::ics23_specs::ibc_proof_specs;
-use namada_sdk::state::Sha256Hasher;
-use namada_sdk::storage::{Key, KeySeg, PrefixValue};
-use namada_sdk::token::storage_key::{balance_key, denom_key, is_any_token_balance_key};
-use namada_sdk::token::{Amount, DenominatedAmount, Denomination};
-use namada_sdk::wallet::Store;
-use namada_sdk::wallet::Wallet;
-use namada_sdk::{rpc, Namada, NamadaImpl};
-use tendermint::block::Height as TmHeight;
-use tendermint::{node, Time};
-use tendermint_proto::Protobuf as TmProtobuf;
-use tendermint_rpc::client::CompatMode;
-use tendermint_rpc::endpoint::broadcast::tx_sync::Response;
-use tendermint_rpc::{HttpClient, Url};
-use tokio::runtime::Runtime as TokioRuntime;
-
-use crate::account::Balance;
-use crate::chain::client::ClientSettings;
-use crate::chain::cosmos::batch::response_to_tx_sync_result;
-use crate::chain::cosmos::config::CosmosSdkConfig;
-use crate::chain::endpoint::{ChainEndpoint, ChainStatus, HealthCheck};
-use crate::chain::handle::Subscription;
-use crate::chain::requests::*;
-use crate::chain::tracking::TrackedMsgs;
-use crate::chain::version::{ConsensusVersion, Specs};
-use crate::client_state::{AnyClientState, IdentifiedAnyClientState};
-use crate::config::error::Error as ConfigError;
-use crate::config::ChainConfig;
-use crate::consensus_state::AnyConsensusState;
-use crate::denom::DenomTrace;
-use crate::error::Error;
-use crate::event::source::{EventSource, TxEventSourceCmd};
-use crate::event::IbcEventWithHeight;
-use crate::keyring::{KeyRing, NamadaKeyPair, SigningKeyPair};
-use crate::light_client::tendermint::LightClient as TmLightClient;
-use crate::light_client::{LightClient, Verified};
-use crate::misbehaviour::MisbehaviourEvidence;
-
 use self::error::Error as NamadaError;
+use crate::{
+    account::Balance,
+    chain::{
+        client::ClientSettings,
+        cosmos::{batch::response_to_tx_sync_result, config::CosmosSdkConfig},
+        endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
+        handle::Subscription,
+        requests::*,
+        tracking::TrackedMsgs,
+        version::{ConsensusVersion, Specs},
+    },
+    client_state::{AnyClientState, IdentifiedAnyClientState},
+    config::{error::Error as ConfigError, ChainConfig},
+    consensus_state::AnyConsensusState,
+    denom::DenomTrace,
+    error::Error,
+    event::{
+        source::{EventSource, TxEventSourceCmd},
+        IbcEventWithHeight,
+    },
+    keyring::{KeyRing, NamadaKeyPair, SigningKeyPair},
+    light_client::{tendermint::LightClient as TmLightClient, LightClient, Verified},
+    misbehaviour::MisbehaviourEvidence,
+};
 
 pub mod error;
 pub mod key;
