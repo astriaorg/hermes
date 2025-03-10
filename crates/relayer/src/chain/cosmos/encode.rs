@@ -157,6 +157,7 @@ fn encode_signer_info(
     let pk_type = match address_type {
         AddressType::Cosmos => "/cosmos.crypto.secp256k1.PubKey".to_string(),
         AddressType::Ethermint { pk_type } => pk_type.clone(),
+        AddressType::Astria => "/astria.crypto.ed25519.PubKey".to_string(),
     };
     // Create a MsgSend proto Any message
     let pk_any = Any {

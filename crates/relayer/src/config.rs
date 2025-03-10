@@ -172,7 +172,7 @@ pub mod default {
     }
 
     pub fn rpc_timeout() -> Duration {
-        Duration::from_secs(10)
+        Duration::from_secs(60)
     }
 
     pub fn poll_interval() -> Duration {
@@ -604,6 +604,7 @@ pub enum AddressType {
     Ethermint {
         pk_type: String,
     },
+    Astria,
 }
 
 impl Display for AddressType {
@@ -611,6 +612,7 @@ impl Display for AddressType {
         match self {
             AddressType::Cosmos => write!(f, "cosmos"),
             AddressType::Ethermint { .. } => write!(f, "ethermint"),
+            AddressType::Astria => write!(f, "astria"),
         }
     }
 }
