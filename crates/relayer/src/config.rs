@@ -1063,6 +1063,7 @@ mod tests {
                 chain_config.excluded_sequences.clone()
             }
             ChainConfig::Penumbra(_) => panic!("expected cosmos chain config"),
+            ChainConfig::Astria(_) => panic!("expected cosmos chain config"),
         };
 
         assert_eq!(excluded_sequences1, excluded_sequences2);

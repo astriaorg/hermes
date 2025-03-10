@@ -1,2 +1,5 @@
-// Re-export CosmosSdkChain as AstriaChain
-pub use crate::chain::cosmos::CosmosSdkChain as AstriaChain;
+mod endpoint;
+mod proof_specs;
+mod utils;
+
+pub use endpoint::AstriaChain;

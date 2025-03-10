@@ -1,125 +1,81 @@
 use alloc::sync::Arc;
-use std::{
-    str::FromStr as _,
-    time::Duration,
-};
-
 use ibc_proto::ibc::{
-    apps::fee::v1::{
-        QueryIncentivizedPacketRequest,
-        QueryIncentivizedPacketResponse,
-    },
+    apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
     core::{
         channel::v1::query_client::QueryClient as IbcChannelQueryClient,
         client::v1::query_client::QueryClient as IbcClientQueryClient,
         connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
     },
 };
+use ibc_relayer_types::applications::ics28_ccv::msgs::ConsumerChain;
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     clients::ics07_tendermint::{
         client_state::ClientState as TendermintClientState,
-        consensus_state::ConsensusState as TendermintConsensusState,
-        header::Header,
+        consensus_state::ConsensusState as TendermintConsensusState, header::Header,
     },
     core::{
-        ics02_client::{
-            client_type::ClientType,
-            events::UpdateClient,
-        },
-        ics03_connection::connection::{
-            ConnectionEnd,
-            IdentifiedConnectionEnd,
-        },
+        ics02_client::{client_type::ClientType, events::UpdateClient},
+        ics03_connection::connection::{ConnectionEnd, IdentifiedConnectionEnd},
         ics04_channel::{
-            channel::{
-                ChannelEnd,
-                IdentifiedChannelEnd,
-            },
+            channel::{ChannelEnd, IdentifiedChannelEnd},
             packet::Sequence,
         },
-        ics23_commitment::{
-            commitment::CommitmentPrefix,
-            merkle::MerkleProof,
-        },
-        ics24_host::identifier::{
-            ChainId,
-            ChannelId,
-            ClientId,
-            ConnectionId,
-            PortId,
-        },
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
     },
     signer::Signer,
     Height as ICSHeight,
 };
 use prost::Message;
+use std::{str::FromStr as _, time::Duration};
 use tendermint::time::Time as TmTime;
 use tendermint_light_client::verifier::types::LightBlock;
 use tendermint_rpc::{
     client::CompatMode,
-    endpoint::{
-        broadcast::tx_sync::Response as TxResponse,
-        status,
-    },
-    Client as _,
-    HttpClient,
+    endpoint::{broadcast::tx_sync::Response as TxResponse, status},
+    Client as _, HttpClient,
 };
 use tokio::runtime::Runtime as TokioRuntime;
 use tonic::IntoRequest;
 use tracing::warn;
 
+use crate::chain::cosmos::config::CosmosSdkConfig;
 use crate::{
     account::Balance,
     chain::{
-        astria::utils::{
-            decode_merkle_proof,
-            response_to_tx_sync_result,
-        },
+        astria::utils::{decode_merkle_proof, response_to_tx_sync_result},
         client::ClientSettings,
-        cosmos::{
-            version::Specs,
-            wait::wait_for_block_commits,
-        },
-        endpoint::{
-            ChainEndpoint,
-            ChainStatus,
-            HealthCheck,
-        },
+        cosmos::wait::wait_for_block_commits,
+        endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
         handle::Subscription,
         requests::*,
         tracking::TrackedMsgs,
     },
-    client_state::{
-        AnyClientState,
-        IdentifiedAnyClientState,
-    },
+    client_state::{AnyClientState, IdentifiedAnyClientState},
     config::ChainConfig,
     consensus_state::AnyConsensusState,
     denom::DenomTrace,
     error::Error,
     event::{
-        source::{
-            EventSource,
-            TxEventSourceCmd,
-        },
+        source::{EventSource, TxEventSourceCmd},
         IbcEventWithHeight,
     },
-    keyring::{
-        Ed25519KeyPair,
-        KeyRing,
-    },
-    light_client::{
-        tendermint::LightClient,
-        LightClient as _,
-    },
+    keyring::{Ed25519KeyPair, KeyRing},
+    light_client::{tendermint::LightClient, LightClient as _},
     misbehaviour::MisbehaviourEvidence,
 };
+use ibc_proto::ibc::core::channel::v1::QueryUpgradeErrorRequest;
+use ibc_proto::ibc::core::channel::v1::QueryUpgradeRequest;
+use ibc_relayer_types::applications::ics28_ccv::msgs::ConsumerId;
+use ibc_relayer_types::core::ics04_channel::upgrade::ErrorReceipt;
+use ibc_relayer_types::core::ics04_channel::upgrade::Upgrade;
+use ibc_relayer_types::Height;
 
 const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
-pub struct AstriaEndpoint {
-    config: ChainConfig,
+pub struct AstriaChain {
+    config: CosmosSdkConfig,
     keybase: KeyRing<Ed25519KeyPair>,
     sequencer_client: HttpClient,
     compat_mode: CompatMode,
@@ -132,25 +88,29 @@ pub struct AstriaEndpoint {
     tx_monitor_cmd: Option<TxEventSourceCmd>,
 }
 
-impl AstriaEndpoint {
+impl AstriaChain {
     pub fn new(
         config: ChainConfig,
         keybase: KeyRing<Ed25519KeyPair>,
         rt: Arc<TokioRuntime>,
     ) -> Result<Self, Error> {
-        let mut sequencer_client =
-            HttpClient::new(config.rpc_addr().clone()).map_err(|e| Error::other(e.into()))?;
-
-        let cosmos_config = match &config {
+        let astria_config = match config {
             ChainConfig::Astria(c) => c,
             _ => {
-                println!("Wrong chain configuration type in AstriaEndpoint::bootstrap");
+                println!("Wrong chain configuration type in AstriaChain::bootstrap");
                 return Err(Error::config(crate::config::ConfigError::wrong_type()));
             }
         };
 
-        use crate::chain::cosmos::fetch_node_info;
-        let node_info = rt.block_on(fetch_node_info(&sequencer_client, cosmos_config))?;
+        let mut sequencer_client = HttpClient::new(astria_config.rpc_addr.clone())
+            .map_err(|e| Error::other(e.to_string()))?;
+        let node_info = rt.block_on(async {
+            sequencer_client
+                .status()
+                .await
+                .map(|s| s.node_info)
+                .map_err(|e| Error::rpc(astria_config.rpc_addr.clone(), e))
+        })?;
 
         let compat_mode = CompatMode::from_version(node_info.version).unwrap_or_else(|e| {
             warn!("Unsupported tendermint version, will use v0.37 compatibility mode but relaying might not work as desired: {e}");
@@ -158,26 +118,26 @@ impl AstriaEndpoint {
         });
         sequencer_client.set_compat_mode(compat_mode);
 
-        let light_client = LightClient::from_cosmos_sdk_config(cosmos_config, node_info.id)?;
+        let light_client = LightClient::from_cosmos_sdk_config(&astria_config, node_info.id)?;
 
         use http::Uri;
-        let grpc_addr = Uri::from_str(&cosmos_config.grpc_addr.to_string())
-            .map_err(|e| Error::invalid_uri(cosmos_config.grpc_addr.to_string(), e))?;
+        let grpc_addr = Uri::from_str(&astria_config.grpc_addr.to_string())
+            .map_err(|e| Error::invalid_uri(astria_config.grpc_addr.to_string(), e))?;
         let ibc_client_grpc_client = rt
             .block_on(IbcClientQueryClient::connect(grpc_addr.clone()))
             .map_err(Error::grpc_transport)?
-            .max_decoding_message_size(config.max_grpc_decoding_size().get_bytes() as usize);
+            .max_decoding_message_size(astria_config.max_grpc_decoding_size.get_bytes() as usize);
         let ibc_connection_grpc_client = rt
             .block_on(IbcConnectionQueryClient::connect(grpc_addr.clone()))
             .map_err(Error::grpc_transport)?
-            .max_decoding_message_size(config.max_grpc_decoding_size().get_bytes() as usize);
+            .max_decoding_message_size(astria_config.max_grpc_decoding_size.get_bytes() as usize);
         let ibc_channel_grpc_client = rt
             .block_on(IbcChannelQueryClient::connect(grpc_addr))
             .map_err(Error::grpc_transport)?
-            .max_decoding_message_size(config.max_grpc_decoding_size().get_bytes() as usize);
+            .max_decoding_message_size(astria_config.max_grpc_decoding_size.get_bytes() as usize);
 
         Ok(Self {
-            config,
+            config: astria_config,
             keybase,
             sequencer_client,
             compat_mode,
@@ -194,13 +154,13 @@ impl AstriaEndpoint {
         let status = self
             .rt
             .block_on(self.sequencer_client.status())
-            .map_err(|e| Error::rpc(self.config.rpc_addr().clone(), e))?;
+            .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
 
         Ok(status)
     }
 }
 
-impl AstriaEndpoint {
+impl AstriaChain {
     fn block_on<T>(&self, fut: impl std::future::Future<Output = T>) -> T {
         self.rt.block_on(fut)
     }
@@ -208,7 +168,7 @@ impl AstriaEndpoint {
     fn init_event_source(&mut self) -> Result<TxEventSourceCmd, Error> {
         use crate::config::EventSourceMode as Mode;
 
-        let (event_source, monitor_tx) = match &self.config.event_source_mode() {
+        let (event_source, monitor_tx) = match &self.config.event_source {
             Mode::Push { url, batch_delay } => EventSource::websocket(
                 self.id().clone(),
                 url.clone(),
@@ -216,10 +176,14 @@ impl AstriaEndpoint {
                 *batch_delay,
                 self.rt.clone(),
             ),
-            Mode::Pull { interval } => EventSource::rpc(
+            Mode::Pull {
+                interval,
+                max_retries,
+            } => EventSource::rpc(
                 self.id().clone(),
                 self.sequencer_client.clone(),
                 *interval,
+                *max_retries,
                 self.rt.clone(),
             ),
         }
@@ -231,32 +195,25 @@ impl AstriaEndpoint {
 
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
         use astria_core::{
-            crypto::{
-                SigningKey,
-                VerificationKey,
-            },
-            generated::protocol::transaction::v1::Ics20Withdrawal as RawIcs20Withdrawal,
+            crypto::{SigningKey, VerificationKey},
+            generated::astria::protocol::transaction::v1::Ics20Withdrawal as RawIcs20Withdrawal,
             primitive::v1::Address,
-            protocol::transaction::v1::{
-                action::Ics20Withdrawal,
-                Action,
-                TransactionBody,
-            },
+            protocol::transaction::v1::{action::Ics20Withdrawal, Action, TransactionBody},
             Protobuf as _,
         };
         use astria_sequencer_client::SequencerClientExt as _;
         use ibc_relayer_types::applications::transfer::msgs::ASTRIA_WITHDRAWAL_TYPE_URL;
-        use penumbra_ibc::IbcRelay;
-        use penumbra_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
+        use penumbra_sdk_ibc::IbcRelay;
+        use penumbra_sdk_proto::core::component::ibc::v1::IbcRelay as RawIbcRelay;
 
         let msg_len = tracked_msgs.msgs.len();
         let mut actions: Vec<Action> = Vec::with_capacity(msg_len);
         for msg in tracked_msgs.msgs {
             if msg.type_url == ASTRIA_WITHDRAWAL_TYPE_URL {
                 let action = RawIcs20Withdrawal::decode(msg.value.as_slice())
-                    .map_err(|e| Error::other(e.into()))?;
-                let non_raw =
-                    Ics20Withdrawal::try_from_raw(action).map_err(|e| Error::other(e.into()))?;
+                    .map_err(|e| Error::other(e.to_string()))?;
+                let non_raw = Ics20Withdrawal::try_from_raw(action)
+                    .map_err(|e| Error::other(e.to_string()))?;
                 actions.push(Action::Ics20Withdrawal(non_raw));
                 continue;
             }
@@ -267,31 +224,42 @@ impl AstriaEndpoint {
                     value: msg.value.into(),
                 }),
             };
-            let non_raw = IbcRelay::try_from(ibc_action).map_err(|e| Error::other(e.into()))?;
+            let non_raw =
+                IbcRelay::try_from(ibc_action).map_err(|e| Error::other(e.to_string()))?;
             actions.push(Action::Ibc(non_raw));
         }
 
-        let signing_key: ed25519_consensus::SigningKey =
-            (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
+        let key = self.get_key()?;
+        let any_key: crate::keyring::AnySigningKeyPair = key.into();
+        let keypair = match any_key {
+            crate::keyring::AnySigningKeyPair::Ed25519(key) => key,
+            _ => {
+                return Err(Error::other(
+                    "keypair for astria endpoint must be ed25519".to_string(),
+                ))
+            }
+        };
+        let signing_key: ed25519_consensus::SigningKey = (*keypair.signing_key().as_bytes()).into(); // TODO cache this
+
         let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
-            .map_err(|e| Error::other(e.into()))?;
+            .map_err(|e| Error::other(e.to_string()))?;
         let address = Address::builder()
-            .verification_key(&verification_key)
+            .array(*verification_key.address_bytes())
             .prefix("astria")
             .try_build()
-            .map_err(|e| Error::other(e.into()))?;
+            .map_err(|e| Error::other(e.to_string()))?;
         let nonce = self
             .sequencer_client
             .get_latest_nonce(address)
             .await
-            .map_err(|e| Error::other(Box::new(e)))?;
+            .map_err(|e| Error::other(e.to_string()))?;
 
         let tx = TransactionBody::builder()
             .nonce(nonce.nonce)
             .chain_id(self.id().to_string())
             .actions(actions)
             .try_build()
-            .map_err(|e| Error::other_with_string(format!("{e:?}")))?
+            .map_err(|e| Error::other(e.to_string()))?
             .sign(&SigningKey::from(signing_key.to_bytes()))
             .into_raw()
             .encode_to_vec();
@@ -300,7 +268,7 @@ impl AstriaEndpoint {
             .sequencer_client
             .broadcast_tx_sync(tx)
             .await
-            .map_err(|e| Error::other(e.into()))?;
+            .map_err(|e| Error::other(e.to_string()))?;
         Ok(resp)
     }
 
@@ -335,7 +303,7 @@ impl AstriaEndpoint {
                     tendermint_rpc::Order::Descending,
                 )
                 .await
-                .map_err(|e| Error::rpc(self.config.rpc_addr().clone(), e))?;
+                .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
 
             for block in response.blocks.into_iter().map(|response| response.block) {
                 let response_height =
@@ -377,7 +345,7 @@ impl AstriaEndpoint {
 
         let response = self
             .block_on(self.sequencer_client.block_results(tm_height))
-            .map_err(|e| Error::rpc(self.config.rpc_addr().clone(), e))?;
+            .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
 
         let response_height = ICSHeight::new(self.id().version(), u64::from(response.height))
             .map_err(|_| Error::invalid_height_no_source())?;
@@ -406,7 +374,7 @@ impl AstriaEndpoint {
     }
 }
 
-impl ChainEndpoint for AstriaEndpoint {
+impl ChainEndpoint for AstriaChain {
     /// Type of light blocks for this chain
     type LightBlock = LightBlock;
 
@@ -427,12 +395,12 @@ impl ChainEndpoint for AstriaEndpoint {
 
     /// Returns the chain's identifier
     fn id(&self) -> &ChainId {
-        self.config.id()
+        &self.config.id
     }
 
     /// Returns the chain configuration
     fn config(&self) -> ChainConfig {
-        self.config.clone()
+        ChainConfig::Astria(self.config.clone())
     }
 
     // Life cycle
@@ -440,7 +408,7 @@ impl ChainEndpoint for AstriaEndpoint {
     /// Constructs the chain
     fn bootstrap(config: ChainConfig, rt: Arc<TokioRuntime>) -> Result<Self, Error> {
         let keybase = KeyRing::new_ed25519(crate::keyring::Store::Test, "test", config.id(), &None)
-            .map_err(|e| Error::other(e.into()))?;
+            .map_err(|e| Error::other(e.to_string()))?;
         Self::new(config, keybase, rt)
     }
 
@@ -486,20 +454,20 @@ impl ChainEndpoint for AstriaEndpoint {
 
         use crate::keyring::SigningKeyPair as _;
 
-        Signer::from_str(&self.get_key()?.account()).map_err(|e| Error::other(e.into()))
+        Signer::from_str(&self.get_key()?.account()).map_err(|e| Error::other(e.to_string()))
     }
 
     /// Get the signing key pair
     fn get_key(&self) -> Result<Self::SigningKeyPair, Error> {
         self.keybase
-            .get_key(self.config.key_name())
-            .map_err(|e| Error::key_not_found(self.config.key_name().to_string(), e))
+            .get_key(&self.config.key_name)
+            .map_err(|e| Error::key_not_found(self.config.key_name.to_string(), e))
     }
 
     // Versioning
 
     /// Return the version of the IBC protocol that this chain is running, if known.
-    fn version_specs(&self) -> Result<Specs, Error> {
+    fn version_specs(&self) -> Result<crate::chain::version::Specs, Error> {
         todo!()
     }
 
@@ -519,9 +487,9 @@ impl ChainEndpoint for AstriaEndpoint {
         let mut resps = vec![response_to_tx_sync_result(self.id(), msg_len, resp)];
 
         runtime.block_on(wait_for_block_commits(
-            self.config.id(),
+            &self.config.id,
             &self.sequencer_client,
-            self.config.rpc_addr(),
+            &self.config.rpc_addr,
             &DEFAULT_RPC_TIMEOUT,
             &mut resps,
         ))?;
@@ -556,7 +524,7 @@ impl ChainEndpoint for AstriaEndpoint {
         let status = self.chain_status()?;
         if status.sync_info.catching_up {
             return Err(Error::chain_not_caught_up(
-                self.config.rpc_addr().to_string(),
+                self.config.rpc_addr.to_string(),
                 self.id().clone(),
             ));
         }
@@ -577,7 +545,7 @@ impl ChainEndpoint for AstriaEndpoint {
         let status = self.chain_status()?;
         if status.sync_info.catching_up {
             return Err(Error::chain_not_caught_up(
-                self.config.rpc_addr().to_string(),
+                self.config.rpc_addr.to_string(),
                 self.id().clone(),
             ));
         }
@@ -597,27 +565,21 @@ impl ChainEndpoint for AstriaEndpoint {
         _key_name: Option<&str>,
         denom: Option<&str>,
     ) -> Result<Balance, Error> {
-        use astria_core::{
-            crypto::VerificationKey,
-            protocol::account::v1::AssetBalance,
-        };
-        use astria_sequencer_client::{
-            Address,
-            SequencerClientExt as _,
-        };
+        use astria_core::{crypto::VerificationKey, protocol::account::v1::AssetBalance};
+        use astria_sequencer_client::{Address, SequencerClientExt as _};
 
         let signing_key: ed25519_consensus::SigningKey =
             (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
         let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
-            .map_err(|e| Error::other(e.into()))?;
+            .map_err(|e| Error::other(e.to_string()))?;
         let address = Address::builder()
-            .verification_key(&verification_key)
+            .array(*verification_key.address_bytes())
             .prefix("astria")
             .try_build()
-            .map_err(|e| Error::other(e.into()))?;
+            .map_err(|e| Error::other(e.to_string()))?;
         let balance = self
             .block_on(self.sequencer_client.get_latest_balance(address))
-            .map_err(|e| Error::other(Box::new(e)))?;
+            .map_err(|e| Error::other(e.to_string()))?;
 
         // TODO: set this via the config
         let denom = denom.unwrap_or("nria");
@@ -653,7 +615,7 @@ impl ChainEndpoint for AstriaEndpoint {
     }
 
     fn query_commitment_prefix(&self) -> Result<CommitmentPrefix, Error> {
-        Ok(penumbra_ibc::IBC_SUBSTORE_PREFIX
+        Ok(penumbra_sdk_ibc::IBC_SUBSTORE_PREFIX
             .as_bytes()
             .to_vec()
             .try_into()
@@ -665,10 +627,10 @@ impl ChainEndpoint for AstriaEndpoint {
         let rt = self.rt.clone();
         let head_block = rt
             .block_on(self.sequencer_client.latest_block())
-            .map_err(|e| Error::rpc(self.config.rpc_addr().clone(), e))?;
+            .map_err(|e| Error::rpc(self.config.rpc_addr.clone(), e))?;
         Ok(ChainStatus {
             height: ICSHeight::new(self.id().version(), head_block.block.header.height.value())
-                .map_err(|e| Error::other(Box::new(e)))?,
+                .map_err(|e| Error::other(e.to_string()))?,
             timestamp: head_block.block.header.time.into(),
         })
     }
@@ -678,10 +640,7 @@ impl ChainEndpoint for AstriaEndpoint {
         &self,
         request: QueryClientStatesRequest,
     ) -> Result<Vec<IdentifiedAnyClientState>, Error> {
-        use crate::{
-            chain::cosmos::client_id_suffix,
-            util::pretty::PrettyIdentifiedClientState,
-        };
+        use crate::{chain::cosmos::client_id_suffix, util::pretty::PrettyIdentifiedClientState};
 
         let mut client = self.ibc_client_grpc_client.clone();
 
@@ -746,9 +705,8 @@ impl ChainEndpoint for AstriaEndpoint {
             return Err(Error::empty_response_value());
         };
 
-        let client_state: AnyClientState = client_state
-            .try_into()
-            .map_err(|e| Error::other(Box::new(e)))?;
+        let client_state =
+            AnyClientState::try_from(client_state).map_err(|e| Error::other(e.to_string()))?;
 
         match include_proof {
             IncludeProof::Yes => Ok((client_state, Some(decode_merkle_proof(response.proof)?))),
@@ -788,9 +746,8 @@ impl ChainEndpoint for AstriaEndpoint {
             return Err(Error::empty_response_value());
         };
 
-        let consensus_state: AnyConsensusState = consensus_state
-            .try_into()
-            .map_err(|e| Error::other(Box::new(e)))?;
+        let consensus_state = AnyConsensusState::try_from(consensus_state)
+            .map_err(|e| Error::other(e.to_string()))?;
 
         if !matches!(consensus_state, AnyConsensusState::Tendermint(_)) {
             return Err(Error::consensus_state_type_mismatch(
@@ -846,9 +803,8 @@ impl ChainEndpoint for AstriaEndpoint {
             .upgraded_client_state
             .ok_or_else(Error::empty_response_value)?;
 
-        let _client_state: AnyClientState = client_state
-            .try_into()
-            .map_err(|e| Error::other(Box::new(e)))?;
+        let _client_state =
+            AnyClientState::try_from(client_state).map_err(|e| Error::other(e.to_string()))?;
 
         todo!()
     }
@@ -868,9 +824,8 @@ impl ChainEndpoint for AstriaEndpoint {
             .upgraded_consensus_state
             .ok_or_else(Error::empty_response_value)?;
 
-        let _consensus_state: AnyConsensusState = consensus_state
-            .try_into()
-            .map_err(|e| Error::other(Box::new(e)))?;
+        let _consensus_state = AnyConsensusState::try_from(consensus_state)
+            .map_err(|e| Error::other(e.to_string()))?;
 
         todo!()
     }
@@ -1069,9 +1024,8 @@ impl ChainEndpoint for AstriaEndpoint {
             return Err(Error::empty_response_value());
         };
 
-        let channel_end: ChannelEnd = channel_end
-            .try_into()
-            .map_err(|e| Error::other(Box::new(e)))?;
+        let channel_end =
+            ChannelEnd::try_from(channel_end).map_err(|e| Error::other(e.to_string()))?;
 
         match include_proof {
             IncludeProof::Yes => Ok((channel_end, Some(decode_merkle_proof(response.proof)?))),
@@ -1367,7 +1321,7 @@ impl ChainEndpoint for AstriaEndpoint {
         self.block_on(query_txs(
             self.id(),
             &self.sequencer_client,
-            self.config.rpc_addr(),
+            &self.config.rpc_addr,
             request,
         ))
     }
@@ -1377,10 +1331,7 @@ impl ChainEndpoint for AstriaEndpoint {
         mut request: QueryPacketEventDataRequest,
     ) -> Result<Vec<IbcEventWithHeight>, Error> {
         use crate::chain::cosmos::{
-            query::tx::{
-                query_packets_from_block,
-                query_packets_from_txs,
-            },
+            query::tx::{query_packets_from_block, query_packets_from_txs},
             sort_events_by_sequence,
         };
 
@@ -1391,14 +1342,14 @@ impl ChainEndpoint for AstriaEndpoint {
             Qualified::Equal(_) => self.block_on(query_packets_from_block(
                 self.id(),
                 &self.sequencer_client,
-                self.config.rpc_addr(),
+                &self.config.rpc_addr,
                 &request,
             )),
             Qualified::SmallerEqual(_) => {
                 let tx_events = self.block_on(query_packets_from_txs(
                     self.id(),
                     &self.sequencer_client,
-                    self.config.rpc_addr(),
+                    &self.config.rpc_addr,
                     &request,
                 ))?;
 
@@ -1456,7 +1407,9 @@ impl ChainEndpoint for AstriaEndpoint {
 
         let ClientSettings::Tendermint(settings) = settings;
 
-        let trusting_period = self.config.trusting_period();
+        let trusting_period = self.config.trusting_period.ok_or(Error::other(
+            "trusting period must be set in config".to_string(),
+        ))?;
         // Note: Astria does not have an unbonding period, so we set it to 3/2 of the trusting period.
         let unbonding_period = trusting_period * 3 / 2;
         let proof_specs = crate::chain::astria::proof_specs::proof_spec_with_prehash();
@@ -1529,7 +1482,29 @@ impl ChainEndpoint for AstriaEndpoint {
         todo!()
     }
 
-    fn query_consumer_chains(&self) -> Result<Vec<(ChainId, ClientId)>, Error> {
+    fn query_consumer_chains(&self) -> Result<Vec<ConsumerChain>, Error> {
+        todo!()
+    }
+
+    fn query_upgrade(
+        &self,
+        _request: QueryUpgradeRequest,
+        _height: Height,
+        _include_proof: IncludeProof,
+    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+        todo!()
+    }
+
+    fn query_upgrade_error(
+        &self,
+        _request: QueryUpgradeErrorRequest,
+        _height: Height,
+        _include_proof: IncludeProof,
+    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+        todo!()
+    }
+
+    fn query_ccv_consumer_id(&self, _client_id: ClientId) -> Result<ConsumerId, Error> {
         todo!()
     }
 }

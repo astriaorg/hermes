@@ -66,6 +66,10 @@ pub struct Ed25519KeyPair {
 }
 
 impl Ed25519KeyPair {
+    pub fn signing_key(&self) -> &SigningKey {
+        &self.signing_key
+    }
+
     fn from_mnemonic_internal(
         mnemonic: &str,
         hd_path: &StandardHDPath,

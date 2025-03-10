@@ -2689,7 +2689,7 @@ impl ChainEndpoint for CosmosSdkChain {
     }
 }
 
-fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
+pub fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
     events.sort_by(|a, b| {
         a.event
             .packet()
@@ -2718,7 +2718,7 @@ async fn fetch_node_info(
 /// Returns the suffix counter for a CosmosSDK client id.
 /// Returns `None` if the client identifier is malformed
 /// and the suffix could not be parsed.
-fn client_id_suffix(client_id: &ClientId) -> Option<u64> {
+pub fn client_id_suffix(client_id: &ClientId) -> Option<u64> {
     client_id
         .as_str()
         .split('-')
