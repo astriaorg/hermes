@@ -44,8 +44,9 @@ use crate::chain::cosmos::config::CosmosSdkConfig;
 use crate::{
     account::Balance,
     chain::{
-        astria::utils::{decode_merkle_proof, response_to_tx_sync_result},
+        astria::utils::decode_merkle_proof,
         client::ClientSettings,
+        cosmos::batch::response_to_tx_sync_result,
         cosmos::wait::wait_for_block_commits,
         endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
         handle::Subscription,
