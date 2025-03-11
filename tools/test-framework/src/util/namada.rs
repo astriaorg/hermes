@@ -1,23 +1,17 @@
-use std::{fs::File, io::Read};
-
 use ibc_proto::Protobuf;
 use ibc_relayer::consensus_state::{AnyConsensusState, AnyConsensusStateWithHeight};
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChannelId, ClientId, PortId},
-    },
-    events::IbcEventType,
-    Height,
-};
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use ibc_relayer_types::core::ics24_host::identifier::{ChannelId, ClientId, PortId};
+use ibc_relayer_types::events::IbcEventType;
+use ibc_relayer_types::Height;
 use itertools::Itertools;
-use namada_sdk::{
-    events::extend::Height as HeightAttr,
-    ibc::storage::{consensus_height, consensus_state_prefix},
-    queries::RPC,
-    storage::{Key, PrefixValue},
-    tx::Tx,
-};
+use namada_sdk::events::extend::Height as HeightAttr;
+use namada_sdk::ibc::storage::{consensus_height, consensus_state_prefix};
+use namada_sdk::queries::RPC;
+use namada_sdk::storage::{Key, PrefixValue};
+use namada_sdk::tx::Tx;
+use std::fs::File;
+use std::io::Read;
 use tendermint_rpc::{Client, HttpClient, Url};
 use toml::Value;
 

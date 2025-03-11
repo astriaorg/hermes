@@ -1,16 +1,14 @@
 use core::time::Duration;
-use std::{
-    fs,
-    process::{Command, Stdio},
-    str,
-    thread::sleep,
-};
-
 use eyre::eyre;
+use std::fs;
+use std::process::{Command, Stdio};
+use std::str;
+use std::thread::sleep;
 
-use crate::{
-    chain::exec::simple_exec, error::Error, types::process::ChildProcess, util::file::pipe_to_file,
-};
+use crate::chain::exec::simple_exec;
+use crate::error::Error;
+use crate::types::process::ChildProcess;
+use crate::util::file::pipe_to_file;
 
 pub fn initialize(chain_id: &str, command_path: &str, home_path: &str) -> Result<(), Error> {
     simple_exec(

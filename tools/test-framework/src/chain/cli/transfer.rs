@@ -3,10 +3,8 @@
 */
 use eyre::eyre;
 
-use crate::{
-    chain::exec::simple_exec,
-    error::{handle_generic_error, Error},
-};
+use crate::chain::exec::simple_exec;
+use crate::error::{handle_generic_error, Error};
 
 pub fn local_transfer_token(
     chain_id: &str,

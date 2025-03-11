@@ -1,10 +1,9 @@
 use ibc_relayer::config::{self, ModeConfig};
-use ibc_test_framework::{
-    prelude::*,
-    relayer::{
-        channel::{assert_eventually_channel_established, init_channel},
-        connection::{assert_eventually_connection_established, init_connection},
-    },
+
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::relayer::channel::{assert_eventually_channel_established, init_channel};
+use ibc_test_framework::relayer::connection::{
+    assert_eventually_connection_established, init_connection,
 };
 
 #[test]

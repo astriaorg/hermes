@@ -1,13 +1,10 @@
+use crate::chain::cli::authz::{authz_grant, exec_grant, query_authz_grant};
+use crate::chain::cli::transfer::generate_transfer_from_chain_tx;
+use crate::error::Error;
+use crate::prelude::*;
+use crate::types::tagged::MonoTagged;
+
 use super::bootstrap::ChainBootstrapMethodsExt;
-use crate::{
-    chain::cli::{
-        authz::{authz_grant, exec_grant, query_authz_grant},
-        transfer::generate_transfer_from_chain_tx,
-    },
-    error::Error,
-    prelude::*,
-    types::tagged::MonoTagged,
-};
 
 const WAIT_GRANT_ATTEMPTS: u16 = 5;
 

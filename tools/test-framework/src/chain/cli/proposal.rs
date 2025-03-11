@@ -4,11 +4,10 @@
 use eyre::eyre;
 use tracing::warn;
 
-use crate::{
-    chain::{cli::query::query_tx_hash, exec::simple_exec},
-    error::Error,
-    prelude::{handle_generic_error, ChainDriver},
-};
+use crate::chain::cli::query::query_tx_hash;
+use crate::chain::exec::simple_exec;
+use crate::error::Error;
+use crate::prelude::{handle_generic_error, ChainDriver};
 
 pub fn vote_proposal(driver: &ChainDriver, proposal_id: &str, fees: &str) -> Result<(), Error> {
     let output = simple_exec(

@@ -1,16 +1,13 @@
 use eyre::eyre;
-use ibc_relayer::{chain::handle::ChainHandle, foreign_client::ForeignClient};
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::foreign_client::ForeignClient;
 
 use super::aliases::NthChainHandle;
-use crate::{
-    error::Error,
-    types::{
-        binary::foreign_client::ForeignClientPair,
-        env::{EnvWriter, ExportEnv},
-        tagged::*,
-    },
-    util::two_dim_hash_map::TwoDimMap,
-};
+use crate::error::Error;
+use crate::types::binary::foreign_client::ForeignClientPair;
+use crate::types::env::{EnvWriter, ExportEnv};
+use crate::types::tagged::*;
+use crate::util::two_dim_hash_map::TwoDimMap;
 
 /**
    A [`ForeignClient`] that is tagged by a `Handle: ChainHandle` and

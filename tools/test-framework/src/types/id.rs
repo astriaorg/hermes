@@ -3,9 +3,8 @@
    identifier types defined in [`ibc_relayer_types::core::ics24_host::identifier`].
 */
 
-use ibc_relayer_types::core::ics24_host::identifier::*;
-
 use crate::types::tagged::*;
+use ibc_relayer_types::core::ics24_host::identifier::*;
 
 /**
    A [`ChainId`] tagged with the chain it belongs to.

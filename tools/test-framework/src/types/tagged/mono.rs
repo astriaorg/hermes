@@ -17,12 +17,9 @@
 
 */
 
-use core::{
-    cmp::Ordering,
-    fmt::{self, Debug, Display},
-    marker::PhantomData,
-};
-
+use core::cmp::Ordering;
+use core::fmt::{self, Debug, Display};
+use core::marker::PhantomData;
 use serde::{Serialize, Serializer};
 
 use super::dual::Tagged as DualTagged;

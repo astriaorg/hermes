@@ -1,9 +1,7 @@
-use crate::{
-    chain::cli::fee_grant::feegrant_grant,
-    error::Error,
-    prelude::{ChainDriver, TaggedTokenRef},
-    types::tagged::MonoTagged,
-};
+use crate::chain::cli::fee_grant::feegrant_grant;
+use crate::error::Error;
+use crate::prelude::{ChainDriver, TaggedTokenRef};
+use crate::types::tagged::MonoTagged;
 pub trait FeeGrantMethodsExt<Chain> {
     fn feegrant_grant(
         &self,

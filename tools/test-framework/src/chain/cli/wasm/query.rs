@@ -1,9 +1,7 @@
 use eyre::eyre;
 
-use crate::{
-    chain::exec::simple_exec,
-    error::{handle_generic_error, Error},
-};
+use crate::chain::exec::simple_exec;
+use crate::error::{handle_generic_error, Error};
 
 pub fn query_wasm_list_code(
     chain_id: &str,

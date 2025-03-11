@@ -1,4 +1,5 @@
-use ibc_test_framework::{prelude::*, types::topology::TopologyType};
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::types::topology::TopologyType;
 
 #[test]
 fn test_ternary_ibc_transfer() -> Result<(), Error> {

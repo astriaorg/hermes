@@ -1,13 +1,9 @@
 use std::path::Path;
 
-use crate::{
-    chain::{
-        cli::wasm::contract::{store_wasm_client_code, store_wasm_contract},
-        driver::ChainDriver,
-    },
-    error::Error,
-    types::tagged::*,
-};
+use crate::chain::cli::wasm::contract::{store_wasm_client_code, store_wasm_contract};
+use crate::chain::driver::ChainDriver;
+use crate::error::Error;
+use crate::types::tagged::*;
 
 pub trait StoreWasmClientCodeMethodsExt {
     fn store_wasm_client_code(

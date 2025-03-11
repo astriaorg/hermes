@@ -3,10 +3,9 @@
 */
 use eyre::eyre;
 
-use crate::{
-    chain::{cli::query::query_tx_hash, exec::simple_exec},
-    prelude::*,
-};
+use crate::chain::cli::query::query_tx_hash;
+use crate::chain::exec::simple_exec;
+use crate::prelude::*;
 
 pub fn vote_proposal(
     chain_id: &str,

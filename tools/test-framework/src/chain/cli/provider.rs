@@ -1,11 +1,9 @@
-use std::{collections::HashMap, str, thread};
-
 use eyre::eyre;
+use std::collections::HashMap;
+use std::{str, thread};
 
-use crate::{
-    chain::exec::{simple_exec, ExecOutput},
-    error::{handle_generic_error, Error},
-};
+use crate::chain::exec::{simple_exec, ExecOutput};
+use crate::error::{handle_generic_error, Error};
 
 pub fn submit_consumer_chain_proposal(
     chain_id: &str,

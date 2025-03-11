@@ -3,27 +3,22 @@
 */
 
 use core::time::Duration;
-
 use ibc_relayer::chain::handle::ChainHandle;
-use ibc_relayer_types::core::{ics04_channel::channel::Ordering, ics24_host::identifier::PortId};
+use ibc_relayer_types::core::ics04_channel::channel::Ordering;
+use ibc_relayer_types::core::ics24_host::identifier::PortId;
 
-use crate::{
-    bootstrap::{
-        binary::channel::{bootstrap_channel_with_connection, BootstrapChannelOptions},
-        nary::connection::bootstrap_connections_dynamic,
-    },
-    error::{handle_generic_error, Error},
-    types::{
-        binary::channel::ConnectedChannel,
-        nary::{
-            chains::{DynamicConnectedChains, NaryConnectedChains},
-            channel::{ConnectedChannels, DynamicConnectedChannels},
-            connection::{ConnectedConnections, DynamicConnectedConnections},
-        },
-        tagged::*,
-    },
-    util::{array::into_nested_vec, two_dim_hash_map::TwoDimMap},
+use crate::bootstrap::binary::channel::{
+    bootstrap_channel_with_connection, BootstrapChannelOptions,
 };
+use crate::bootstrap::nary::connection::bootstrap_connections_dynamic;
+use crate::error::{handle_generic_error, Error};
+use crate::types::binary::channel::ConnectedChannel;
+use crate::types::nary::chains::{DynamicConnectedChains, NaryConnectedChains};
+use crate::types::nary::channel::{ConnectedChannels, DynamicConnectedChannels};
+use crate::types::nary::connection::{ConnectedConnections, DynamicConnectedConnections};
+use crate::types::tagged::*;
+use crate::util::array::into_nested_vec;
+use crate::util::two_dim_hash_map::TwoDimMap;
 
 /**
    Bootstrap a dynamic number of channels based on the number of

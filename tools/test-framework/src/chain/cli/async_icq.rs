@@ -1,7 +1,6 @@
-use crate::{
-    chain::{cli::query::query_tx_hash, exec::simple_exec},
-    error::Error,
-};
+use crate::chain::cli::query::query_tx_hash;
+use crate::chain::exec::simple_exec;
+use crate::error::Error;
 
 pub fn update_oracle(
     chain_id: &str,

@@ -48,15 +48,15 @@
    your tests, whether it be linear, fully connected, or any other configuration.
 */
 
+use eyre::eyre;
 use std::str::FromStr;
 
-use eyre::eyre;
-use ibc_relayer::{chain::handle::ChainHandle, foreign_client::ForeignClient};
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::foreign_client::ForeignClient;
 
-use crate::{
-    bootstrap::binary::chain::bootstrap_foreign_client, error::Error,
-    util::two_dim_hash_map::TwoDimMap,
-};
+use crate::bootstrap::binary::chain::bootstrap_foreign_client;
+use crate::error::Error;
+use crate::util::two_dim_hash_map::TwoDimMap;
 
 pub enum TopologyType {
     Linear,

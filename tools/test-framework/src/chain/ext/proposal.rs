@@ -1,26 +1,21 @@
 use eyre::eyre;
 use http::Uri;
-use ibc_proto::{
-    cosmos::gov::v1beta1::{query_client::QueryClient, QueryProposalRequest},
-    ibc::core::client::v1::{MsgIbcSoftwareUpgrade, UpgradeProposal},
-};
-use ibc_relayer::{config::default::max_grpc_decoding_size, error::Error as RelayerError};
+use ibc_relayer::config::default::max_grpc_decoding_size;
 use prost::Message;
 
+use ibc_proto::cosmos::gov::v1beta1::{query_client::QueryClient, QueryProposalRequest};
+use ibc_proto::ibc::core::client::v1::{MsgIbcSoftwareUpgrade, UpgradeProposal};
+use ibc_relayer::error::Error as RelayerError;
+
+use crate::chain::cli::proposal::deposit_proposal;
+use crate::chain::cli::upgrade::{submit_gov_proposal, vote_proposal};
+use crate::chain::driver::ChainDriver;
+use crate::error::Error;
+use crate::prelude::{handle_generic_error, TaggedChainDriverExt};
+use crate::types::tagged::*;
+use crate::util::proposal_status::ProposalStatus;
+
 use super::bootstrap::ChainBootstrapMethodsExt;
-use crate::{
-    chain::{
-        cli::{
-            proposal::deposit_proposal,
-            upgrade::{submit_gov_proposal, vote_proposal},
-        },
-        driver::ChainDriver,
-    },
-    error::Error,
-    prelude::{handle_generic_error, TaggedChainDriverExt},
-    types::tagged::*,
-    util::proposal_status::ProposalStatus,
-};
 
 pub trait ChainProposalMethodsExt {
     fn query_upgrade_proposal_height(

@@ -1,12 +1,10 @@
 use std::thread;
 
-use ibc_relayer::{
-    chain::{counterparty::pending_packet_summary, requests::Paginate},
-    config::ChainConfig,
-};
-use ibc_test_framework::{
-    prelude::*, relayer::channel::query_identified_channel_end, util::random::random_u128_range,
-};
+use ibc_relayer::chain::{counterparty::pending_packet_summary, requests::Paginate};
+use ibc_relayer::config::ChainConfig;
+use ibc_test_framework::prelude::*;
+use ibc_test_framework::relayer::channel::query_identified_channel_end;
+use ibc_test_framework::util::random::random_u128_range;
 
 #[test]
 fn test_disabled_clear_packet() -> Result<(), Error> {
@@ -344,9 +342,9 @@ impl TestOverrides for ClearPacketOverrideTest {
         for chain_config in config.chains.iter_mut() {
             match chain_config {
                 // Use a small clear interval in the chain configurations to override the global high interval
-                ChainConfig::CosmosSdk(chain_config)
-                | ChainConfig::Namada(chain_config)
-                | ChainConfig::Astria(chain_config) => chain_config.clear_interval = Some(10),
+                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+                    chain_config.clear_interval = Some(10)
+                }
                 ChainConfig::Penumbra(_) => { /* no-op */ }
             }
         }

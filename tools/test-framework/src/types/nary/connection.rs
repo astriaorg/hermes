@@ -6,15 +6,11 @@ use ibc_relayer::chain::handle::ChainHandle;
 use ibc_relayer_types::core::ics24_host::identifier::ConnectionId;
 
 use super::aliases::NthChainHandle;
-use crate::{
-    error::Error,
-    types::{
-        binary::connection::ConnectedConnection,
-        env::{EnvWriter, ExportEnv},
-        tagged::*,
-    },
-    util::two_dim_hash_map::TwoDimMap,
-};
+use crate::error::Error;
+use crate::types::binary::connection::ConnectedConnection;
+use crate::types::env::{EnvWriter, ExportEnv};
+use crate::types::tagged::*;
+use crate::util::two_dim_hash_map::TwoDimMap;
 
 /**
    A two dimensional BTreeMap of connected connections as specified by `SIZE`
