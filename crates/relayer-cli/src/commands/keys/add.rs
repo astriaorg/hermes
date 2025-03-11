@@ -253,6 +253,7 @@ pub fn add_key(
             namada_key.into()
         }
         ChainConfig::Penumbra(_) => unimplemented!("no key storage support for penumbra"),
+        ChainConfig::Astria(_) => unimplemented!("no key storage support for astria"),
     };
 
     Ok(key_pair)
@@ -295,6 +296,7 @@ pub fn restore_key(
             ));
         }
         ChainConfig::Penumbra(_) => return Err(eyre!("no key storage support for penumbra")),
+        ChainConfig::Astria(_) => return Err(eyre!("no key storage support for astria")),
     };
 
     Ok(key_pair)

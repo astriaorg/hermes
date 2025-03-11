@@ -77,7 +77,7 @@ fn get_balance(chain: impl ChainHandle, key_name: Option<String>, denom: Option<
             let key_name = key_name.unwrap_or_else(|| {
                 let chain_config = chain.config().unwrap_or_else(exit_with_unrecoverable_error);
                 match chain_config {
-                    ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+                    ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                         chain_config.key_name
                     }
                     ChainConfig::Penumbra(_) => unimplemented!("not yet supported for penumbra"),
@@ -102,7 +102,7 @@ fn get_balances(chain: impl ChainHandle, key_name: Option<String>) {
             let key_name = key_name.unwrap_or_else(|| {
                 let chain_config = chain.config().unwrap_or_else(exit_with_unrecoverable_error);
                 match chain_config {
-                    ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+                    ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                         chain_config.key_name
                     }
                     ChainConfig::Penumbra(_) => unimplemented!("not yet supported for penumbra"),

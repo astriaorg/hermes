@@ -48,7 +48,7 @@ impl TestOverrides for SequentialCommitTest {
                 chain_config_a.max_msg_num = MaxMsgNum::new(MESSAGES_PER_BATCH).unwrap();
                 chain_config_a.sequential_batch_tx = true;
             }
-            ChainConfig::Penumbra(_) => { /* no-op */ }
+            ChainConfig::Penumbra(_) | ChainConfig::Astria(_) => { /* no-op */ }
         };
 
         match &mut config.chains[1] {
@@ -56,7 +56,7 @@ impl TestOverrides for SequentialCommitTest {
                 chain_config_b.max_msg_num = MaxMsgNum::new(MESSAGES_PER_BATCH).unwrap();
                 chain_config_b.sequential_batch_tx = false;
             }
-            ChainConfig::Penumbra(_) => { /* no-op */ }
+            ChainConfig::Penumbra(_) | ChainConfig::Astria(_) => { /* no-op */ }
         };
     }
 
