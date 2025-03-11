@@ -32,7 +32,9 @@ impl TestOverrides for FilterIncentivizedFeesRelayerTest {
         let packet_filter = PacketFilter::new(ChannelPolicy::default(), min_fees);
         for chain_config in config.chains.iter_mut() {
             match chain_config {
-                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
+                ChainConfig::CosmosSdk(chain_config)
+                | ChainConfig::Namada(chain_config)
+                | ChainConfig::Astria(chain_config) => {
                     chain_config.packet_filter = packet_filter.clone();
                 }
                 ChainConfig::Penumbra(_) => {
@@ -187,7 +189,9 @@ impl TestOverrides for FilterByChannelIncentivizedFeesRelayerTest {
         let packet_filter = PacketFilter::new(ChannelPolicy::default(), min_fees);
         for chain_config in config.chains.iter_mut() {
             match chain_config {
-                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
+                ChainConfig::CosmosSdk(chain_config)
+                | ChainConfig::Namada(chain_config)
+                | ChainConfig::Astria(chain_config) => {
                     chain_config.packet_filter = packet_filter.clone();
                 }
                 ChainConfig::Penumbra(_) => {

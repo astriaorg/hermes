@@ -102,9 +102,9 @@ impl BinaryChannelTest for DynamicGasTest {
             .first()
             .ok_or_else(|| eyre!("chain configuration is empty"))?
         {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
-                chain_config.gas_price.denom.clone()
-            }
+            ChainConfig::CosmosSdk(chain_config)
+            | ChainConfig::Namada(chain_config)
+            | ChainConfig::Astria(chain_config) => chain_config.gas_price.denom.clone(),
             ChainConfig::Penumbra(_) => panic!("running tests with Penumbra chain not supported"),
         };
 
@@ -114,9 +114,9 @@ impl BinaryChannelTest for DynamicGasTest {
             .get(1)
             .ok_or_else(|| eyre!("chain configuration is empty"))?
         {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
-                chain_config.gas_price.denom.clone()
-            }
+            ChainConfig::CosmosSdk(chain_config)
+            | ChainConfig::Namada(chain_config)
+            | ChainConfig::Astria(chain_config) => chain_config.gas_price.denom.clone(),
             ChainConfig::Penumbra(_) => panic!("running tests with Penumbra chain not supported"),
         };
 
