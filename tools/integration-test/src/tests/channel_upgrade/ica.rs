@@ -315,7 +315,7 @@ impl TestOverrides for ChannelUpgradeICAUnordered {
 
         for chain in &mut config.chains {
             match chain {
-                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                     chain_config.packet_filter = self.packet_filter.clone();
                 }
                 ChainConfig::Penumbra(_) => {

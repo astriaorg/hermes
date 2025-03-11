@@ -336,7 +336,7 @@ fn assert_eventual_async_icq_success<ChainA: ChainHandle, ChainB: ChainHandle>(
     relayer: &RelayerDriver,
 ) -> Result<(), Error> {
     let rpc_addr = match relayer.config.chains.first().unwrap() {
-        ChainConfig::CosmosSdk(c) | ChainConfig::Namada(c) => c.rpc_addr.clone(),
+        ChainConfig::CosmosSdk(c) | ChainConfig::Namada(c) | ChainConfig::Astria(c) => c.rpc_addr.clone(),
         ChainConfig::Penumbra(_) => panic!("running tests with Penumbra chain not supported"),
     };
 
@@ -372,7 +372,7 @@ fn assert_eventual_async_icq_error<ChainA: ChainHandle, ChainB: ChainHandle>(
     relayer: &RelayerDriver,
 ) -> Result<(), Error> {
     let rpc_addr = match relayer.config.chains.first().unwrap() {
-        ChainConfig::CosmosSdk(c) | ChainConfig::Namada(c) => c.rpc_addr.clone(),
+        ChainConfig::CosmosSdk(c) | ChainConfig::Namada(c) | ChainConfig::Astria(c) => c.rpc_addr.clone(),
         ChainConfig::Penumbra(_) => panic!("running tests with Penumbra chain not supported"),
     };
 

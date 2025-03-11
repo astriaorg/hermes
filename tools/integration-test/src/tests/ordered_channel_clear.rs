@@ -51,7 +51,7 @@ impl TestOverrides for OrderedChannelClearTest {
         {
             let chain_a = &mut config.chains[0];
             match chain_a {
-                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                     chain_config.sequential_batch_tx = self.sequential_batch_tx;
                 }
                 ChainConfig::Penumbra(_) => {
@@ -62,7 +62,7 @@ impl TestOverrides for OrderedChannelClearTest {
 
         let chain_b = &mut config.chains[1];
         match chain_b {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                 chain_config.sequential_batch_tx = self.sequential_batch_tx;
             }
             ChainConfig::Penumbra(_) => panic!("running tests with Penumbra chain not supported"),
@@ -201,7 +201,7 @@ impl TestOverrides for OrderedChannelClearEqualCLITest {
         {
             let chain_a = &mut config.chains[0];
             match chain_a {
-                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+                ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                     chain_config.sequential_batch_tx = true;
                     chain_config.max_msg_num = MaxMsgNum::new(3).unwrap();
                 }
@@ -213,7 +213,7 @@ impl TestOverrides for OrderedChannelClearEqualCLITest {
 
         let chain_b = &mut config.chains[1];
         match chain_b {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                 chain_config.sequential_batch_tx = true;
                 chain_config.max_msg_num = MaxMsgNum::new(3).unwrap();
             }
