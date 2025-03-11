@@ -1786,7 +1786,7 @@ fn client_id_suffix(client_id: &ClientId) -> Option<u64> {
         .and_then(|e| e.parse::<u64>().ok())
 }
 
-fn decode_merkle_proof(proof_bytes: Vec<u8>) -> Result<MerkleProof, Error> {
+pub(crate) fn decode_merkle_proof(proof_bytes: Vec<u8>) -> Result<MerkleProof, Error> {
     let proof_bytes = CommitmentProofBytes::try_from(proof_bytes).map_err(|e| {
         Error::temp_penumbra_error(format!("couldn't decode CommitmentProofBytes: {}", e))
     })?;

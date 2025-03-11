@@ -44,12 +44,12 @@ use crate::chain::cosmos::config::CosmosSdkConfig;
 use crate::{
     account::Balance,
     chain::{
-        astria::utils::decode_merkle_proof,
         client::ClientSettings,
         cosmos::batch::response_to_tx_sync_result,
         cosmos::wait::wait_for_block_commits,
         endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
         handle::Subscription,
+        penumbra::decode_merkle_proof,
         requests::*,
         tracking::TrackedMsgs,
     },
@@ -1413,7 +1413,7 @@ impl ChainEndpoint for AstriaChain {
         ))?;
         // Note: Astria does not have an unbonding period, so we set it to 3/2 of the trusting period.
         let unbonding_period = trusting_period * 3 / 2;
-        let proof_specs = crate::chain::astria::proof_specs::proof_spec_with_prehash();
+        let proof_specs = crate::chain::penumbra::IBC_PROOF_SPECS.clone();
 
         Self::ClientState::new(
             self.id().clone(),
@@ -1422,7 +1422,7 @@ impl ChainEndpoint for AstriaChain {
             unbonding_period,
             settings.max_clock_drift,
             height,
-            proof_specs,
+            proof_specs.into(),
             vec!["upgrade".to_string(), "upgradedIBCState".to_string()],
             AllowUpdate {
                 after_expiry: true,
