@@ -1,13 +1,15 @@
 //! Various components for internal use by the Abscissa subsystem.
 
 use abscissa_core::{Component, FrameworkError, FrameworkErrorKind};
-use ibc_relayer::{
-    config::{Error, GlobalConfig, LogLevel},
-    util::debug_section::DebugSection,
-};
 use tracing_subscriber::{filter::EnvFilter, util::SubscriberInitExt, FmtSubscriber};
 
+use ibc_relayer::{
+    config::{GlobalConfig, LogLevel},
+    util::debug_section::DebugSection,
+};
+
 use crate::tracing_handle::ReloadHandle;
+use ibc_relayer::config::Error;
 
 /// The name of the environment variable through which one can override
 /// the tracing filter built in [`build_tracing_filter`].

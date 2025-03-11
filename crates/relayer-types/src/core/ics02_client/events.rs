@@ -7,13 +7,10 @@ use serde_derive::{Deserialize, Serialize};
 use tendermint::abci;
 
 use super::header::AnyHeader;
-use crate::{
-    core::{
-        ics02_client::{client_type::ClientType, height::Height},
-        ics24_host::identifier::ClientId,
-    },
-    events::{IbcEvent, IbcEventType},
-};
+use crate::core::ics02_client::client_type::ClientType;
+use crate::core::ics02_client::height::Height;
+use crate::core::ics24_host::identifier::ClientId;
+use crate::events::{IbcEvent, IbcEventType};
 
 /// The content of the `key` field for the attribute containing the client identifier.
 pub const CLIENT_ID_ATTRIBUTE_KEY: &str = "client_id";

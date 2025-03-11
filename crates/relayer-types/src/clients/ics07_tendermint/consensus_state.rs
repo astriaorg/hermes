@@ -1,19 +1,16 @@
-use ibc_proto::{
-    google::protobuf::Any, ibc::lightclients::tendermint::v1::ConsensusState as RawConsensusState,
-    Protobuf,
-};
+use ibc_proto::google::protobuf::Any;
+use ibc_proto::ibc::lightclients::tendermint::v1::ConsensusState as RawConsensusState;
+use ibc_proto::Protobuf;
 use serde::{Deserialize, Serialize};
 use tendermint::{hash::Algorithm, time::Time, Hash};
 use tendermint_proto::google::protobuf as tpb;
 
-use crate::{
-    clients::ics07_tendermint::{error::Error, header::Header},
-    core::{
-        ics02_client::{client_type::ClientType, error::Error as Ics02Error},
-        ics23_commitment::commitment::CommitmentRoot,
-    },
-    timestamp::Timestamp,
-};
+use crate::clients::ics07_tendermint::error::Error;
+use crate::clients::ics07_tendermint::header::Header;
+use crate::core::ics02_client::client_type::ClientType;
+use crate::core::ics02_client::error::Error as Ics02Error;
+use crate::core::ics23_commitment::commitment::CommitmentRoot;
+use crate::timestamp::Timestamp;
 
 pub const TENDERMINT_CONSENSUS_STATE_TYPE_URL: &str =
     "/ibc.lightclients.tendermint.v1.ConsensusState";
@@ -103,9 +100,8 @@ impl TryFrom<Any> for ConsensusState {
     type Error = Ics02Error;
 
     fn try_from(raw: Any) -> Result<Self, Self::Error> {
-        use core::ops::Deref;
-
         use bytes::Buf;
+        use core::ops::Deref;
         use prost::Message;
 
         fn decode_consensus_state<B: Buf>(buf: B) -> Result<ConsensusState, Error> {

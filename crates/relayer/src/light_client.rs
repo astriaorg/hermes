@@ -1,12 +1,13 @@
 pub mod io;
 pub mod tendermint;
 
-use ibc_relayer_types::{core::ics02_client::events::UpdateClient, Height};
+use ibc_relayer_types::core::ics02_client::events::UpdateClient;
+use ibc_relayer_types::Height;
 
-use crate::{
-    chain::endpoint::ChainEndpoint, client_state::AnyClientState, error,
-    misbehaviour::MisbehaviourEvidence,
-};
+use crate::chain::endpoint::ChainEndpoint;
+use crate::client_state::AnyClientState;
+use crate::error;
+use crate::misbehaviour::MisbehaviourEvidence;
 
 /// Defines a light block from the point of view of the relayer.
 pub trait LightBlock<C: ChainEndpoint>: Send + Sync {

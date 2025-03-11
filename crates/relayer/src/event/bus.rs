@@ -47,12 +47,11 @@ impl<T> EventBus<T> {
 
 #[cfg(test)]
 mod tests {
-    use core::sync::atomic::{AtomicUsize, Ordering};
+    use super::EventBus;
 
+    use core::sync::atomic::{AtomicUsize, Ordering};
     use serial_test::serial;
     use test_log::test;
-
-    use super::EventBus;
 
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
 

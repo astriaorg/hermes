@@ -2,7 +2,9 @@ use std::fs;
 
 use abscissa_core::clap::Parser;
 
-use crate::{conclude::Output, config, prelude::*};
+use crate::conclude::Output;
+use crate::config;
+use crate::prelude::*;
 
 /// In order to validate the configuration file the command will check that the file exists,
 /// that it is readable and not empty. It will then check the validity of the fields inside

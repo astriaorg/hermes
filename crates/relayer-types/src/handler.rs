@@ -1,6 +1,6 @@
-use std::marker::PhantomData;
-
 use crate::events::IbcEvent;
+
+use std::marker::PhantomData;
 
 pub type HandlerResult<T, E> = Result<HandlerOutput<T>, E>;
 

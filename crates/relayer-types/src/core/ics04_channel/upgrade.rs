@@ -1,11 +1,11 @@
-use ibc_proto::{
-    ibc::core::channel::v1::{ErrorReceipt as RawErrorReceipt, Upgrade as RawUpgrade},
-    Protobuf,
-};
+use ibc_proto::ibc::core::channel::v1::ErrorReceipt as RawErrorReceipt;
+use ibc_proto::ibc::core::channel::v1::Upgrade as RawUpgrade;
+use ibc_proto::Protobuf;
 
-use crate::core::ics04_channel::{
-    error::Error as ChannelError, packet::Sequence, timeout::Timeout, upgrade_fields::UpgradeFields,
-};
+use crate::core::ics04_channel::error::Error as ChannelError;
+use crate::core::ics04_channel::packet::Sequence;
+use crate::core::ics04_channel::timeout::Timeout;
+use crate::core::ics04_channel::upgrade_fields::UpgradeFields;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Upgrade {
@@ -80,12 +80,11 @@ impl From<ErrorReceipt> for RawErrorReceipt {
 
 #[cfg(test)]
 pub mod test_util {
-    use ibc_proto::ibc::core::channel::v1::Upgrade as RawUpgrade;
-
     use crate::core::ics04_channel::{
         timeout::test_util::get_dummy_upgrade_timeout,
         upgrade_fields::test_util::get_dummy_upgrade_fields,
     };
+    use ibc_proto::ibc::core::channel::v1::Upgrade as RawUpgrade;
 
     pub fn get_dummy_upgrade() -> RawUpgrade {
         RawUpgrade {

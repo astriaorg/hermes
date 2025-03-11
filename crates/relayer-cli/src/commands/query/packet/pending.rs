@@ -1,16 +1,21 @@
 use core::fmt;
 
 use abscissa_core::clap::Parser;
-use ibc_relayer::chain::{
-    counterparty::{channel_on_destination, pending_packet_summary, PendingPackets},
-    handle::{BaseChainHandle, ChainHandle},
-    requests::Paginate,
-};
-use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
 use serde::Serialize;
 
+use ibc_relayer::chain::counterparty::{
+    channel_on_destination, pending_packet_summary, PendingPackets,
+};
+use ibc_relayer::chain::handle::{BaseChainHandle, ChainHandle};
+use ibc_relayer::chain::requests::Paginate;
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+
+use crate::cli_utils::spawn_chain_counterparty;
+use crate::conclude::Output;
+use crate::error::Error;
+use crate::prelude::*;
+
 use super::util::CollatedPendingPackets;
-use crate::{cli_utils::spawn_chain_counterparty, conclude::Output, error::Error, prelude::*};
 
 /// A structure to display pending packet commitment sequence IDs
 /// at both ends of a channel.
@@ -173,12 +178,12 @@ impl Runnable for QueryPendingPacketsCmd {
 
 #[cfg(test)]
 mod tests {
+    use super::QueryPendingPacketsCmd;
+
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
-
-    use super::QueryPendingPacketsCmd;
 
     #[test]
     fn test_query_packet_pending() {

@@ -10,16 +10,17 @@ use futures::{
     stream::{self, select_all, StreamExt},
     Stream, TryStreamExt,
 };
-use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent};
+use tokio::task::JoinHandle;
+use tokio::{runtime::Runtime as TokioRuntime, sync::mpsc};
+use tracing::{debug, error, info, instrument, trace};
+
 use tendermint_rpc::{
     client::CompatMode, event::Event as RpcEvent, query::Query, SubscriptionClient,
     WebSocketClient, WebSocketClientDriver, WebSocketClientUrl,
 };
-use tokio::{runtime::Runtime as TokioRuntime, sync::mpsc, task::JoinHandle};
-use tracing::{debug, error, info, instrument, trace};
 
-use self::extract::extract_events;
-use super::{EventBatch, EventSourceCmd, Result, SubscriptionStream, TxEventSourceCmd};
+use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent};
+
 use crate::{
     chain::tracking::TrackingId,
     event::{bus::EventBus, error::*, IbcEventWithHeight},
@@ -30,12 +31,14 @@ use crate::{
     },
 };
 
+use super::{EventBatch, EventSourceCmd, Result, SubscriptionStream, TxEventSourceCmd};
+
+use self::extract::extract_events;
+
 mod retry_strategy {
-    use core::time::Duration;
-
-    use retry::delay::Fibonacci;
-
     use crate::util::retry::clamp_total;
+    use core::time::Duration;
+    use retry::delay::Fibonacci;
 
     // Default parameters for the retrying mechanism
     const MAX_DELAY: Duration = Duration::from_secs(60); // 1 minute

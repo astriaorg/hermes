@@ -1,12 +1,13 @@
 use core::str::FromStr;
 
-use ibc_proto::{ibc::core::channel::v1::UpgradeFields as RawUpgradeFields, Protobuf};
+use ibc_proto::ibc::core::channel::v1::UpgradeFields as RawUpgradeFields;
+use ibc_proto::Protobuf;
 use itertools::Itertools;
 
-use crate::core::{
-    ics04_channel::{channel::Ordering, error::Error as ChannelError, version::Version},
-    ics24_host::identifier::ConnectionId,
-};
+use crate::core::ics04_channel::channel::Ordering;
+use crate::core::ics04_channel::error::Error as ChannelError;
+use crate::core::ics04_channel::version::Version;
+use crate::core::ics24_host::identifier::ConnectionId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UpgradeFields {
@@ -70,7 +71,8 @@ impl From<UpgradeFields> for RawUpgradeFields {
 
 #[cfg(test)]
 pub mod test_util {
-    use std::{string::ToString, vec};
+    use std::string::ToString;
+    use std::vec;
 
     use ibc_proto::ibc::core::channel::v1::UpgradeFields as RawUpgradeFields;
 

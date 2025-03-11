@@ -1,9 +1,9 @@
-use std::{env, fs, path::PathBuf};
+use std::path::PathBuf;
+use std::{env, fs};
 
-use namada_sdk::{
-    wallet::{fs::FsWalletStorage, LoadStoreError, Store, Wallet, WalletIo, WalletStorage},
-    zeroize::Zeroizing,
-};
+use namada_sdk::wallet::fs::FsWalletStorage;
+use namada_sdk::wallet::{LoadStoreError, Store, Wallet, WalletIo, WalletStorage};
+use namada_sdk::zeroize::Zeroizing;
 use signature::rand_core::OsRng;
 
 /// Wallet utils for Namada context

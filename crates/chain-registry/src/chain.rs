@@ -1,11 +1,9 @@
 //! Contains models for serializing and deserializing `chain.json` for a given chain
 //! Taken from <https://github.com/PeggyJV/ocular/blob/main/ocular/src/registry/chain.rs>
-use std::path::PathBuf;
-
+use crate::fetchable::Fetchable;
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 use serde::{Deserialize, Serialize};
-
-use crate::fetchable::Fetchable;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
@@ -165,7 +163,8 @@ impl Fetchable for ChainData {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{constants::ALL_CHAINS, error::RegistryError};
+    use crate::constants::ALL_CHAINS;
+    use crate::error::RegistryError;
 
     #[tokio::test]
     #[ignore]
@@ -189,9 +188,8 @@ mod tests {
 
     #[test]
     fn chain_data_deserialize() {
-        use std::str::FromStr;
-
         use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+        use std::str::FromStr;
         let json = r#"{
             "$schema": "https://github.com/cosmos/chain-registry/blob/master/chain.schema.json",
             "chain_name": "test",

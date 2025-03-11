@@ -2,6 +2,7 @@ use core::time::Duration;
 
 use abscissa_core::{clap::Parser, config::Override, FrameworkError, FrameworkErrorKind};
 use eyre::eyre;
+
 use ibc_relayer::{
     chain::handle::ChainHandle,
     config::Config,
@@ -302,15 +303,15 @@ fn fee_transfer(chains: ChainHandlePair, opts: FeeTransferOptions) -> Result<(),
 #[cfg(test)]
 mod tests {
 
-    use std::str::FromStr;
+    use super::FeeTransferCmd;
 
     use abscissa_core::clap::Parser;
+    use std::str::FromStr;
+
     use ibc_relayer_types::{
         applications::transfer::Amount,
         core::ics24_host::identifier::{ChainId, ChannelId, PortId},
     };
-
-    use super::FeeTransferCmd;
 
     #[test]
     fn test_fee_transfer_required_only() {

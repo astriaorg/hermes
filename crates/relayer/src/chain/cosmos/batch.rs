@@ -1,28 +1,25 @@
 use core::mem;
 
 use ibc_proto::google::protobuf::Any;
-use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent, Height};
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::Height;
 use prost::Message;
-use tendermint_rpc::{endpoint::broadcast::tx_sync::Response, HttpClient};
+use tendermint_rpc::endpoint::broadcast::tx_sync::Response;
+use tendermint_rpc::HttpClient;
 use tracing::debug;
 
-use crate::{
-    chain::cosmos::{
-        encode::encoded_tx_metrics,
-        gas::gas_amount_to_fee,
-        retry::send_tx_with_account_sequence_retry,
-        types::{
-            account::Account,
-            config::TxConfig,
-            tx::{TxStatus, TxSyncResult},
-        },
-        wait::wait_for_block_commits,
-    },
-    config::types::Memo,
-    error::Error,
-    event::IbcEventWithHeight,
-    keyring::Secp256k1KeyPair,
-};
+use crate::chain::cosmos::encode::encoded_tx_metrics;
+use crate::chain::cosmos::gas::gas_amount_to_fee;
+use crate::chain::cosmos::retry::send_tx_with_account_sequence_retry;
+use crate::chain::cosmos::types::account::Account;
+use crate::chain::cosmos::types::config::TxConfig;
+use crate::chain::cosmos::types::tx::{TxStatus, TxSyncResult};
+use crate::chain::cosmos::wait::wait_for_block_commits;
+use crate::config::types::Memo;
+use crate::error::Error;
+use crate::event::IbcEventWithHeight;
+use crate::keyring::Secp256k1KeyPair;
 
 /**
    Broadcast messages as multiple batched transactions to the chain all at once,
@@ -319,25 +316,19 @@ async fn batch_messages(
 #[allow(clippy::redundant_clone)]
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
+    use super::batch_messages;
+    use crate::chain::cosmos::encode::sign_and_encode_tx;
+    use crate::chain::cosmos::gas::gas_amount_to_fee;
+    use crate::chain::cosmos::types::account::{
+        Account, AccountAddress, AccountNumber, AccountSequence,
+    };
+    use crate::chain::cosmos::types::config::TxConfig;
+    use crate::config;
+    use crate::config::types::{MaxMsgNum, MaxTxSize, Memo};
+    use crate::keyring::{self, KeyRing, Secp256k1KeyPair, SigningKeyPair};
     use ibc_proto::google::protobuf::Any;
     use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-
-    use super::batch_messages;
-    use crate::{
-        chain::cosmos::{
-            encode::sign_and_encode_tx,
-            gas::gas_amount_to_fee,
-            types::{
-                account::{Account, AccountAddress, AccountNumber, AccountSequence},
-                config::TxConfig,
-            },
-        },
-        config,
-        config::types::{MaxMsgNum, MaxTxSize, Memo},
-        keyring::{self, KeyRing, Secp256k1KeyPair, SigningKeyPair},
-    };
+    use std::fs;
 
     const COSMOS_HD_PATH: &str = "m/44'/118'/0'/0/0";
 

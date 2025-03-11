@@ -1,17 +1,16 @@
-use ibc_proto::{
-    ibc::core::channel::v1::MsgChannelUpgradeTry as RawMsgChannelUpgradeTry, Protobuf,
-};
+use crate::core::ics04_channel::packet::Sequence;
+use crate::core::ics04_channel::upgrade_fields::UpgradeFields;
+use crate::Height;
 
-use crate::{
-    core::{
-        ics04_channel::{error::Error, packet::Sequence, upgrade_fields::UpgradeFields},
-        ics23_commitment::commitment::CommitmentProofBytes,
-        ics24_host::identifier::{ChannelId, ConnectionId, PortId},
-    },
-    signer::Signer,
-    tx_msg::Msg,
-    Height,
-};
+use ibc_proto::Protobuf;
+
+use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeTry as RawMsgChannelUpgradeTry;
+
+use crate::core::ics04_channel::error::Error;
+use crate::core::ics23_commitment::commitment::CommitmentProofBytes;
+use crate::core::ics24_host::identifier::{ChannelId, ConnectionId, PortId};
+use crate::signer::Signer;
+use crate::tx_msg::Msg;
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelUpgradeTry";
 
@@ -140,18 +139,12 @@ impl From<MsgChannelUpgradeTry> for RawMsgChannelUpgradeTry {
 
 #[cfg(test)]
 pub mod test_util {
-    use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelUpgradeTry as RawMsgChannelUpgradeTry,
-        client::v1::Height as RawHeight,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeTry as RawMsgChannelUpgradeTry;
+    use ibc_proto::ibc::core::client::v1::Height as RawHeight;
 
-    use crate::{
-        core::{
-            ics04_channel::upgrade_fields::test_util::get_dummy_upgrade_fields,
-            ics24_host::identifier::{ChannelId, PortId},
-        },
-        test_utils::{get_dummy_bech32_account, get_dummy_proof},
-    };
+    use crate::core::ics04_channel::upgrade_fields::test_util::get_dummy_upgrade_fields;
+    use crate::core::ics24_host::identifier::{ChannelId, PortId};
+    use crate::test_utils::{get_dummy_bech32_account, get_dummy_proof};
 
     /// Returns a dummy `RawMsgChannelUpgradeTry`, for testing only!
     pub fn get_dummy_raw_msg_chan_upgrade_try() -> RawMsgChannelUpgradeTry {
@@ -174,12 +167,12 @@ pub mod test_util {
 
 #[cfg(test)]
 mod tests {
-    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeTry as RawMsgChannelUpgradeTry;
     use test_log::test;
 
-    use crate::core::ics04_channel::msgs::chan_upgrade_try::{
-        test_util::get_dummy_raw_msg_chan_upgrade_try, MsgChannelUpgradeTry,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeTry as RawMsgChannelUpgradeTry;
+
+    use crate::core::ics04_channel::msgs::chan_upgrade_try::test_util::get_dummy_raw_msg_chan_upgrade_try;
+    use crate::core::ics04_channel::msgs::chan_upgrade_try::MsgChannelUpgradeTry;
 
     #[test]
     fn parse_channel_upgrade_try_msg() {

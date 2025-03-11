@@ -1,6 +1,8 @@
 use flex_error::{define_error, TraceError};
-use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+
 use tendermint_rpc::{Error as RpcError, WebSocketClientUrl};
+
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 
 define_error! {
     #[derive(Debug, Clone)]

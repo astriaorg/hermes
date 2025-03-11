@@ -1,6 +1,5 @@
-use std::fmt::{Display, Error as FmtError, Formatter};
-
 use serde_derive::{Deserialize, Serialize};
+use std::fmt::{Display, Error as FmtError, Formatter};
 
 use super::error::Error;
 
@@ -42,7 +41,6 @@ impl core::str::FromStr for ClientType {
 #[cfg(test)]
 mod tests {
     use core::str::FromStr;
-
     use test_log::test;
 
     use super::ClientType;

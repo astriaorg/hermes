@@ -1,20 +1,20 @@
-use std::{error::Error, io};
+use ibc_relayer::supervisor::SupervisorOptions;
+use ibc_relayer::util::debug_section::DebugSection;
+use std::error::Error;
+use std::io;
 
 use abscissa_core::clap::Parser;
 use crossbeam_channel::Sender;
-use ibc_relayer::{
-    chain::handle::{CachingChainHandle, ChainHandle},
-    config::Config,
-    registry::SharedRegistry,
-    rest,
-    supervisor::{cmd::SupervisorCmd, spawn_supervisor, SupervisorHandle, SupervisorOptions},
-    util::debug_section::DebugSection,
-};
 
-use crate::{
-    conclude::{json, Output},
-    prelude::*,
-};
+use ibc_relayer::chain::handle::{CachingChainHandle, ChainHandle};
+use ibc_relayer::config::Config;
+use ibc_relayer::registry::SharedRegistry;
+use ibc_relayer::rest;
+use ibc_relayer::supervisor::{cmd::SupervisorCmd, spawn_supervisor, SupervisorHandle};
+
+use crate::conclude::json;
+use crate::conclude::Output;
+use crate::prelude::*;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct StartCmd {
@@ -30,7 +30,8 @@ impl Runnable for StartCmd {
         let app = app_reader();
 
         if app.debug_enabled(DebugSection::ProfilingJson) {
-            use std::{env, path::Path};
+            use std::env;
+            use std::path::Path;
 
             use ibc_relayer::util::profiling::open_or_create_profile_file;
 
@@ -216,9 +217,9 @@ fn make_supervisor<Chain: ChainHandle>(
 
 #[cfg(test)]
 mod tests {
-    use abscissa_core::clap::Parser;
-
     use super::StartCmd;
+
+    use abscissa_core::clap::Parser;
 
     #[test]
     fn test_start_required_only() {

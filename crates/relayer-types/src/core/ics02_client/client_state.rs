@@ -1,10 +1,10 @@
 use core::fmt::Debug;
 use std::time::Duration;
 
-use crate::{
-    core::{ics02_client::client_type::ClientType, ics24_host::identifier::ChainId},
-    Height,
-};
+use crate::core::ics02_client::client_type::ClientType;
+use crate::core::ics24_host::identifier::ChainId;
+
+use crate::Height;
 
 pub trait ClientState: Clone + Debug + Send + Sync {
     /// Return the chain identifier which this client is serving (i.e., the client is verifying

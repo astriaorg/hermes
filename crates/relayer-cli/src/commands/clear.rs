@@ -1,25 +1,23 @@
+use eyre::eyre;
 use std::ops::RangeInclusive;
 
-use abscissa_core::{clap::Parser, config::Override, Command, FrameworkErrorKind, Runnable};
-use eyre::eyre;
-use ibc_relayer::{
-    chain::{
-        handle::{BaseChainHandle, ChainHandle},
-        requests::{IncludeProof, QueryChannelRequest, QueryHeight},
-    },
-    config::Config,
-    link::{error::LinkError, Link, LinkParameters},
-    util::seq_range::parse_seq_range,
-};
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChainId, ChannelId, PortId},
-    },
-    events::IbcEvent,
-};
+use abscissa_core::clap::Parser;
+use abscissa_core::config::Override;
+use abscissa_core::{Command, FrameworkErrorKind, Runnable};
 
-use crate::{application::app_config, cli_utils::spawn_chain_counterparty, conclude::Output};
+use ibc_relayer::chain::handle::{BaseChainHandle, ChainHandle};
+use ibc_relayer::chain::requests::{IncludeProof, QueryChannelRequest, QueryHeight};
+use ibc_relayer::config::Config;
+use ibc_relayer::link::error::LinkError;
+use ibc_relayer::link::{Link, LinkParameters};
+use ibc_relayer::util::seq_range::parse_seq_range;
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
+use ibc_relayer_types::events::IbcEvent;
+
+use crate::application::app_config;
+use crate::cli_utils::spawn_chain_counterparty;
+use crate::conclude::Output;
 
 /// `clear` subcommands
 #[derive(Command, Debug, Parser, Runnable)]
@@ -267,15 +265,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::ClearPacketsCmd;
+
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
-    use ibc_relayer_types::core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChainId, ChannelId, PortId},
-    };
-
-    use super::ClearPacketsCmd;
+    use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+    use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ChannelId, PortId};
 
     #[test]
     fn test_clear_packets_required_only() {

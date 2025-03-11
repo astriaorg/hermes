@@ -75,9 +75,8 @@ pub fn clamp_total(
 
 #[cfg(test)]
 mod tests {
-    use test_log::test;
-
     use super::*;
+    use test_log::test;
 
     const CONST_STRATEGY: ConstantGrowth =
         ConstantGrowth::new(Duration::from_secs(1), Duration::from_millis(500));

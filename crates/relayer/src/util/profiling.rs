@@ -1,11 +1,7 @@
-use std::{
-    fs::{File, OpenOptions},
-    path::Path,
-    sync::{
-        atomic::{AtomicUsize, Ordering::Relaxed},
-        Mutex,
-    },
-};
+use std::fs::{File, OpenOptions};
+use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
+use std::sync::Mutex;
 
 use once_cell::sync::OnceCell;
 use serde_derive::Serialize;

@@ -1,39 +1,34 @@
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::packet::Sequence,
-        ics23_commitment::merkle::{convert_tm_to_ics_merkle_proof, MerkleProof},
-    },
-    events::IbcEvent,
-    Height as ICSHeight,
-};
-use namada_sdk::{
-    address::{Address, InternalAddress},
-    borsh::BorshDeserialize,
-    events::{extend::Height as HeightAttr, Event as NamadaEvent},
-    ibc::storage::{ibc_trace_key_prefix, is_ibc_trace_key},
-    io::{Client, NamadaIo},
-    queries::RPC,
-    rpc,
-    storage::{BlockHeight, Epoch, Key, PrefixValue},
-    tx::{
-        data::ResultCode,
-        event::{Batch as BatchAttr, Code as CodeAttr},
-    },
-};
-use tendermint::{block::Height as TmHeight, merkle::proof::ProofOps, Hash as TmHash};
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use ibc_relayer_types::core::ics23_commitment::merkle::convert_tm_to_ics_merkle_proof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::Height as ICSHeight;
+use namada_sdk::address::{Address, InternalAddress};
+use namada_sdk::borsh::BorshDeserialize;
+use namada_sdk::events::extend::Height as HeightAttr;
+use namada_sdk::events::Event as NamadaEvent;
+use namada_sdk::ibc::storage::{ibc_trace_key_prefix, is_ibc_trace_key};
+use namada_sdk::io::Client;
+use namada_sdk::io::NamadaIo;
+use namada_sdk::queries::RPC;
+use namada_sdk::rpc;
+use namada_sdk::storage::{BlockHeight, Epoch, Key, PrefixValue};
+use namada_sdk::tx::data::ResultCode;
+use namada_sdk::tx::event::{Batch as BatchAttr, Code as CodeAttr};
+use tendermint::block::Height as TmHeight;
+use tendermint::merkle::proof::ProofOps;
+use tendermint::Hash as TmHash;
 use tendermint_proto::v0_37::abci::Event as TmEvent;
 
-use super::{error::Error as NamadaError, NamadaChain};
-use crate::{
-    chain::{
-        endpoint::ChainEndpoint,
-        requests::{
-            IncludeProof, QueryClientEventRequest, QueryHeight, QueryPacketEventDataRequest,
-        },
-    },
-    error::Error,
-    event::{ibc_event_try_from_abci_event, IbcEventWithHeight},
+use crate::chain::endpoint::ChainEndpoint;
+use crate::chain::requests::{
+    IncludeProof, QueryClientEventRequest, QueryHeight, QueryPacketEventDataRequest,
 };
+use crate::error::Error;
+use crate::event::{ibc_event_try_from_abci_event, IbcEventWithHeight};
+
+use super::error::Error as NamadaError;
+use super::NamadaChain;
 
 impl NamadaChain {
     pub fn query(

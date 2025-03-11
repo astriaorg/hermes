@@ -1,10 +1,9 @@
-use core::{fmt::Display, mem, time::Duration};
-use std::{
-    sync::{Arc, RwLock},
-    thread,
-};
-
+use core::fmt::Display;
+use core::mem;
+use core::time::Duration;
 use crossbeam_channel::{bounded, Sender};
+use std::sync::{Arc, RwLock};
+use std::thread;
 use tracing::{debug, error, warn};
 
 use crate::util::lock::LockExt;

@@ -1,38 +1,30 @@
-use core::{str::FromStr, time::Duration};
-use std::{path::PathBuf, thread, time::Instant};
+use core::str::FromStr;
+use core::time::Duration;
+use std::path::PathBuf;
+use std::thread;
+use std::time::Instant;
 
 use ibc_proto::google::protobuf::Any;
 use itertools::Itertools;
-use namada_sdk::{
-    address::{Address, ImplicitAddress},
-    args::{Tx as TxArgs, TxBuilder, TxCustom},
-    chain::ChainId,
-    io::NamadaIo,
-    rpc, signing, tx,
-    tx::{prepare_tx, ProcessTxResponse},
-    Namada,
-};
+use namada_sdk::address::{Address, ImplicitAddress};
+use namada_sdk::args::TxBuilder;
+use namada_sdk::args::{Tx as TxArgs, TxCustom};
+use namada_sdk::chain::ChainId;
+use namada_sdk::io::NamadaIo;
+use namada_sdk::tx::{prepare_tx, ProcessTxResponse};
+use namada_sdk::{rpc, signing, tx, Namada};
 use tendermint_rpc::endpoint::broadcast::tx_sync::Response;
 use tracing::{debug, debug_span, trace, warn};
 
-use super::{
-    error::{Error as NamadaError, ErrorDetail as NamadaErrorDetail},
-    NamadaChain,
-};
-use crate::{
-    chain::{
-        cosmos::{
-            gas::{adjust_estimated_gas, AdjustGas},
-            types::{
-                gas::max_gas_from_config_opt,
-                tx::{TxStatus, TxSyncResult},
-            },
-            wait::all_tx_results_found,
-        },
-        endpoint::ChainEndpoint,
-    },
-    error::{Error, ErrorDetail},
-};
+use crate::chain::cosmos::gas::{adjust_estimated_gas, AdjustGas};
+use crate::chain::cosmos::types::gas::max_gas_from_config_opt;
+use crate::chain::cosmos::types::tx::{TxStatus, TxSyncResult};
+use crate::chain::cosmos::wait::all_tx_results_found;
+use crate::chain::endpoint::ChainEndpoint;
+use crate::error::{Error, ErrorDetail};
+
+use super::error::{Error as NamadaError, ErrorDetail as NamadaErrorDetail};
+use super::NamadaChain;
 
 const WAIT_BACKOFF: Duration = Duration::from_millis(300);
 

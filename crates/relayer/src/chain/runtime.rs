@@ -2,6 +2,9 @@ use alloc::sync::Arc;
 use std::thread;
 
 use crossbeam_channel as channel;
+use tokio::runtime::Runtime as TokioRuntime;
+use tracing::{error, Span};
+
 use ibc_proto::ibc::{
     apps::fee::v1::{QueryIncentivizedPacketRequest, QueryIncentivizedPacketResponse},
     core::channel::v1::{QueryUpgradeErrorRequest, QueryUpgradeRequest},
@@ -29,17 +32,7 @@ use ibc_relayer_types::{
     signer::Signer,
     Height,
 };
-use tokio::runtime::Runtime as TokioRuntime;
-use tracing::{error, Span};
 
-use super::{
-    client::ClientSettings,
-    endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
-    handle::{ChainHandle, ChainRequest, ReplyTo, Subscription},
-    requests::*,
-    tracking::TrackedMsgs,
-    version::Specs,
-};
 use crate::{
     account::Balance,
     client_state::{AnyClientState, IdentifiedAnyClientState},
@@ -51,6 +44,15 @@ use crate::{
     event::IbcEventWithHeight,
     keyring::AnySigningKeyPair,
     misbehaviour::MisbehaviourEvidence,
+};
+
+use super::{
+    client::ClientSettings,
+    endpoint::{ChainEndpoint, ChainStatus, HealthCheck},
+    handle::{ChainHandle, ChainRequest, ReplyTo, Subscription},
+    requests::*,
+    tracking::TrackedMsgs,
+    version::Specs,
 };
 
 pub struct Threads {

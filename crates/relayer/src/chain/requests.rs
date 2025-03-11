@@ -1,5 +1,7 @@
 use core::fmt::{self, Display};
 
+use crate::error::Error;
+
 use ibc_proto::{
     cosmos::base::query::v1beta1::PageRequest as RawPageRequest,
     ibc::core::{
@@ -31,19 +33,17 @@ use ibc_proto::{
         },
     },
 };
-use ibc_relayer_types::{
-    core::{
-        ics04_channel::packet::Sequence,
-        ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
-    },
-    events::WithBlockDataType,
-    Height,
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use ibc_relayer_types::core::ics24_host::identifier::{
+    ChainId, ChannelId, ClientId, ConnectionId, PortId,
 };
-use serde::{Deserialize, Serialize};
-use tendermint::{block::Height as TMBlockHeight, Hash as TxHash};
-use tonic::metadata::AsciiMetadataValue;
+use ibc_relayer_types::events::WithBlockDataType;
+use ibc_relayer_types::Height;
 
-use crate::error::Error;
+use serde::{Deserialize, Serialize};
+use tendermint::block::Height as TMBlockHeight;
+use tendermint::Hash as TxHash;
+use tonic::metadata::AsciiMetadataValue;
 
 /// Type to specify a height in a query. Specifically, this caters to the use
 /// case where the user wants to query at whatever the latest height is, as

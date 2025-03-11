@@ -4,35 +4,31 @@ use core::{
 };
 use std::thread;
 
-use abscissa_core::{clap::Parser, Command, Runnable};
+use abscissa_core::clap::Parser;
+use abscissa_core::{Command, Runnable};
+
+use ibc_relayer::config::Config;
+use ibc_relayer::event::IbcEventWithHeight;
+use ibc_relayer::foreign_client::{CreateOptions, ForeignClient};
+use ibc_relayer::{chain::handle::ChainHandle, config::GenesisRestart};
 use ibc_relayer::{
-    chain::{
-        handle::ChainHandle,
-        requests::{
-            IncludeProof, PageRequest, QueryClientStateRequest, QueryClientStatesRequest,
-            QueryHeight,
-        },
+    chain::requests::{
+        IncludeProof, PageRequest, QueryClientStateRequest, QueryClientStatesRequest, QueryHeight,
     },
-    config::{ChainConfig, Config, GenesisRestart},
-    event::IbcEventWithHeight,
-    foreign_client::{CreateOptions, ForeignClient},
+    config::ChainConfig,
 };
-use ibc_relayer_types::{
-    core::ics24_host::identifier::{ChainId, ClientId},
-    events::IbcEvent,
-    Height,
-};
+use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::Height;
 use tendermint::block::Height as BlockHeight;
 use tendermint_light_client_verifier::types::TrustThreshold;
 use tendermint_rpc::Url;
 use tracing::debug;
 
-use crate::{
-    application::app_config,
-    cli_utils::{spawn_chain_runtime, spawn_chain_runtime_generic, ChainHandlePair},
-    conclude::{exit_with_unrecoverable_error, Output},
-    error::Error,
-};
+use crate::application::app_config;
+use crate::cli_utils::{spawn_chain_runtime, spawn_chain_runtime_generic, ChainHandlePair};
+use crate::conclude::{exit_with_unrecoverable_error, Output};
+use crate::error::Error;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 pub struct TxCreateClientCmd {
@@ -210,9 +206,7 @@ impl Runnable for TxUpdateClientCmd {
         if let Some(restart_params) = self.genesis_restart_params() {
             match config.find_chain_mut(&reference_chain_id) {
                 Some(chain_config) => match chain_config {
-                    ChainConfig::CosmosSdk(chain_config)
-                    | ChainConfig::Namada(chain_config)
-                    | ChainConfig::Astria(chain_config) => {
+                    ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
                         chain_config.genesis_restart = Some(restart_params)
                     }
                     ChainConfig::Penumbra(chain_config) => {
@@ -617,17 +611,17 @@ impl OutputBuffer {
 
 #[cfg(test)]
 mod tests {
+    use super::{
+        parse_trust_threshold, TxCreateClientCmd, TxUpdateClientCmd, TxUpgradeClientCmd,
+        TxUpgradeClientsCmd,
+    };
+
     use std::str::FromStr;
 
     use abscissa_core::clap::Parser;
     use humantime::Duration;
     use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
     use tendermint_light_client_verifier::types::TrustThreshold;
-
-    use super::{
-        parse_trust_threshold, TxCreateClientCmd, TxUpdateClientCmd, TxUpgradeClientCmd,
-        TxUpgradeClientsCmd,
-    };
 
     #[test]
     fn test_parse_trust_threshold() {

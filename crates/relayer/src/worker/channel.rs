@@ -1,22 +1,20 @@
 use core::time::Duration;
-
 use crossbeam_channel::Receiver;
 use ibc_relayer_types::events::IbcEventType;
 use tracing::{debug, error_span, warn};
 
-use super::{error::RunError, WorkerCmd};
+use crate::chain::requests::QueryHeight;
+use crate::channel::{channel_handshake_retry, Channel as RelayChannel};
+use crate::util::retry::RetryResult;
+use crate::util::task::{spawn_background_task, Next, TaskError, TaskHandle};
 use crate::{
-    chain::{
-        handle::{ChainHandle, ChainHandlePair},
-        requests::QueryHeight,
-    },
-    channel::{channel_handshake_retry, Channel as RelayChannel},
+    chain::handle::{ChainHandle, ChainHandlePair},
     object::Channel,
-    util::{
-        retry::{retry_with_index, RetryResult},
-        task::{spawn_background_task, Next, TaskError, TaskHandle},
-    },
+    util::retry::retry_with_index,
 };
+
+use super::error::RunError;
+use super::WorkerCmd;
 
 fn max_block_times<ChainA: ChainHandle, ChainB: ChainHandle>(
     chains: &ChainHandlePair<ChainA, ChainB>,

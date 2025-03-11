@@ -1,5 +1,6 @@
 use alloc::collections::BTreeMap as HashMap;
-use core::{cmp::Ord, hash::Hash};
+use core::cmp::Ord;
+use core::hash::Hash;
 
 /// A change between two dictionaries.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,9 +82,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use Change::*;
-
     use super::*;
+    use Change::*;
 
     #[test]
     fn it_works() {

@@ -1,17 +1,12 @@
 //! Types for the IBC events emitted from Tendermint Websocket by the connection module.
 
-use std::fmt::{Display, Error as FmtError, Formatter};
-
 use serde_derive::{Deserialize, Serialize};
+use std::fmt::{Display, Error as FmtError, Formatter};
 use tendermint::abci;
 
-use crate::{
-    core::{
-        ics04_channel::events::EventType,
-        ics24_host::identifier::{ClientId, ConnectionId},
-    },
-    events::{IbcEvent, IbcEventType},
-};
+use crate::core::ics04_channel::events::EventType;
+use crate::core::ics24_host::identifier::{ClientId, ConnectionId};
+use crate::events::{IbcEvent, IbcEventType};
 
 /// The content of the `key` field for the attribute containing the connection identifier.
 pub const CONN_ID_ATTRIBUTE_KEY: &str = "connection_id";

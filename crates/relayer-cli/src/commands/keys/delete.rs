@@ -1,4 +1,6 @@
-use abscissa_core::{clap::Parser, Command, Runnable};
+use abscissa_core::clap::Parser;
+use abscissa_core::{Command, Runnable};
+
 use eyre::eyre;
 use ibc_relayer::{
     config::{ChainConfig, Config},
@@ -6,7 +8,8 @@ use ibc_relayer::{
 };
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 
-use crate::{application::app_config, conclude::Output};
+use crate::application::app_config;
+use crate::conclude::Output;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 #[clap(
@@ -126,7 +129,6 @@ pub fn delete_key(config: &ChainConfig, key_name: &str) -> eyre::Result<()> {
             keyring.remove_key(key_name)?;
         }
         ChainConfig::Penumbra(_) => unimplemented!("no key support for penumbra"),
-        ChainConfig::Astria(_) => unimplemented!("no key support for astria"),
     }
     Ok(())
 }
@@ -154,17 +156,16 @@ pub fn delete_all_keys(config: &ChainConfig) -> eyre::Result<()> {
             }
         }
         ChainConfig::Penumbra(_) => unimplemented!("no key support for penumbra"),
-        ChainConfig::Astria(_) => unimplemented!("no key support for astria"),
     }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use super::KeysDeleteCmd;
+
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::ChainId;
-
-    use super::KeysDeleteCmd;
 
     #[test]
     fn test_keys_delete_key_name() {

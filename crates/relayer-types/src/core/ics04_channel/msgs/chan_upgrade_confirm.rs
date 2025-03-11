@@ -1,17 +1,14 @@
-use ibc_proto::{
-    ibc::core::channel::v1::MsgChannelUpgradeConfirm as RawMsgChannelUpgradeConfirm, Protobuf,
-};
+use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeConfirm as RawMsgChannelUpgradeConfirm;
+use ibc_proto::Protobuf;
 
-use crate::{
-    core::{
-        ics04_channel::{channel::State, error::Error, upgrade::Upgrade},
-        ics23_commitment::commitment::CommitmentProofBytes,
-        ics24_host::identifier::{ChannelId, PortId},
-    },
-    signer::Signer,
-    tx_msg::Msg,
-    Height,
-};
+use crate::core::ics04_channel::channel::State;
+use crate::core::ics04_channel::error::Error;
+use crate::core::ics04_channel::upgrade::Upgrade;
+use crate::core::ics23_commitment::commitment::CommitmentProofBytes;
+use crate::core::ics24_host::identifier::{ChannelId, PortId};
+use crate::signer::Signer;
+use crate::tx_msg::Msg;
+use crate::Height;
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelUpgradeConfirm";
 
@@ -123,18 +120,12 @@ impl From<MsgChannelUpgradeConfirm> for RawMsgChannelUpgradeConfirm {
 
 #[cfg(test)]
 pub mod test_util {
-    use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelUpgradeConfirm as RawMsgChannelUpgradeConfirm,
-        client::v1::Height as RawHeight,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeConfirm as RawMsgChannelUpgradeConfirm;
+    use ibc_proto::ibc::core::client::v1::Height as RawHeight;
 
-    use crate::{
-        core::{
-            ics04_channel::upgrade::test_util::get_dummy_upgrade,
-            ics24_host::identifier::{ChannelId, PortId},
-        },
-        test_utils::{get_dummy_bech32_account, get_dummy_proof},
-    };
+    use crate::core::ics04_channel::upgrade::test_util::get_dummy_upgrade;
+    use crate::core::ics24_host::identifier::{ChannelId, PortId};
+    use crate::test_utils::{get_dummy_bech32_account, get_dummy_proof};
 
     /// Returns a dummy `RawMsgChannelUpgradeConfirm`, for testing only!
     pub fn get_dummy_raw_msg_chan_upgrade_confirm() -> RawMsgChannelUpgradeConfirm {
@@ -156,12 +147,12 @@ pub mod test_util {
 
 #[cfg(test)]
 mod tests {
-    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeConfirm as RawMsgChannelUpgradeConfirm;
     use test_log::test;
 
-    use crate::core::ics04_channel::msgs::chan_upgrade_confirm::{
-        test_util::get_dummy_raw_msg_chan_upgrade_confirm, MsgChannelUpgradeConfirm,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeConfirm as RawMsgChannelUpgradeConfirm;
+
+    use crate::core::ics04_channel::msgs::chan_upgrade_confirm::test_util::get_dummy_raw_msg_chan_upgrade_confirm;
+    use crate::core::ics04_channel::msgs::chan_upgrade_confirm::MsgChannelUpgradeConfirm;
 
     #[test]
     fn parse_channel_upgrade_try_msg() {

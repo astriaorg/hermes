@@ -5,7 +5,9 @@
 
 use std::str::FromStr;
 
-use http::{uri::Scheme, Uri};
+use http::uri::Scheme;
+use http::Uri;
+
 use tendermint_rpc::Url;
 
 use crate::error::RegistryError;
@@ -97,9 +99,9 @@ impl UriFormatter for SimpleGrpcFormatter {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::Debug;
-
     use super::*;
+
+    use std::fmt::Debug;
 
     struct FormatterTest<T> {
         input: &'static str,
@@ -181,7 +183,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn all_chain_registry_grpc_address() -> Result<(), RegistryError> {
-        use crate::{chain::ChainData, constants::ALL_CHAINS, fetchable::Fetchable};
+        use crate::chain::ChainData;
+        use crate::constants::ALL_CHAINS;
+        use crate::fetchable::Fetchable;
 
         let mut handles = Vec::with_capacity(ALL_CHAINS.len());
 
@@ -202,7 +206,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn all_chain_registry_rpc_address() -> Result<(), RegistryError> {
-        use crate::{chain::ChainData, constants::ALL_CHAINS, fetchable::Fetchable};
+        use crate::chain::ChainData;
+        use crate::constants::ALL_CHAINS;
+        use crate::fetchable::Fetchable;
 
         let mut handles = Vec::with_capacity(ALL_CHAINS.len());
 

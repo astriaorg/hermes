@@ -1,18 +1,16 @@
-use std::{
-    fmt::{Display, Error as FmtError, Formatter},
-    str::FromStr,
-};
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::str::FromStr;
 
-use ibc_proto::cosmos::base::v1beta1::Coin as ProtoCoin;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use super::{
-    amount::Amount,
-    denom::{BaseDenom, PrefixedDenom},
-    error::Error,
-};
+use ibc_proto::cosmos::base::v1beta1::Coin as ProtoCoin;
+
 use crate::serializers::serde_string;
+
+use super::amount::Amount;
+use super::denom::{BaseDenom, PrefixedDenom};
+use super::error::Error;
 
 /// A `Coin` type with fully qualified `PrefixedDenom`.
 pub type PrefixedCoin = Coin<PrefixedDenom>;

@@ -1,21 +1,16 @@
 use core::time::Duration;
 
 use abscissa_core::clap::Parser;
-use ibc_relayer::{
-    chain::{
-        handle::ChainHandle,
-        requests::{IncludeProof, QueryClientStateRequest, QueryHeight},
-    },
-    connection::Connection,
-    foreign_client::ForeignClient,
-};
+
+use ibc_relayer::chain::handle::ChainHandle;
+use ibc_relayer::chain::requests::{IncludeProof, QueryClientStateRequest, QueryHeight};
+use ibc_relayer::connection::Connection;
+use ibc_relayer::foreign_client::ForeignClient;
 use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
 
-use crate::{
-    cli_utils::{spawn_chain_runtime, ChainHandlePair},
-    conclude::{exit_with_unrecoverable_error, Output},
-    prelude::*,
-};
+use crate::cli_utils::{spawn_chain_runtime, ChainHandlePair};
+use crate::conclude::{exit_with_unrecoverable_error, Output};
+use crate::prelude::*;
 
 #[derive(Clone, Command, Debug, Parser, PartialEq, Eq)]
 #[clap(override_usage("hermes create connection [OPTIONS] --a-chain <A_CHAIN_ID> --b-chain <B_CHAIN_ID>
@@ -180,12 +175,12 @@ impl CreateConnectionCommand {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use super::CreateConnectionCommand;
 
     use abscissa_core::clap::Parser;
     use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
 
-    use super::CreateConnectionCommand;
+    use std::str::FromStr;
 
     #[test]
     fn test_create_connection_b_chain() {

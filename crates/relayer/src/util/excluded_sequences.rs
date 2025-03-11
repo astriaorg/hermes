@@ -1,12 +1,15 @@
-use std::{collections::BTreeMap, fmt, str::FromStr};
+use serde::de::{Error, MapAccess, Visitor};
+use serde::ser::SerializeMap;
+use serde::Deserializer;
+use serde::Serializer;
+use serde_derive::Deserialize;
+use serde_derive::Serialize;
+use std::collections::BTreeMap;
+use std::fmt;
+use std::str::FromStr;
 
-use ibc_relayer_types::core::{ics04_channel::packet::Sequence, ics24_host::identifier::ChannelId};
-use serde::{
-    de::{Error, MapAccess, Visitor},
-    ser::SerializeMap,
-    Deserializer, Serializer,
-};
-use serde_derive::{Deserialize, Serialize};
+use ibc_relayer_types::core::ics04_channel::packet::Sequence;
+use ibc_relayer_types::core::ics24_host::identifier::ChannelId;
 
 use crate::chain::cosmos::config::error::Error as ConfigError;
 

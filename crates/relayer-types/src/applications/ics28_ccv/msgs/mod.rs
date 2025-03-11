@@ -8,10 +8,8 @@ use derive_more::Display;
 use ibc_proto::interchain_security::ccv::provider::v1::Chain;
 use serde::{Deserialize, Serialize};
 
-use crate::core::{
-    ics24_host,
-    ics24_host::identifier::{ChainId, ClientId},
-};
+use crate::core::ics24_host;
+use crate::core::ics24_host::identifier::{ChainId, ClientId};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Display, Serialize, Deserialize)]
 pub struct ConsumerId(String);

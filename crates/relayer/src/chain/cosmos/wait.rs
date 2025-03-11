@@ -1,24 +1,21 @@
 use core::time::Duration;
-use std::{thread, time::Instant};
-
-use ibc_relayer_types::{core::ics24_host::identifier::ChainId, events::IbcEvent, Height};
+use ibc_relayer_types::core::ics24_host::identifier::ChainId;
+use ibc_relayer_types::events::IbcEvent;
+use ibc_relayer_types::Height;
 use itertools::Itertools;
+use std::thread;
+use std::time::Instant;
 use tendermint::Hash as TxHash;
-use tendermint_rpc::{endpoint::tx::Response as TxResponse, HttpClient, Url};
+use tendermint_rpc::endpoint::tx::Response as TxResponse;
+use tendermint_rpc::{HttpClient, Url};
 use tokio::time::sleep;
 use tracing::{debug, debug_span, trace};
 
-use crate::{
-    chain::cosmos::{
-        query::tx::query_tx_response,
-        types::{
-            events::from_tx_response_event,
-            tx::{TxStatus, TxSyncResult},
-        },
-    },
-    error::Error,
-    event::IbcEventWithHeight,
-};
+use crate::chain::cosmos::query::tx::query_tx_response;
+use crate::chain::cosmos::types::events::from_tx_response_event;
+use crate::chain::cosmos::types::tx::{TxStatus, TxSyncResult};
+use crate::error::Error;
+use crate::event::IbcEventWithHeight;
 
 const WAIT_BACKOFF: Duration = Duration::from_millis(300);
 

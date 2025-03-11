@@ -1,16 +1,16 @@
+use crate::core::ics04_channel::channel::ChannelEnd;
+use crate::core::ics04_channel::error::Error as ChannelError;
+use crate::core::ics04_channel::version::Version;
+use crate::core::ics24_host::identifier::{ChannelId, PortId};
+
+use crate::proofs::Proofs;
+use crate::signer::Signer;
+use crate::tx_msg::Msg;
+
+use ibc_proto::ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry;
+use ibc_proto::Protobuf;
+
 use core::str::FromStr;
-
-use ibc_proto::{ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, Protobuf};
-
-use crate::{
-    core::{
-        ics04_channel::{channel::ChannelEnd, error::Error as ChannelError, version::Version},
-        ics24_host::identifier::{ChannelId, PortId},
-    },
-    proofs::Proofs,
-    signer::Signer,
-    tx_msg::Msg,
-};
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelOpenTry";
 
@@ -130,17 +130,12 @@ impl From<MsgChannelOpenTry> for RawMsgChannelOpenTry {
 #[cfg(test)]
 pub mod test_util {
 
-    use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, client::v1::Height,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry;
 
-    use crate::{
-        core::{
-            ics04_channel::channel::test_util::get_dummy_raw_channel_end,
-            ics24_host::identifier::{ChannelId, PortId},
-        },
-        test_utils::{get_dummy_bech32_account, get_dummy_proof},
-    };
+    use crate::core::ics04_channel::channel::test_util::get_dummy_raw_channel_end;
+    use crate::core::ics24_host::identifier::{ChannelId, PortId};
+    use crate::test_utils::{get_dummy_bech32_account, get_dummy_proof};
+    use ibc_proto::ibc::core::client::v1::Height;
 
     /// Returns a dummy `RawMsgChannelOpenTry`, for testing only!
     #[allow(deprecated)]
@@ -162,14 +157,12 @@ pub mod test_util {
 
 #[cfg(test)]
 mod tests {
-    use ibc_proto::ibc::core::{
-        channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry, client::v1::Height,
-    };
-    use test_log::test;
+    use crate::core::ics04_channel::msgs::chan_open_try::test_util::get_dummy_raw_msg_chan_open_try;
+    use crate::core::ics04_channel::msgs::chan_open_try::MsgChannelOpenTry;
 
-    use crate::core::ics04_channel::msgs::chan_open_try::{
-        test_util::get_dummy_raw_msg_chan_open_try, MsgChannelOpenTry,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelOpenTry as RawMsgChannelOpenTry;
+    use ibc_proto::ibc::core::client::v1::Height;
+    use test_log::test;
 
     #[test]
     #[allow(deprecated)]

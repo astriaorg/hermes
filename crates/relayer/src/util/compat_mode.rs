@@ -1,7 +1,10 @@
-use tendermint::Version;
 use tracing::warn;
 
-use crate::{chain::version::ConsensusVersion, config::compat_mode::CompatMode, error::Error};
+use tendermint::Version;
+
+use crate::chain::version::ConsensusVersion;
+use crate::config::compat_mode::CompatMode;
+use crate::error::Error;
 
 pub fn compat_mode_from_node_version(
     configured_version: &Option<CompatMode>,

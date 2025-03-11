@@ -1,17 +1,13 @@
-use ibc_proto::{
-    ibc::core::channel::v1::MsgChannelUpgradeCancel as RawMsgChannelUpgradeCancel, Protobuf,
-};
+use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeCancel as RawMsgChannelUpgradeCancel;
+use ibc_proto::Protobuf;
 
-use crate::{
-    core::{
-        ics04_channel::{error::Error, upgrade::ErrorReceipt},
-        ics23_commitment::commitment::CommitmentProofBytes,
-        ics24_host::identifier::{ChannelId, PortId},
-    },
-    signer::Signer,
-    tx_msg::Msg,
-    Height,
-};
+use crate::core::ics04_channel::error::Error;
+use crate::core::ics04_channel::upgrade::ErrorReceipt;
+use crate::core::ics23_commitment::commitment::CommitmentProofBytes;
+use crate::core::ics24_host::identifier::{ChannelId, PortId};
+use crate::signer::Signer;
+use crate::tx_msg::Msg;
+use crate::Height;
 
 pub const TYPE_URL: &str = "/ibc.core.channel.v1.MsgChannelUpgradeCancel";
 
@@ -108,17 +104,12 @@ impl From<MsgChannelUpgradeCancel> for RawMsgChannelUpgradeCancel {
 
 #[cfg(test)]
 pub mod test_util {
-    use ibc_proto::ibc::core::{
-        channel::v1::{
-            ErrorReceipt as RawErrorReceipt, MsgChannelUpgradeCancel as RawMsgChannelUpgradeCancel,
-        },
-        client::v1::Height as RawHeight,
-    };
+    use ibc_proto::ibc::core::channel::v1::ErrorReceipt as RawErrorReceipt;
+    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeCancel as RawMsgChannelUpgradeCancel;
+    use ibc_proto::ibc::core::client::v1::Height as RawHeight;
 
-    use crate::{
-        core::ics24_host::identifier::{ChannelId, PortId},
-        test_utils::{get_dummy_bech32_account, get_dummy_proof},
-    };
+    use crate::core::ics24_host::identifier::{ChannelId, PortId};
+    use crate::test_utils::{get_dummy_bech32_account, get_dummy_proof};
 
     /// Returns a dummy `RawMsgChannelUpgradeCnacel`, for testing only!
     pub fn get_dummy_raw_msg_chan_upgrade_cancel() -> RawMsgChannelUpgradeCancel {
@@ -141,12 +132,12 @@ pub mod test_util {
 
 #[cfg(test)]
 mod tests {
-    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeCancel as RawMsgChannelUpgradeCancel;
     use test_log::test;
 
-    use crate::core::ics04_channel::msgs::chan_upgrade_cancel::{
-        test_util::get_dummy_raw_msg_chan_upgrade_cancel, MsgChannelUpgradeCancel,
-    };
+    use ibc_proto::ibc::core::channel::v1::MsgChannelUpgradeCancel as RawMsgChannelUpgradeCancel;
+
+    use crate::core::ics04_channel::msgs::chan_upgrade_cancel::test_util::get_dummy_raw_msg_chan_upgrade_cancel;
+    use crate::core::ics04_channel::msgs::chan_upgrade_cancel::MsgChannelUpgradeCancel;
 
     #[test]
     fn parse_channel_upgrade_try_msg() {

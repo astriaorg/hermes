@@ -1,23 +1,21 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
 use bytes::Buf;
-use ibc_proto::{
-    google::protobuf::Any, ibc::lightclients::tendermint::v1::Header as RawHeader, Protobuf,
-};
+use ibc_proto::google::protobuf::Any;
+use ibc_proto::ibc::lightclients::tendermint::v1::Header as RawHeader;
+use ibc_proto::Protobuf;
 use prost::Message;
 use serde_derive::{Deserialize, Serialize};
-use tendermint::{block::signed_header::SignedHeader, validator::Set as ValidatorSet};
+use tendermint::block::signed_header::SignedHeader;
+use tendermint::validator::Set as ValidatorSet;
 
-use crate::{
-    clients::ics07_tendermint::error::Error,
-    core::{
-        ics02_client::{client_type::ClientType, error::Error as Ics02Error},
-        ics24_host::identifier::ChainId,
-    },
-    timestamp::Timestamp,
-    utils::pretty::{PrettySignedHeader, PrettyValidatorSet},
-    Height,
-};
+use crate::clients::ics07_tendermint::error::Error;
+use crate::core::ics02_client::client_type::ClientType;
+use crate::core::ics02_client::error::Error as Ics02Error;
+use crate::core::ics24_host::identifier::ChainId;
+use crate::timestamp::Timestamp;
+use crate::utils::pretty::{PrettySignedHeader, PrettyValidatorSet};
+use crate::Height;
 
 pub const TENDERMINT_HEADER_TYPE_URL: &str = "/ibc.lightclients.tendermint.v1.Header";
 
