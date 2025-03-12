@@ -28,7 +28,6 @@ use penumbra_sdk_proto::DomainType as _;
 use penumbra_sdk_transaction::txhash::TransactionId;
 use penumbra_sdk_transaction::Transaction;
 use prost::Message;
-use std::cmp::Ordering;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
@@ -496,7 +495,11 @@ impl ChainEndpoint for PenumbraChain {
         let rpc_client = HttpClient::new(config.rpc_addr.clone())
             .map_err(|e| Error::rpc(config.rpc_addr.clone(), e))?;
 
-        let node_info = rt.block_on(fetch_node_info(&rpc_client, &config))?;
+        let node_info = rt.block_on(crate::chain::utils::fetch_node_info(
+            &rpc_client,
+            &config.id,
+            &config.rpc_addr,
+        ))?;
 
         let fvk = config.kms_config.spend_key.full_viewing_key();
 
@@ -853,7 +856,9 @@ impl ChainEndpoint for PenumbraChain {
             .collect();
 
         // Sort by client identifier counter
-        clients.sort_by_cached_key(|c| client_id_suffix(&c.client_id).unwrap_or(0));
+        clients.sort_by_cached_key(|c| {
+            crate::chain::utils::client_id_suffix(&c.client_id).unwrap_or(0)
+        });
 
         Ok(clients)
     }
@@ -1633,7 +1638,7 @@ impl ChainEndpoint for PenumbraChain {
                 events.extend(tx_events);
                 events.extend(end_block_events);
 
-                sort_events_by_sequence(&mut events);
+                crate::chain::utils::sort_events_by_sequence(&mut events);
 
                 Ok(events)
             }
@@ -1775,17 +1780,6 @@ impl ChainEndpoint for PenumbraChain {
     }
 }
 
-/// Returns the suffix counter for a CosmosSDK client id.
-/// Returns `None` if the client identifier is malformed
-/// and the suffix could not be parsed.
-fn client_id_suffix(client_id: &ClientId) -> Option<u64> {
-    client_id
-        .as_str()
-        .split('-')
-        .last()
-        .and_then(|e| e.parse::<u64>().ok())
-}
-
 pub(crate) fn decode_merkle_proof(proof_bytes: Vec<u8>) -> Result<MerkleProof, Error> {
     let proof_bytes = CommitmentProofBytes::try_from(proof_bytes).map_err(|e| {
         Error::temp_penumbra_error(format!("couldn't decode CommitmentProofBytes: {}", e))
@@ -1831,29 +1825,3 @@ fn ics23_spec() -> ics23::ProofSpec {
 /// (as opposed to directly in the root store.)
 pub static IBC_PROOF_SPECS: Lazy<Vec<ics23::ProofSpec>> =
     Lazy::new(|| vec![ics23_spec(), ics23_spec()]);
-
-async fn fetch_node_info(
-    rpc_client: &HttpClient,
-    config: &PenumbraConfig,
-) -> Result<tendermint::node::Info, Error> {
-    crate::time!("fetch_node_info",
-    {
-        "src_chain": config.id.to_string(),
-    });
-
-    rpc_client
-        .status()
-        .await
-        .map(|s| s.node_info)
-        .map_err(|e| Error::rpc(config.rpc_addr.clone(), e))
-}
-
-fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
-    events.sort_by(|a, b| {
-        a.event
-            .packet()
-            .zip(b.event.packet())
-            .map(|(pa, pb)| pa.sequence.cmp(&pb.sequence))
-            .unwrap_or(Ordering::Equal)
-    });
-}

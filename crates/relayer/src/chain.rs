@@ -10,4 +10,5 @@ pub mod penumbra;
 pub mod requests;
 pub mod runtime;
 pub mod tracking;
+pub(crate) mod utils;
 pub mod version;

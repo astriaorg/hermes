@@ -641,7 +641,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryClientStatesRequest,
     ) -> Result<Vec<IdentifiedAnyClientState>, Error> {
-        use crate::{chain::cosmos::client_id_suffix, util::pretty::PrettyIdentifiedClientState};
+        use crate::{chain::utils::client_id_suffix, util::pretty::PrettyIdentifiedClientState};
 
         let mut client = self.ibc_client_grpc_client.clone();
 
@@ -1331,10 +1331,8 @@ impl ChainEndpoint for AstriaChain {
         &self,
         mut request: QueryPacketEventDataRequest,
     ) -> Result<Vec<IbcEventWithHeight>, Error> {
-        use crate::chain::cosmos::{
-            query::tx::{query_packets_from_block, query_packets_from_txs},
-            sort_events_by_sequence,
-        };
+        use crate::chain::cosmos::query::tx::{query_packets_from_block, query_packets_from_txs};
+        use crate::chain::utils::sort_events_by_sequence;
 
         match request.height {
             // Usage note: `Qualified::Equal` is currently only used in the call hierarchy involving
