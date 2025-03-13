@@ -66,6 +66,9 @@ use crate::{
     light_client::{tendermint::LightClient, LightClient as _},
     misbehaviour::MisbehaviourEvidence,
 };
+use astria_core::crypto::VerificationKey;
+use astria_core::primitive::v1::Address;
+use ed25519_consensus::SigningKey;
 use ibc_proto::ibc::core::channel::v1::QueryUpgradeErrorRequest;
 use ibc_proto::ibc::core::channel::v1::QueryUpgradeRequest;
 use ibc_relayer_types::applications::ics28_ccv::msgs::ConsumerId;
@@ -78,6 +81,9 @@ const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(60);
 pub struct AstriaChain {
     config: CosmosSdkConfig,
     keybase: KeyRing<Ed25519KeyPair>,
+    signing_key: astria_core::crypto::SigningKey,
+    /// astria address of signing key
+    address: Address,
     sequencer_client: HttpClient,
     compat_mode: CompatMode,
     light_client: LightClient,
@@ -137,9 +143,24 @@ impl AstriaChain {
             .map_err(Error::grpc_transport)?
             .max_decoding_message_size(astria_config.max_grpc_decoding_size.get_bytes() as usize);
 
+        let key = keybase
+            .get_key(&astria_config.key_name)
+            .map_err(|e| Error::key_not_found(astria_config.key_name.to_string(), e))?;
+        let signing_key: SigningKey = (*key.signing_key().as_bytes()).into();
+        let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
+            .map_err(|e| Error::other(e.to_string()))?;
+        let address = Address::builder()
+            .array(*verification_key.address_bytes())
+            .prefix("astria")
+            .try_build()
+            .map_err(|e| Error::other(e.to_string()))?;
+        let signing_key = astria_core::crypto::SigningKey::from(signing_key.to_bytes());
+
         Ok(Self {
             config: astria_config,
             keybase,
+            signing_key,
+            address,
             sequencer_client,
             compat_mode,
             light_client,
@@ -196,9 +217,7 @@ impl AstriaChain {
 
     async fn broadcast_messages(&mut self, tracked_msgs: TrackedMsgs) -> Result<TxResponse, Error> {
         use astria_core::{
-            crypto::{SigningKey, VerificationKey},
             generated::astria::protocol::transaction::v1::Ics20Withdrawal as RawIcs20Withdrawal,
-            primitive::v1::Address,
             protocol::transaction::v1::{action::Ics20Withdrawal, Action, TransactionBody},
             Protobuf as _,
         };
@@ -230,28 +249,9 @@ impl AstriaChain {
             actions.push(Action::Ibc(non_raw));
         }
 
-        let key = self.get_key()?;
-        let any_key: crate::keyring::AnySigningKeyPair = key.into();
-        let keypair = match any_key {
-            crate::keyring::AnySigningKeyPair::Ed25519(key) => key,
-            _ => {
-                return Err(Error::other(
-                    "keypair for astria endpoint must be ed25519".to_string(),
-                ))
-            }
-        };
-        let signing_key: ed25519_consensus::SigningKey = (*keypair.signing_key().as_bytes()).into(); // TODO cache this
-
-        let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
-            .map_err(|e| Error::other(e.to_string()))?;
-        let address = Address::builder()
-            .array(*verification_key.address_bytes())
-            .prefix("astria")
-            .try_build()
-            .map_err(|e| Error::other(e.to_string()))?;
         let nonce = self
             .sequencer_client
-            .get_latest_nonce(address)
+            .get_latest_nonce(self.address)
             .await
             .map_err(|e| Error::other(e.to_string()))?;
 
@@ -261,7 +261,7 @@ impl AstriaChain {
             .actions(actions)
             .try_build()
             .map_err(|e| Error::other(e.to_string()))?
-            .sign(&SigningKey::from(signing_key.to_bytes()))
+            .sign(&self.signing_key)
             .into_raw()
             .encode_to_vec();
 
@@ -452,10 +452,7 @@ impl ChainEndpoint for AstriaChain {
 
     fn get_signer(&self) -> Result<Signer, Error> {
         use std::str::FromStr as _;
-
-        use crate::keyring::SigningKeyPair as _;
-
-        Signer::from_str(&self.get_key()?.account()).map_err(|e| Error::other(e.to_string()))
+        Signer::from_str(&self.address.to_string()).map_err(|e| Error::other(e.to_string()))
     }
 
     /// Get the signing key pair
@@ -469,7 +466,13 @@ impl ChainEndpoint for AstriaChain {
 
     /// Return the version of the IBC protocol that this chain is running, if known.
     fn version_specs(&self) -> Result<crate::chain::version::Specs, Error> {
-        todo!()
+        // we run the same version as penumbra.
+        Ok(crate::chain::version::Specs::Penumbra(
+            crate::chain::penumbra::version::Specs {
+                penumbra: None,
+                consensus: None,
+            },
+        ))
     }
 
     // Send transactions
@@ -566,20 +569,11 @@ impl ChainEndpoint for AstriaChain {
         _key_name: Option<&str>,
         denom: Option<&str>,
     ) -> Result<Balance, Error> {
-        use astria_core::{crypto::VerificationKey, protocol::account::v1::AssetBalance};
-        use astria_sequencer_client::{Address, SequencerClientExt as _};
+        use astria_core::protocol::account::v1::AssetBalance;
+        use astria_sequencer_client::SequencerClientExt as _;
 
-        let signing_key: ed25519_consensus::SigningKey =
-            (*self.get_key()?.signing_key().as_bytes()).into(); // TODO cache this
-        let verification_key = VerificationKey::try_from(signing_key.verification_key().to_bytes())
-            .map_err(|e| Error::other(e.to_string()))?;
-        let address = Address::builder()
-            .array(*verification_key.address_bytes())
-            .prefix("astria")
-            .try_build()
-            .map_err(|e| Error::other(e.to_string()))?;
         let balance = self
-            .block_on(self.sequencer_client.get_latest_balance(address))
+            .block_on(self.sequencer_client.get_latest_balance(self.address))
             .map_err(|e| Error::other(e.to_string()))?;
 
         // TODO: set this via the config
@@ -607,7 +601,22 @@ impl ChainEndpoint for AstriaChain {
     /// Query the balances of the given account for all the denom.
     /// If no account is given, behavior must be specified, e.g. retrieve it from configuration file.
     fn query_all_balances(&self, _key_name: Option<&str>) -> Result<Vec<Balance>, Error> {
-        todo!()
+        use astria_sequencer_client::SequencerClientExt as _;
+
+        let resp = self
+            .block_on(self.sequencer_client.get_latest_balance(self.address))
+            .map_err(|e| Error::other(e.to_string()))?;
+
+        let balances = resp
+            .balances
+            .into_iter()
+            .map(|b| Balance {
+                amount: b.balance.to_string(),
+                denom: b.denom.to_string(),
+            })
+            .collect();
+
+        Ok(balances)
     }
 
     /// Query the denomination trace given a trace hash.
@@ -685,7 +694,6 @@ impl ChainEndpoint for AstriaChain {
 
         let mut req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
             client_id: request.client_id.to_string(),
-            // TODO: height is ignored
         }
         .into_request();
 
@@ -727,7 +735,7 @@ impl ChainEndpoint for AstriaChain {
             client_id: request.client_id.to_string(),
             revision_height: request.consensus_height.revision_height(),
             revision_number: request.consensus_height.revision_number(),
-            latest_height: false, // TODO?
+            latest_height: false,
         }
         .into_request();
 
@@ -790,10 +798,20 @@ impl ChainEndpoint for AstriaChain {
 
     fn query_upgraded_client_state(
         &self,
-        _request: QueryUpgradedClientStateRequest, // TODO: height ignored
+        request: QueryUpgradedClientStateRequest,
     ) -> Result<(AnyClientState, MerkleProof), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
-        let req = ibc_proto::ibc::core::client::v1::QueryUpgradedClientStateRequest {};
+        let mut req =
+            ibc_proto::ibc::core::client::v1::QueryUpgradedClientStateRequest {}.into_request();
+        let map = req.metadata_mut();
+        map.insert(
+            "height",
+            request
+                .upgrade_height
+                .to_string()
+                .parse()
+                .expect("valid ascii string"),
+        );
 
         let response = self
             .block_on(client.upgraded_client_state(req))
@@ -807,15 +825,26 @@ impl ChainEndpoint for AstriaChain {
         let _client_state =
             AnyClientState::try_from(client_state).map_err(|e| Error::other(e.to_string()))?;
 
-        todo!()
+        todo!("need to implement respective query in penumbra ibc library")
     }
 
     fn query_upgraded_consensus_state(
         &self,
-        _request: QueryUpgradedConsensusStateRequest, // TODO: height ignored
+        request: QueryUpgradedConsensusStateRequest,
     ) -> Result<(AnyConsensusState, MerkleProof), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
-        let req = ibc_proto::ibc::core::client::v1::QueryUpgradedConsensusStateRequest {};
+        let mut req =
+            ibc_proto::ibc::core::client::v1::QueryUpgradedConsensusStateRequest {}.into_request();
+        let map = req.metadata_mut();
+        map.insert(
+            "height",
+            request
+                .upgrade_height
+                .to_string()
+                .parse()
+                .expect("valid ascii string"),
+        );
+
         let response = self
             .block_on(client.upgraded_consensus_state(req))
             .map_err(|e| Error::grpc_status(e, "query_upgraded_consensus_state".to_owned()))?
@@ -828,7 +857,7 @@ impl ChainEndpoint for AstriaChain {
         let _consensus_state = AnyConsensusState::try_from(consensus_state)
             .map_err(|e| Error::other(e.to_string()))?;
 
-        todo!()
+        todo!("need to implement respective query in penumbra ibc library")
     }
 
     /// Performs a query to retrieve the identifiers of all connections.
@@ -898,7 +927,6 @@ impl ChainEndpoint for AstriaChain {
         let mut client = self.ibc_connection_grpc_client.clone();
         let mut req = ibc_proto::ibc::core::connection::v1::QueryConnectionRequest {
             connection_id: request.connection_id.to_string(),
-            // TODO height is ignored
         }
         .into_request();
 
@@ -1068,7 +1096,6 @@ impl ChainEndpoint for AstriaChain {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
             sequence: request.sequence.into(),
-            // TODO: height is ignored
         };
 
         let height = match request.height {
@@ -1137,7 +1164,6 @@ impl ChainEndpoint for AstriaChain {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
             sequence: request.sequence.into(),
-            // TODO: height is ignored
         };
 
         let height = match request.height {
@@ -1155,7 +1181,6 @@ impl ChainEndpoint for AstriaChain {
             .map_err(|e| Error::grpc_status(e, "query_packet_receipt".to_owned()))?
             .into_inner();
 
-        // TODO: is this right?
         let value = match response.received {
             true => vec![1],
             false => vec![0],
@@ -1208,7 +1233,6 @@ impl ChainEndpoint for AstriaChain {
             port_id: request.port_id.to_string(),
             channel_id: request.channel_id.to_string(),
             sequence: request.sequence.into(),
-            // TODO: height is ignored
         };
 
         let height = match request.height {
@@ -1394,7 +1418,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         _request: QueryHostConsensusStateRequest,
     ) -> Result<Self::ConsensusState, Error> {
-        todo!()
+        todo!("need to implement respective query in penumbra ibc library")
     }
 
     fn build_client_state(
@@ -1464,25 +1488,25 @@ impl ChainEndpoint for AstriaChain {
         _port_id: &PortId,
         _counterparty_payee: &Signer,
     ) -> Result<(), Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 
     fn cross_chain_query(
         &self,
         _requests: Vec<CrossChainQueryRequest>,
     ) -> Result<Vec<CrossChainQueryResponse>, Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 
     fn query_incentivized_packet(
         &self,
         _request: QueryIncentivizedPacketRequest,
     ) -> Result<QueryIncentivizedPacketResponse, Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 
     fn query_consumer_chains(&self) -> Result<Vec<ConsumerChain>, Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 
     fn query_upgrade(
@@ -1491,7 +1515,7 @@ impl ChainEndpoint for AstriaChain {
         _height: Height,
         _include_proof: IncludeProof,
     ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 
     fn query_upgrade_error(
@@ -1500,10 +1524,10 @@ impl ChainEndpoint for AstriaChain {
         _height: Height,
         _include_proof: IncludeProof,
     ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 
     fn query_ccv_consumer_id(&self, _client_id: ClientId) -> Result<ConsumerId, Error> {
-        todo!()
+        todo!("unimplemented in penumbra ibc library")
     }
 }
