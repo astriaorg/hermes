@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Profiling - Hermes (IBC Relayer CLI) Documentation</title>
+        <title>Dynamic gas fees - Hermes (IBC Relayer CLI) Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -152,132 +152,32 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="profiling"><a class="header" href="#profiling">Profiling</a></h1>
-<p>The <code>relayer</code> crate provides a <code>time!</code> macro which can be used to measure how much time is spent between the invocation of the macro and the end of the enclosing scope.</p>
-<h3 id="setup"><a class="header" href="#setup">Setup</a></h3>
-<p>The <code>time!</code> macro has no effect unless the <code>--debug=profiling</code> global flag is specified on the command-line:</p>
-<pre><code class="language-shell">$ hermes --debug=profiling start
+                        <h1 id="dynamic-gas-fees"><a class="header" href="#dynamic-gas-fees">Dynamic Gas Fees</a></h1>
+<p>Some chains use a dynamic gas price system instead of static gas price. By configuring the <code>dynamic_gas_price</code> for those chains, Hermes will query the gas price and apply the configured multiplier instead of using the configured static gas price:</p>
+<pre><code class="language-toml">...
+[&lt;chain_id&gt;.dynamic_gas_price]
+enabled = true
+multiplier = 1.1
+max = 0.6
+...
 </code></pre>
-<h3 id="example"><a class="header" href="#example">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn my_function(x: u32) -&gt; u32 {
-    time!("myfunction: x={}", x); // A
-
-    std::thread::sleep(Duration::from_secs(1));
-
-    {
-        time!("inner operation"); // B
-
-        std::thread::sleep(Duration::from_secs(2));
-
-        // timer B ends here
-    }
-
-    x + 1
-
-    // timer A ends here
-}
-<span class="boring">}</span></code></pre></pre>
-<h4 id="console-output"><a class="header" href="#console-output">Console output</a></h4>
-<pre><code>Jan 20 11:28:46.841  INFO relayer::macros::profiling: ⏳ myfunction: x=42 - start
-Jan 20 11:28:47.842  INFO relayer::macros::profiling:    ⏳ inner operation - start
-Jan 20 11:28:49.846  INFO relayer::macros::profiling:    ⏳ inner operation - elapsed: 2004ms
-Jan 20 11:28:49.847  INFO relayer::macros::profiling: ⏳ myfunction: x=42 - elapsed: 3005ms
-</code></pre>
-<p>Profiling is useful for tracking down unusually slow methods.
-Each transaction or query usually consists of multiple lower-level methods,
-and it's often not clear which of these are the culprit for low performance.
-With profiling enabled, <code>hermes</code> will output timing information for individual
-methods involved in a command.</p>
-<p><strong>NOTE</strong>: To be able to see the profiling output, the [log level][log-level] should be <code>info</code> level or lower.</p>
-<h5 id="example-output-for-tx-conn-init-command"><a class="header" href="#example-output-for-tx-conn-init-command">Example output for <code>tx conn-init</code> command</a></h5>
-<pre><code>hermes tx conn-init --dst-chain ibc-0 --src-chain ibc-1 --dst-client 07-tendermint-0 --src-client 07-tendermint-0
-
-</code></pre>
-<pre><code>Apr 13 20:58:21.225  INFO ibc_relayer::macros::profiling: ⏳ init_light_client - start
-Apr 13 20:58:21.230  INFO ibc_relayer::macros::profiling: ⏳ init_light_client - elapsed: 4ms
-Apr 13 20:58:21.230  INFO ibc_relayer::macros::profiling: ⏳ init_event_monitor - start
-Apr 13 20:58:21.235  INFO ibc_relayer::macros::profiling: ⏳ init_event_monitor - elapsed: 5ms
-Apr 13 20:58:21.235  INFO ibc_relayer::event::monitor: running listener chain.id=ibc-1
-Apr 13 20:58:21.236  INFO ibc_relayer::macros::profiling: ⏳ init_light_client - start
-Apr 13 20:58:21.239  INFO ibc_relayer::macros::profiling: ⏳ init_light_client - elapsed: 2ms
-Apr 13 20:58:21.239  INFO ibc_relayer::macros::profiling: ⏳ init_event_monitor - start
-Apr 13 20:58:21.244  INFO ibc_relayer::macros::profiling: ⏳ init_event_monitor - elapsed: 4ms
-Apr 13 20:58:21.244  INFO ibc_relayer::event::monitor: running listener chain.id=ibc-0
-Apr 13 20:58:21.244  INFO ibc_relayer::macros::profiling: ⏳ get_signer - start
-Apr 13 20:58:21.246  INFO ibc_relayer::macros::profiling: ⏳ get_signer - elapsed: 1ms
-Apr 13 20:58:21.246  INFO ibc_relayer::macros::profiling: ⏳ query_latest_height - start
-Apr 13 20:58:21.246  INFO ibc_relayer::macros::profiling:    ⏳ block_on - start
-Apr 13 20:58:21.248  INFO ibc_relayer::macros::profiling:    ⏳ block_on - elapsed: 1ms
-Apr 13 20:58:21.249  INFO ibc_relayer::macros::profiling: ⏳ query_latest_height - elapsed: 3ms
-Apr 13 20:58:21.250  INFO ibc_relayer::macros::profiling: ⏳ unbonding_period - start
-Apr 13 20:58:21.250  INFO ibc_relayer::macros::profiling:    ⏳ block_on - start
-Apr 13 20:58:21.251  INFO ibc_relayer::macros::profiling:    ⏳ block_on - elapsed: 0ms
-Apr 13 20:58:21.270  INFO ibc_relayer::macros::profiling:    ⏳ block_on - start
-Apr 13 20:58:21.273  INFO ibc_relayer::macros::profiling:    ⏳ block_on - elapsed: 2ms
-Apr 13 20:58:21.273  INFO ibc_relayer::macros::profiling: ⏳ unbonding_period - elapsed: 23ms
-Apr 13 20:58:21.279  INFO ibc_relayer::macros::profiling: ⏳ build_consensus_state - start
-Apr 13 20:58:21.280  INFO ibc_relayer::macros::profiling: ⏳ build_consensus_state - elapsed: 0ms
-Apr 13 20:58:21.280  INFO ibc_relayer::macros::profiling: ⏳ send_msgs - start
-Apr 13 20:58:21.280  INFO ibc_relayer::macros::profiling:    ⏳ send_tx - start
-Apr 13 20:58:21.282  INFO ibc_relayer::macros::profiling:       ⏳ PK "03f17d2c094ee68cfcedb2c2f2b7dec6cd82ea158ac1c32d3de0ca8b288a3c8bfa" - start
-Apr 13 20:58:21.282  INFO ibc_relayer::macros::profiling:          ⏳ block_on - start
-Apr 13 20:58:21.285  INFO ibc_relayer::macros::profiling:          ⏳ block_on - elapsed: 3ms
-Apr 13 20:58:21.296  INFO ibc_relayer::macros::profiling:             ⏳ block_on - start
-Apr 13 20:58:22.664  INFO ibc_relayer::macros::profiling:             ⏳ block_on - elapsed: 1367ms
-Apr 13 20:58:22.664  INFO ibc_relayer::macros::profiling:       ⏳ PK "03f17d2c094ee68cfcedb2c2f2b7dec6cd82ea158ac1c32d3de0ca8b288a3c8bfa" - elapsed: 1382ms
-Apr 13 20:58:22.664  INFO ibc_relayer::macros::profiling:    ⏳ send_tx - elapsed: 1384ms
-Apr 13 20:58:22.664  INFO ibc_relayer::macros::profiling: ⏳ send_msgs - elapsed: 1384ms
-Success: CreateClient(
-    CreateClient(
-        Attributes {
-            height: Height {
-                revision: 0,
-                height: 10675,
-            },
-            client_id: ClientId(
-                "07-tendermint-7",
-            ),
-            client_type: Tendermint,
-            consensus_height: Height {
-                revision: 1,
-                height: 10663,
-            },
-        },
-    ),
-)
-</code></pre>
-<h4 id="json-output"><a class="header" href="#json-output">JSON output</a></h4>
-<p>Additionally, if the <code>--debug=profiling-json</code> flag is specified, Hermes will output profiling information in
-JSON format in a file named <code>hermes-YYYY-MM-DD-HHMMSS-prof.json</code>, in the directory specified in the <code>PROFILING_DIR</code>
-env variable, or the current directory otherwise.</p>
-<blockquote>
-<p><strong>NOTE</strong>: Outputting profiling information in JSON format in a file is only available for the <code>hermes start</code> command.
-This debug option won't do anything with the other CLIs.</p>
-</blockquote>
-<pre><code class="language-json">{"name":"fetch_node_info","src_chain":"ibc-0","elapsed":6}
-{"name":"chain_status","src_chain":"ibc-0","elapsed":12}
-{"name":"query_config_params","src_chain":"ibc-0","elapsed":3}
-{"name":"min_gas_price","src_chain":"ibc-0","elapsed":3}
-{"name":"query_staking_params","src_chain":"ibc-0","elapsed":159}
-{"name":"historical_entries","src_chain":"ibc-0","elapsed":329}
-{"name":"query_staking_params","src_chain":"ibc-0","elapsed":121}
-{"name":"unbonding_period","src_chain":"ibc-0","elapsed":12}
-{"name":"query_latest_height","src_chain":"ibc-0","elapsed":8}
-{"name":"fetch_node_info","src_chain":"ibc-1","elapsed":9}
-{"name":"chain_status","src_chain":"ibc-1","elapsed":43}
-</code></pre>
+<h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
+<ul>
+<li>If the query fails, Hermes will fallback to the configured static gas price.</li>
+<li>If the queried gas price is higher than the maximum configured gas price, Hermes will use the maximum gas price but this might cause the relaying of the packet to fail due to insufficient fees.</li>
+</ul>
+<h2 id="monitoring"><a class="header" href="#monitoring">Monitoring</a></h2>
+<p>As this feature can be delicate to handle, multiple metrics have been added in order to monitor the dynamic gas fees. Please consult the <a href="../telemetry/operators.html#dynamic-gas-fees">Dynamic Gas Metrics</a>  section for detailed information on these metrics.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../../advanced/troubleshooting/help-command.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../../documentation/configuration/description.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../../advanced/troubleshooting/log-level.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../../documentation/configuration/filter-incentivized.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -287,11 +187,11 @@ This debug option won't do anything with the other CLIs.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../../advanced/troubleshooting/help-command.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../../documentation/configuration/description.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../../advanced/troubleshooting/log-level.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../../documentation/configuration/filter-incentivized.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

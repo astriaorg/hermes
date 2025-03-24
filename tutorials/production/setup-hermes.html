@@ -24,9 +24,9 @@
         <link rel="stylesheet" href="../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../highlight.css">
-        <link rel="stylesheet" href="../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -187,7 +187,7 @@ rm mnemonic_file_osmosis
 <h2 id="configuration-file"><a class="header" href="#configuration-file">Configuration file</a></h2>
 <p>Then, you need to create a configuration file for Hermes (more details in the <a href="../../documentation/configuration/index.html">documentation</a>).</p>
 <p>The command <code>hermes config auto</code> provides a way to automatically generate a configuration file for chains in the <a href="https://github.com/cosmos/chain-registry">chain-registry</a>:</p>
-<pre><code class="language-shell">hermes config auto --output $HOME/.hermes/config.toml --chains cosmoshub:keyhub osmosis:keyosmosis
+<pre><code class="language-shell">hermes config auto --output $HOME/.hermes/config.toml --chain cosmoshub:keyhub osmosis:keyosmosis --chain 
 
 </code></pre>
 <blockquote>

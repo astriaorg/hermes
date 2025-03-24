@@ -24,9 +24,9 @@
         <link rel="stylesheet" href="../../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../../highlight.css">
-        <link rel="stylesheet" href="../../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -238,10 +238,11 @@ REQUIRED:
 Query packet commitments
 
 USAGE:
-    hermes query packet commitments --chain &lt;CHAIN_ID&gt; --port &lt;PORT_ID&gt; --channel &lt;CHANNEL_ID&gt;
+    hermes query packet commitments [OPTIONS] --chain &lt;CHAIN_ID&gt; --port &lt;PORT_ID&gt; --channel &lt;CHANNEL_ID&gt;
 
 OPTIONS:
-    -h, --help    Print help information
+    -h, --help               Print help information
+        --height &lt;HEIGHT&gt;    Height of the state to query. Leave unspecified for latest height.
 
 REQUIRED:
         --chain &lt;CHAIN_ID&gt;        Identifier of the chain to query

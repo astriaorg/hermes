@@ -24,9 +24,9 @@
         <link rel="stylesheet" href="../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../highlight.css">
-        <link rel="stylesheet" href="../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -154,7 +154,7 @@
                     <main>
                         <h1 id="packet-clearing"><a class="header" href="#packet-clearing">Packet clearing</a></h1>
 <p>Hermes can be configured in order to clear packets which haven't been relayed. This can happen if there wasn't a relayer instance running when the packet event was submitted or if there was an issue relaying the packet.</p>
-<p>There are three different configurations to determine when Hermes will clear packets.</p>
+<p>There are four different configurations to determine when Hermes will clear packets.</p>
 <h2 id="global-configurations"><a class="header" href="#global-configurations">Global configurations</a></h2>
 <p>Two of these configurations are global to all chains and are in the <code>[mode.packet]</code> section.</p>
 <h3 id="1-clear_on_start"><a class="header" href="#1-clear_on_start">1. <code>clear_on_start</code></a></h3>
@@ -173,13 +173,22 @@ clear_interval = 100
 </code></pre>
 <p>This configuration defines how often Hermes will verify if there are pending packets and relay them. The value is the number of blocks observed, so the time between each clearing might very from chain to chain.</p>
 <h2 id="chain-specific-configuration"><a class="header" href="#chain-specific-configuration">Chain specific configuration</a></h2>
-<p>The third configuration is specific for each chain.</p>
+<p>The third and fourth configurations are specific for each chain.</p>
 <h3 id="3-clear_interval"><a class="header" href="#3-clear_interval">3. <code>clear_interval</code></a></h3>
 <pre><code class="language-toml">[[chains]]
 ...
 clear_interval = 50
 </code></pre>
 <p>An additional <code>clear_interval</code> can be specified for each chain, this value is also in number of blocks. This configuration will override the clear interval value for the specific chain and can be used if chains need to have different clear values. This configuration is optional, if it is not set the global value will be used.</p>
+<h3 id="4-excluded_sequences"><a class="header" href="#4-excluded_sequences">4. <code>excluded_sequences</code></a></h3>
+<pre><code class="language-toml">[[chains]]
+...
+excluded_sequences = [
+    ['channel-0', [1, 2, 3]],
+    ['channel-1', [4, 5, 6]]
+]
+</code></pre>
+<p>It is possible to specify which packet sequences should be ignored when clearing packets for specific channels. This can be used when there are stuck packets which need to be handled in a specific way, but it is still required to clear the other stuck packets. This configuration will only filter packet when clearing, standard relaying will not filter the sequences configured in <code>excluded_sequences</code>.</p>
 
                     </main>
 

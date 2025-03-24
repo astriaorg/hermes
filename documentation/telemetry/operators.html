@@ -24,9 +24,9 @@
         <link rel="stylesheet" href="../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../highlight.css">
-        <link rel="stylesheet" href="../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -178,6 +178,7 @@ Metrics are automatically reset if the service is restarted.</li>
 <li><a href="#what-is-the-overall-ibc-status-of-each-network">What is the overall IBC status of each network?</a></li>
 <li><a href="#how-efficient-and-how-secure-is-the-ibc-status-on-each-network">How efficient and how secure is the IBC status on each network?</a></li>
 <li><a href="#am-i-getting-fee-rewards">Am I getting fee rewards?</a></li>
+<li><a href="#dynamic-gas-fees">Dynamic gas fees</a></li>
 </ul>
 <h2 id="is-hermes-active"><a class="header" href="#is-hermes-active">Is Hermes active?</a></h2>
 <p>By <em>active</em>, we mean specifically: is Hermes <em>submitting</em> any transactions to any network?
@@ -288,6 +289,8 @@ If this metric is increasing, it signals that the packet queue is increasing and
 <tr><td> <code>cleared_send_packet_count_total</code> </td><td>Number of SendPacket events received during the initial and periodic clearing, per chain, counterparty chain, channel and port</td><td><code>u64</code> Counter</td><td>Packet workers enabled, and periodic packet clearing or clear on start enabled</td></tr>
 <tr><td> <code>cleared_acknowledgment_count_total</code></td><td>Number of WriteAcknowledgement events received during the initial and periodic clearing, per chain, counterparty chain, channel and port</td><td><code>u64</code> Counter</td><td>Packet workers enabled, and periodic packet clearing or clear on start enabled</td></tr>
 <tr><td><code>broadcast_errors_total</code></td><td>Number of errors observed by Hermes when broadcasting a Tx, per error type and account</td><td><code>u64</code> Counter</td><td>Packet workers enabled</td></tr>
+<tr><td><code>simulate_errors_total</code></td><td>Number of errors observed by Hermes when simulating a Tx, per error type, account and whether the error is recoverable or not</td><td><code>u64</code> Counter</td><td>Packet workers enabled</td></tr>
+<tr><td><code>filtered_packets</code></td><td>Number of ICS-20 packets filtered because the memo and/or the receiver fields were exceeding the configured limits</td><td><code>u64</code> Counter</td><td>Packet workers enabled, and <code>ics20_max_memo_size</code> and/or <code>ics20_max_receiver_size</code> enabled</td></tr>
 </tbody></table>
 </div>
 <p>Notes:</p>
@@ -309,6 +312,21 @@ Note that this metrics is disabled if <code>misbehaviour = false</code> in your 
 <tr><td> <code>ics29_period_fees</code></td><td>Amount of ICS29 fees rewarded over the past 7 days type</td><td><code>u64</code> ValueRecorder </td><td>None</td></tr>
 </tbody></table>
 </div>
+<h2 id="dynamic-gas-fees"><a class="header" href="#dynamic-gas-fees">Dynamic gas fees</a></h2>
+<p>The introduction of dynamic gas fees adds additional configuration which can be delicate to handle correctly. The following metrics can help correctly configure your relayer.</p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Description</th><th>OpenTelemetry type</th><th>Configuration Dependencies</th></tr></thead><tbody>
+<tr><td><code>dynamic_gas_queried_fees</code></td><td>The EIP-1559 base fee queried                                        </td><td><code>u64</code> ValueRecorder </td><td>None</td></tr>
+<tr><td><code>dynamic_gas_queried_success_fees</code></td><td>The EIP-1559 base fee successfully queried                </td><td><code>u64</code> ValueRecorder </td><td>None</td></tr>
+<tr><td><code>dynamic_gas_paid_fees</code></td><td>The EIP-1559 base fee paid                                           </td><td><code>u64</code> ValueRecorder </td><td>None</td></tr>
+</tbody></table>
+</div>
+<p>Notes:</p>
+<ul>
+<li>The <code>dynamic_gas_queried_fees</code> contains the gas price used after the query but before filtering by configured <code>max</code>. This means that this metric might contain the static gas price if the query failed.</li>
+<li>The <code>dynamic_gas_queried_success_fees</code> will only contain the gas price when the query succeeds, if this metric doesn't contain values or less values that the <code>dynamic_gas_queried_fees</code> this could indicate an issue with the endpoint used to query the fees.</li>
+<li><code>dynamic_gas_paid_fees</code> will contain the price used by the relayer, the maximum value for this metric is <code>max</code>. If there are multiple values in the same bucket as the <code>max</code> it could indicate that the gas price queried is often higher than the configured <code>max</code>.</li>
+</ul>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

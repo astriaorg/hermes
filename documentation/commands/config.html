@@ -24,9 +24,9 @@
         <link rel="stylesheet" href="../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../highlight.css">
-        <link rel="stylesheet" href="../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -181,7 +181,7 @@ SUBCOMMANDS:
 Automatically generate a config.toml for the specified chain(s)
 
 USAGE:
-    hermes config auto [OPTIONS] --output &lt;PATH&gt; --chains &lt;CHAIN_NAME:OPTIONAL_KEY_NAME&gt;
+    hermes config auto [OPTIONS] --output &lt;PATH&gt; --chain &lt;CHAIN1_NAME:OPTIONAL_KEY_NAME&gt; --chain &lt;CHAIN2_NAME:OPTIONAL_KEY_NAME&gt;
 
 OPTIONS:
         --commit &lt;COMMIT_HASH&gt;    Commit hash from which the chain configs will be generated. If
@@ -190,14 +190,16 @@ OPTIONS:
 
 REQUIRED:
         --chains &lt;CHAIN_NAME:OPTIONAL_KEY_NAME&gt;...
-            Names of the chains to include in the config. Every chain must be in the chain registry.
+            Names of the chains to include in the configuration, together with an optional key name.
+            Either repeat this argument for every chain or pass a space-separated list of chains.
+            Every chain must be found in the chain registry.
 
         --output &lt;PATH&gt;
             Path to the configuration file
 </code></pre>
 <p><strong>Example</strong></p>
 <p>Use <code>config auto</code> to generate a configuration file that is able to relay between <code>cosmoshub</code> and <code>osmosis</code>. This command assumes the existence of a key file for <code>cosmoshub-4</code> and <code>osmosis-1</code> in <code>$HOME/.hermes/keys</code>.</p>
-<pre><code>hermes config auto --output ~/example_config.toml --chains cosmoshub osmosis
+<pre><code>hermes config auto --output ~/example_config.toml --chain cosmoshub osmosis --chain 
 
 
 2022-08-16T17:27:26.966233Z  INFO ThreadId(01) using default configuration from '~/.hermes/config.toml'
@@ -207,7 +209,7 @@ REQUIRED:
 SUCCESS Config file written successfully at '~/example_config.toml'
 </code></pre>
 <p>It is also possible to manually specify a key name for any chain.</p>
-<pre><code>hermes config auto --output ~/example_config.toml --chains cosmoshub:random_key osmosis
+<pre><code>hermes config auto --output ~/example_config.toml --chain cosmoshub:random_key osmosis --chain 
 
 
 2022-08-16T17:29:56.902499Z  INFO ThreadId(01) using default configuration from '~/.hermes/config.toml'
