@@ -45,6 +45,7 @@ fn standard_path_to_derivation_path(path: &StandardHDPath) -> DerivationPath {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Ed25519AddressType {
     Solana,
+    Astria,
 }
 
 impl TryFrom<&AddressType> for Ed25519AddressType {
@@ -55,6 +56,7 @@ impl TryFrom<&AddressType> for Ed25519AddressType {
             AddressType::Cosmos | AddressType::Ethermint { .. } => Err(
                 Error::unsupported_address_type(address_type.clone(), Ed25519KeyPair::KEY_TYPE),
             ),
+            AddressType::Astria => Ok(Self::Astria),
         }
     }
 }
@@ -66,6 +68,10 @@ pub struct Ed25519KeyPair {
 }
 
 impl Ed25519KeyPair {
+    pub fn signing_key(&self) -> &SigningKey {
+        &self.signing_key
+    }
+
     fn from_mnemonic_internal(
         mnemonic: &str,
         hd_path: &StandardHDPath,
@@ -89,7 +95,7 @@ impl SigningKeyPair for Ed25519KeyPair {
         use ed25519_dalek::PUBLIC_KEY_LENGTH;
 
         // TODO: Derive this from something in `key_file`
-        let address_type = Ed25519AddressType::Solana;
+        let address_type = Ed25519AddressType::Astria;
         let key_pair = Self::from_mnemonic_internal(&key_file.mnemonic, hd_path, address_type)?;
 
         let public_key_vec = &bs58::decode(key_file.pubkey)
@@ -102,7 +108,7 @@ impl SigningKeyPair for Ed25519KeyPair {
             })?;
 
         let public_key_from_file = match address_type {
-            Ed25519AddressType::Solana => {
+            Ed25519AddressType::Solana | Ed25519AddressType::Astria => {
                 VerifyingKey::from_bytes(public_key_bytes).map_err(Error::invalid_public_key)?
             }
         };
@@ -131,6 +137,18 @@ impl SigningKeyPair for Ed25519KeyPair {
         match self.address_type {
             Ed25519AddressType::Solana => {
                 bs58::encode(&self.signing_key.verifying_key()).into_string()
+            }
+            Ed25519AddressType::Astria => {
+                use astria_core::{crypto::VerificationKey, primitive::v1::Address};
+                let verification_key =
+                    VerificationKey::try_from(self.signing_key.verifying_key().to_bytes())
+                        .expect("can convert ed25519 public key bytes to astria verification key");
+                let address: Address = Address::builder()
+                    .array(*verification_key.address_bytes())
+                    .prefix("astria")
+                    .try_build()
+                    .expect("can build astria address from ed25519 public key");
+                address.to_string()
             }
         }
     }

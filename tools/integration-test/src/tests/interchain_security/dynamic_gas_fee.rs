@@ -80,7 +80,9 @@ impl TestOverrides for DynamicGasTest {
         update_relayer_config_for_consumer_chain(config);
 
         match &mut config.chains[0] {
-            ChainConfig::CosmosSdk(chain_config_a) | ChainConfig::Namada(chain_config_a) => {
+            ChainConfig::CosmosSdk(chain_config_a)
+            | ChainConfig::Namada(chain_config_a)
+            | ChainConfig::Astria(chain_config_a) => {
                 chain_config_a.gas_price =
                     GasPrice::new(0.3, chain_config_a.gas_price.denom.clone());
 
@@ -90,7 +92,9 @@ impl TestOverrides for DynamicGasTest {
         }
 
         match &mut config.chains[1] {
-            ChainConfig::CosmosSdk(chain_config_b) | ChainConfig::Namada(chain_config_b) => {
+            ChainConfig::CosmosSdk(chain_config_b)
+            | ChainConfig::Namada(chain_config_b)
+            | ChainConfig::Astria(chain_config_b) => {
                 chain_config_b.gas_price =
                     GasPrice::new(0.3, chain_config_b.gas_price.denom.clone());
 

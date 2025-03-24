@@ -60,7 +60,7 @@ use ibc_relayer_types::signer::Signer;
 use ibc_relayer_types::Height as ICSHeight;
 
 use tendermint::block::Height as TmHeight;
-use tendermint::node::{self, info::TxIndexStatus};
+use tendermint::node::info::TxIndexStatus;
 use tendermint::time::Time as TmTime;
 use tendermint_light_client::verifier::types::LightBlock as TmLightBlock;
 use tendermint_rpc::client::CompatMode;
@@ -924,7 +924,11 @@ impl ChainEndpoint for CosmosSdkChain {
         let compat_mode = rt.block_on(fetch_compat_mode(&rpc_client, &config))?;
         rpc_client.set_compat_mode(compat_mode);
 
-        let node_info = rt.block_on(fetch_node_info(&rpc_client, &config))?;
+        let node_info = rt.block_on(crate::chain::utils::fetch_node_info(
+            &rpc_client,
+            &config.id,
+            &config.rpc_addr,
+        ))?;
         let light_client = TmLightClient::from_cosmos_sdk_config(&config, node_info.id)?;
 
         // Initialize key store and load key
@@ -1259,7 +1263,9 @@ impl ChainEndpoint for CosmosSdkChain {
             .collect();
 
         // Sort by client identifier counter
-        clients.sort_by_cached_key(|c| client_id_suffix(&c.client_id).unwrap_or(0));
+        clients.sort_by_cached_key(|c| {
+            crate::chain::utils::client_id_suffix(&c.client_id).unwrap_or(0)
+        });
 
         Ok(clients)
     }
@@ -2369,7 +2375,7 @@ impl ChainEndpoint for CosmosSdkChain {
                 events.extend(tx_events);
                 events.extend(end_block_events);
 
-                sort_events_by_sequence(&mut events);
+                crate::chain::utils::sort_events_by_sequence(&mut events);
 
                 Ok(events)
             }
@@ -2671,43 +2677,6 @@ impl ChainEndpoint for CosmosSdkChain {
         let consumer_id = response.into_inner().consumer_id;
         Ok(ConsumerId::new(consumer_id))
     }
-}
-
-fn sort_events_by_sequence(events: &mut [IbcEventWithHeight]) {
-    events.sort_by(|a, b| {
-        a.event
-            .packet()
-            .zip(b.event.packet())
-            .map(|(pa, pb)| pa.sequence.cmp(&pb.sequence))
-            .unwrap_or(Ordering::Equal)
-    });
-}
-
-async fn fetch_node_info(
-    rpc_client: &HttpClient,
-    config: &config::CosmosSdkConfig,
-) -> Result<node::Info, Error> {
-    crate::time!("fetch_node_info",
-    {
-        "src_chain": config.id.to_string(),
-    });
-
-    rpc_client
-        .status()
-        .await
-        .map(|s| s.node_info)
-        .map_err(|e| Error::rpc(config.rpc_addr.clone(), e))
-}
-
-/// Returns the suffix counter for a CosmosSDK client id.
-/// Returns `None` if the client identifier is malformed
-/// and the suffix could not be parsed.
-fn client_id_suffix(client_id: &ClientId) -> Option<u64> {
-    client_id
-        .as_str()
-        .split('-')
-        .last()
-        .and_then(|e| e.parse::<u64>().ok())
 }
 
 /// Performs a health check on a Cosmos chain.

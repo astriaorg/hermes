@@ -1,3 +1,4 @@
+pub mod astria;
 pub mod client;
 pub mod client_settings;
 pub mod cosmos;
@@ -9,4 +10,5 @@ pub mod penumbra;
 pub mod requests;
 pub mod runtime;
 pub mod tracking;
+pub(crate) mod utils;
 pub mod version;

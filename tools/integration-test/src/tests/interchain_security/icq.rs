@@ -98,6 +98,9 @@ impl TestOverrides for InterchainSecurityIcqTest {
                 ChainConfig::Penumbra(_) => {
                     panic!("running tests with Penumbra chain not supported")
                 }
+                ChainConfig::Astria(_) => {
+                    panic!("running tests with Astria chain not supported")
+                }
             }
         }
     }

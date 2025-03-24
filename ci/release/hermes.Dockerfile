@@ -3,7 +3,7 @@
 # Usage: (from the root of the working copy)
 #   $ docker build . -t informalsystems/hermes -f ci/release/hermes.Dockerfile
 
-FROM rust:1-buster AS build-env
+FROM rust:1-bullseye AS build-env
 
 ARG TAG
 ARG PROTOC_VERSION=28.3
@@ -23,6 +23,8 @@ RUN ARCH=$(uname -m) && \
     unzip /tmp/protoc.zip -d /usr/local && \
     rm -rf /tmp/protoc.zip
 
+RUN apt update && apt install -y clang libssl-dev pkg-config
+
 COPY . .
 RUN cargo build --release
 
@@ -39,7 +41,7 @@ WORKDIR /home/hermes
 
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
-        DEB_URL=http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb; \
+        DEB_URL=http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb; \
     elif [ "$ARCH" = "aarch64" ]; then \
         DEB_URL=http://ports.ubuntu.com/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_arm64.deb; \
     else \

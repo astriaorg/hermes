@@ -52,7 +52,7 @@ impl TestOverrides for FilterClearOnStartTest {
         excluded_sequences.insert(ChannelId::new(2), vec![2.into()]);
         let chain_a = &mut config.chains[0];
         match chain_a {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                 chain_config.excluded_sequences = ExcludedSequences::new(excluded_sequences);
             }
             ChainConfig::Penumbra(_) => { /* no-op */ }
@@ -90,7 +90,7 @@ impl TestOverrides for FilterClearIntervalTest {
         excluded_sequences.insert(ChannelId::new(2), vec![2.into()]);
         let chain_a = &mut config.chains[0];
         match chain_a {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                 chain_config.excluded_sequences = ExcludedSequences::new(excluded_sequences);
             }
             ChainConfig::Penumbra(_) => { /* no-op */ }
@@ -250,7 +250,7 @@ impl TestOverrides for StandardRelayingNoFilterTest {
         excluded_sequences.insert(ChannelId::new(2), vec![2.into()]);
         let chain_a = &mut config.chains[0];
         match chain_a {
-            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) => {
+            ChainConfig::CosmosSdk(chain_config) | ChainConfig::Namada(chain_config) | ChainConfig::Astria(chain_config) => {
                 chain_config.excluded_sequences = ExcludedSequences::new(excluded_sequences);
             }
             ChainConfig::Penumbra(_) => { /* no-op */ }
