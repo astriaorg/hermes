@@ -415,6 +415,10 @@ impl ChainEndpoint for AstriaChain {
 
     /// Shutdown the chain runtime
     fn shutdown(self) -> Result<(), Error> {
+        if let Some(monitor_tx) = self.tx_monitor_cmd {
+            monitor_tx.shutdown().map_err(Error::event_source)?;
+        }
+
         Ok(())
     }
 
