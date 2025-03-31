@@ -1601,8 +1601,8 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
 
         let upgrade_proof = maybe_upgrade_proof.ok_or(ChannelError::missing_upgrade_proof())?;
 
-        let proof_upgrade =
-            CommitmentProofBytes::try_from(upgrade_proof).map_err(ChannelError::malformed_proof)?;
+        let proof_upgrade = CommitmentProofBytes::try_from(upgrade_proof.merkle_proof())
+            .map_err(ChannelError::malformed_proof)?;
 
         if !matches!(channel_end.state, State::Open(_)) {
             return Err(ChannelError::invalid_channel_upgrade_state(
@@ -1711,8 +1711,8 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
 
         let upgrade_proof = maybe_upgrade_proof.ok_or(ChannelError::missing_upgrade_proof())?;
 
-        let proof_upgrade =
-            CommitmentProofBytes::try_from(upgrade_proof).map_err(ChannelError::malformed_proof)?;
+        let proof_upgrade = CommitmentProofBytes::try_from(upgrade_proof.merkle_proof())
+            .map_err(ChannelError::malformed_proof)?;
 
         // Building the channel proof at the queried height
         let proof = self
@@ -1836,8 +1836,8 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
 
         let upgrade_proof = maybe_upgrade_proof.ok_or(ChannelError::missing_upgrade_proof())?;
 
-        let proof_upgrade =
-            CommitmentProofBytes::try_from(upgrade_proof).map_err(ChannelError::malformed_proof)?;
+        let proof_upgrade = CommitmentProofBytes::try_from(upgrade_proof.merkle_proof())
+            .map_err(ChannelError::malformed_proof)?;
 
         // Building the channel proof at the queried height
         let proof = self
@@ -2046,8 +2046,9 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> Channel<ChainA, ChainB> {
         let error_receipt_proof =
             maybe_error_receipt_proof.ok_or(ChannelError::missing_upgrade_error_receipt_proof())?;
 
-        let proof_error_receipt = CommitmentProofBytes::try_from(error_receipt_proof)
-            .map_err(ChannelError::malformed_proof)?;
+        let proof_error_receipt =
+            CommitmentProofBytes::try_from(error_receipt_proof.merkle_proof())
+                .map_err(ChannelError::malformed_proof)?;
 
         // Building the channel proof at the queried height
         let proofs = self

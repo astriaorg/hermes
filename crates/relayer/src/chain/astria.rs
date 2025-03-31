@@ -7,7 +7,9 @@ use ibc_proto::ibc::{
         connection::v1::query_client::QueryClient as IbcConnectionQueryClient,
     },
 };
-use ibc_relayer_types::applications::ics28_ccv::msgs::ConsumerChain;
+use ibc_relayer_types::{
+    applications::ics28_ccv::msgs::ConsumerChain, core::ics02_client::height::Height,
+};
 use ibc_relayer_types::{
     applications::ics31_icq::response::CrossChainQueryResponse,
     clients::ics07_tendermint::{
@@ -21,7 +23,7 @@ use ibc_relayer_types::{
             channel::{ChannelEnd, IdentifiedChannelEnd},
             packet::Sequence,
         },
-        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProofWithHeight},
         ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
     },
     signer::Signer,
@@ -74,7 +76,6 @@ use ibc_proto::ibc::core::channel::v1::QueryUpgradeRequest;
 use ibc_relayer_types::applications::ics28_ccv::msgs::ConsumerId;
 use ibc_relayer_types::core::ics04_channel::upgrade::ErrorReceipt;
 use ibc_relayer_types::core::ics04_channel::upgrade::Upgrade;
-use ibc_relayer_types::Height;
 
 const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -689,7 +690,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
 
         let mut req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
@@ -718,7 +719,22 @@ impl ChainEndpoint for AstriaChain {
             AnyClientState::try_from(client_state).map_err(|e| Error::other(e.to_string()))?;
 
         match include_proof {
-            IncludeProof::Yes => Ok((client_state, Some(decode_merkle_proof(response.proof)?))),
+            IncludeProof::Yes => Ok((
+                client_state,
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
+            )),
             IncludeProof::No => Ok((client_state, None)),
         }
     }
@@ -728,7 +744,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
 
         let mut req = ibc_proto::ibc::core::client::v1::QueryConsensusStateRequest {
@@ -766,7 +782,22 @@ impl ChainEndpoint for AstriaChain {
         }
 
         match include_proof {
-            IncludeProof::Yes => Ok((consensus_state, Some(decode_merkle_proof(response.proof)?))),
+            IncludeProof::Yes => Ok((
+                consensus_state,
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
+            )),
             IncludeProof::No => Ok((consensus_state, None)),
         }
     }
@@ -799,7 +830,7 @@ impl ChainEndpoint for AstriaChain {
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
         let mut req =
             ibc_proto::ibc::core::client::v1::QueryUpgradedClientStateRequest {}.into_request();
@@ -831,7 +862,7 @@ impl ChainEndpoint for AstriaChain {
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         let mut client = self.ibc_client_grpc_client.clone();
         let mut req =
             ibc_proto::ibc::core::client::v1::QueryUpgradedConsensusStateRequest {}.into_request();
@@ -923,7 +954,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_connection_grpc_client.clone();
         let mut req = ibc_proto::ibc::core::connection::v1::QueryConnectionRequest {
             connection_id: request.connection_id.to_string(),
@@ -945,8 +976,8 @@ impl ChainEndpoint for AstriaChain {
             }
         })?;
 
-        let resp = response.into_inner();
-        let connection_end: ConnectionEnd = match resp.connection {
+        let response = response.into_inner();
+        let connection_end: ConnectionEnd = match response.connection {
             Some(raw_connection) => raw_connection.try_into().map_err(Error::ics03)?,
             None => {
                 // When no connection is found, the GRPC call itself should return
@@ -958,7 +989,27 @@ impl ChainEndpoint for AstriaChain {
         };
 
         match include_proof {
-            IncludeProof::Yes => Ok((connection_end, Some(decode_merkle_proof(resp.proof)?))),
+            IncludeProof::Yes => Ok((
+                connection_end,
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    // TODO: subtracting from the height is jank but needed due to penumbra incrementing the proof height
+                    // in the response, and the caller of this method (`build_packet_proofs`) also incrementing the proof
+                    // height. the cosmos endpoint doesn't increment the height in the response (i believe) so changing
+                    // the caller to not increment is potentially more confusing.
+                    // needs a better fix.
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
+            )),
             IncludeProof::No => Ok((connection_end, None)),
         }
     }
@@ -1036,7 +1087,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryChannelRequest {
             port_id: request.port_id.to_string(),
@@ -1057,7 +1108,22 @@ impl ChainEndpoint for AstriaChain {
             ChannelEnd::try_from(channel_end).map_err(|e| Error::other(e.to_string()))?;
 
         match include_proof {
-            IncludeProof::Yes => Ok((channel_end, Some(decode_merkle_proof(response.proof)?))),
+            IncludeProof::Yes => Ok((
+                channel_end,
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
+            )),
             IncludeProof::No => Ok((channel_end, None)),
         }
     }
@@ -1090,7 +1156,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryPacketCommitmentRequest {
             port_id: request.port_id.to_string(),
@@ -1116,7 +1182,19 @@ impl ChainEndpoint for AstriaChain {
         match include_proof {
             IncludeProof::Yes => Ok((
                 response.commitment,
-                Some(decode_merkle_proof(response.proof)?),
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
             )),
             IncludeProof::No => Ok((response.commitment, None)),
         }
@@ -1158,7 +1236,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryPacketReceiptRequest {
             port_id: request.port_id.to_string(),
@@ -1187,7 +1265,22 @@ impl ChainEndpoint for AstriaChain {
         };
 
         match include_proof {
-            IncludeProof::Yes => Ok((value, Some(decode_merkle_proof(response.proof)?))),
+            IncludeProof::Yes => Ok((
+                value,
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
+            )),
             IncludeProof::No => Ok((value, None)),
         }
     }
@@ -1227,7 +1320,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let req = ibc_proto::ibc::core::channel::v1::QueryPacketAcknowledgementRequest {
             port_id: request.port_id.to_string(),
@@ -1253,7 +1346,19 @@ impl ChainEndpoint for AstriaChain {
         match include_proof {
             IncludeProof::Yes => Ok((
                 response.acknowledgement,
-                Some(decode_merkle_proof(response.proof)?),
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
             )),
             IncludeProof::No => Ok((response.acknowledgement, None)),
         }
@@ -1322,7 +1427,7 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
         let request = tonic::Request::new(request.into());
 
@@ -1334,7 +1439,19 @@ impl ChainEndpoint for AstriaChain {
         match include_proof {
             IncludeProof::Yes => Ok((
                 response.next_sequence_receive.into(),
-                Some(decode_merkle_proof(response.proof)?),
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(response.proof)?.proofs,
+                    TryInto::<ICSHeight>::try_into(
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists"),
+                    )
+                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                        Error::other(e.to_string())
+                    })?
+                    .decrement()
+                    .expect("proof height must be positive"),
+                )),
             )),
             IncludeProof::No => Ok((response.next_sequence_receive.into(), None)),
         }
@@ -1514,7 +1631,7 @@ impl ChainEndpoint for AstriaChain {
         _request: QueryUpgradeRequest,
         _height: Height,
         _include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error> {
         todo!("unimplemented in penumbra ibc library")
     }
 
@@ -1523,7 +1640,7 @@ impl ChainEndpoint for AstriaChain {
         _request: QueryUpgradeErrorRequest,
         _height: Height,
         _include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error> {
         todo!("unimplemented in penumbra ibc library")
     }
 

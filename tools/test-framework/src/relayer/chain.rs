@@ -55,7 +55,7 @@ use ibc_relayer_types::core::ics04_channel::channel::ChannelEnd;
 use ibc_relayer_types::core::ics04_channel::channel::IdentifiedChannelEnd;
 use ibc_relayer_types::core::ics04_channel::packet::{PacketMsgType, Sequence};
 use ibc_relayer_types::core::ics23_commitment::commitment::CommitmentPrefix;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::core::ics24_host::identifier::ChainId;
 use ibc_relayer_types::core::ics24_host::identifier::ChannelId;
 use ibc_relayer_types::core::ics24_host::identifier::{ClientId, ConnectionId, PortId};
@@ -148,7 +148,7 @@ where
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         self.value().query_client_state(request, include_proof)
     }
 
@@ -170,21 +170,21 @@ where
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         self.value().query_consensus_state(request, include_proof)
     }
 
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         self.value().query_upgraded_client_state(request)
     }
 
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         self.value().query_upgraded_consensus_state(request)
     }
 
@@ -200,7 +200,7 @@ where
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         self.value().query_connection(request, include_proof)
     }
 
@@ -222,7 +222,7 @@ where
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         self.value()
             .query_next_sequence_receive(request, include_proof)
     }
@@ -238,7 +238,7 @@ where
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         self.value().query_channel(request, include_proof)
     }
 
@@ -328,7 +328,7 @@ where
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.value().query_packet_commitment(request, include_proof)
     }
 
@@ -343,7 +343,7 @@ where
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.value().query_packet_receipt(request, include_proof)
     }
 
@@ -358,7 +358,7 @@ where
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.value()
             .query_packet_acknowledgement(request, include_proof)
     }
@@ -444,7 +444,7 @@ where
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error> {
         self.value().query_upgrade(request, height, include_proof)
     }
 
@@ -453,7 +453,7 @@ where
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error> {
         self.value()
             .query_upgrade_error(request, height, include_proof)
     }

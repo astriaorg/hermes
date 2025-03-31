@@ -25,7 +25,7 @@ use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, IdentifiedChan
 use ibc_relayer_types::core::ics04_channel::packet::Sequence;
 use ibc_relayer_types::core::ics04_channel::upgrade::{ErrorReceipt, Upgrade};
 use ibc_relayer_types::core::ics23_commitment::commitment::CommitmentPrefix;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::core::ics24_host::identifier::{
     ChainId, ChannelId, ClientId, ConnectionId, PortId,
 };
@@ -627,7 +627,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_client_state",
             {
@@ -648,7 +648,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_consensus_state",
             {
@@ -695,7 +695,7 @@ impl ChainEndpoint for NamadaChain {
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         crate::time!(
             "query_upgraded_client_state",
             {
@@ -727,7 +727,7 @@ impl ChainEndpoint for NamadaChain {
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         crate::time!(
             "query_upgraded_consensus_state",
             {
@@ -814,7 +814,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_connection",
             {
@@ -894,7 +894,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_channel",
             {
@@ -955,7 +955,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let path = CommitmentsPath {
             port_id: request.port_id,
             channel_id: request.channel_id,
@@ -1001,7 +1001,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let path = ReceiptsPath {
             port_id: request.port_id,
             channel_id: request.channel_id,
@@ -1049,7 +1049,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let path = AcksPath {
             port_id: request.port_id,
             channel_id: request.channel_id,
@@ -1126,7 +1126,7 @@ impl ChainEndpoint for NamadaChain {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_next_sequence_receive",
             {
@@ -1327,7 +1327,7 @@ impl ChainEndpoint for NamadaChain {
         request: QueryUpgradeRequest,
         height: ICSHeight,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error> {
         let port_id = PortId::from_str(&request.port_id)
             .map_err(|_| Error::invalid_port_string(request.port_id))?;
         let channel_id = ChannelId::from_str(&request.channel_id)
@@ -1349,7 +1349,7 @@ impl ChainEndpoint for NamadaChain {
         request: QueryUpgradeErrorRequest,
         height: ICSHeight,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error> {
         let port_id = PortId::from_str(&request.port_id)
             .map_err(|_| Error::invalid_port_string(request.port_id))?;
         let channel_id = ChannelId::from_str(&request.channel_id)

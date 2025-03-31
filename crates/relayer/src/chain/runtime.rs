@@ -25,7 +25,7 @@ use ibc_relayer_types::{
             packet::{PacketMsgType, Sequence},
             upgrade::{ErrorReceipt, Upgrade},
         },
-        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProofWithHeight},
         ics24_host::identifier::{ChannelId, ClientId, ConnectionId, PortId},
     },
     proofs::Proofs,
@@ -574,7 +574,7 @@ where
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(AnyClientState, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(AnyClientState, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let res = self.chain.query_client_state(request, include_proof);
 
@@ -584,7 +584,7 @@ where
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-        reply_to: ReplyTo<(AnyClientState, MerkleProof)>,
+        reply_to: ReplyTo<(AnyClientState, MerkleProofWithHeight)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_upgraded_client_state(request);
 
@@ -604,7 +604,7 @@ where
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(AnyConsensusState, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(AnyConsensusState, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let res = self.chain.query_consensus_state(request, include_proof);
 
@@ -614,7 +614,7 @@ where
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-        reply_to: ReplyTo<(AnyConsensusState, MerkleProof)>,
+        reply_to: ReplyTo<(AnyConsensusState, MerkleProofWithHeight)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_upgraded_consensus_state(request);
 
@@ -635,7 +635,7 @@ where
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(ConnectionEnd, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(ConnectionEnd, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let connection_end = self.chain.query_connection(request, include_proof);
         reply_to.send(connection_end).map_err(Error::send)
@@ -672,7 +672,7 @@ where
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(ChannelEnd, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(ChannelEnd, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_channel(request, include_proof);
         reply_to.send(result).map_err(Error::send)
@@ -721,7 +721,7 @@ where
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_packet_commitment(request, include_proof);
         reply_to.send(result).map_err(Error::send)
@@ -740,7 +740,7 @@ where
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_packet_receipt(request, include_proof);
         reply_to.send(result).map_err(Error::send)
@@ -759,7 +759,7 @@ where
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self
             .chain
@@ -789,7 +789,7 @@ where
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Sequence, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Sequence, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self
             .chain
@@ -883,7 +883,7 @@ where
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Upgrade, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Upgrade, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self.chain.query_upgrade(request, height, include_proof);
         reply_to.send(result).map_err(Error::send)?;
@@ -896,7 +896,7 @@ where
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(ErrorReceipt, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(ErrorReceipt, Option<MerkleProofWithHeight>)>,
     ) -> Result<(), Error> {
         let result = self
             .chain

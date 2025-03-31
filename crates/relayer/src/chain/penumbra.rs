@@ -64,6 +64,7 @@ use ibc_relayer_types::core::ics03_connection::connection::{
 use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, IdentifiedChannelEnd};
 use ibc_relayer_types::core::ics04_channel::packet::Sequence;
 use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::core::ics24_host::identifier::{ChainId, ClientId};
 use ibc_relayer_types::Height as ICSHeight;
 use penumbra_sdk_fee::FeeTier;
@@ -867,7 +868,7 @@ impl ChainEndpoint for PenumbraChain {
         &self,
         req: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         crate::telemetry!(query, self.id(), "query_client_state");
         let mut client = self.ibc_client_grpc_client.clone();
 
@@ -910,9 +911,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((client_state, Some(proof)))
+                Ok((
+                    client_state,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
             IncludeProof::No => Ok((client_state, None)),
         }
@@ -922,7 +935,7 @@ impl ChainEndpoint for PenumbraChain {
         &self,
         req: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         crate::telemetry!(query, self.id(), "query_consensus_state");
         let mut client = self.ibc_client_grpc_client.clone();
 
@@ -973,9 +986,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((consensus_state, Some(proof)))
+                Ok((
+                    consensus_state,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
         }
     }
@@ -1008,14 +1033,14 @@ impl ChainEndpoint for PenumbraChain {
     fn query_upgraded_client_state(
         &self,
         _request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         todo!("need to implement corresponding state query in penumbra")
     }
 
     fn query_upgraded_consensus_state(
         &self,
         _request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         todo!("need to implement corresponding state query in penumbra")
     }
 
@@ -1093,7 +1118,7 @@ impl ChainEndpoint for PenumbraChain {
         &self,
         req: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         crate::telemetry!(query, self.id(), "query_connection");
         let mut client = self.ibc_connection_grpc_client.clone();
 
@@ -1131,7 +1156,18 @@ impl ChainEndpoint for PenumbraChain {
         };
 
         match include_proof {
-            IncludeProof::Yes => Ok((connection_end, Some(decode_merkle_proof(resp.proof)?))),
+            IncludeProof::Yes => Ok((
+                connection_end,
+                Some(MerkleProofWithHeight::new(
+                    decode_merkle_proof(resp.proof)?.proofs,
+                    resp.proof_height
+                        .expect("proof height must exist if proof exists")
+                        .try_into()
+                        .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        })?,
+                )),
+            )),
             IncludeProof::No => Ok((connection_end, None)),
         }
     }
@@ -1204,7 +1240,7 @@ impl ChainEndpoint for PenumbraChain {
         &self,
         req: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         let mut client = self.ibc_channel_grpc_client.clone();
 
         let height = match req.height {
@@ -1241,9 +1277,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((channel_end, Some(proof)))
+                Ok((
+                    channel_end,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
         }
     }
@@ -1272,7 +1320,7 @@ impl ChainEndpoint for PenumbraChain {
         &self,
         req: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         crate::telemetry!(query, self.id(), "query_packet_commitment");
         let mut client = self.ibc_channel_grpc_client.clone();
 
@@ -1306,9 +1354,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((packet_commitment, Some(proof)))
+                Ok((
+                    packet_commitment,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
         }
     }
@@ -1346,7 +1406,7 @@ impl ChainEndpoint for PenumbraChain {
         req: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
         // What a strange API -erwan.
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         crate::telemetry!(query, self.id(), "query_packet_receipt");
         let mut client = self.ibc_channel_grpc_client.clone();
         let height = match req.height {
@@ -1391,9 +1451,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((vec![response.received.into()], Some(proof)))
+                Ok((
+                    vec![response.received.into()],
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
         }
     }
@@ -1425,7 +1497,7 @@ impl ChainEndpoint for PenumbraChain {
         req: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
         // TODO(erwan): This API should change. Why are we thrashing raw bytes around?
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         crate::telemetry!(query, self.id(), "query_packet_acknowledgement");
         let mut client = self.ibc_channel_grpc_client.clone();
 
@@ -1458,9 +1530,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((raw_ack, Some(proof)))
+                Ok((
+                    raw_ack,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
         }
     }
@@ -1517,7 +1601,7 @@ impl ChainEndpoint for PenumbraChain {
         &self,
         req: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_next_sequence_receive",
             {
@@ -1564,9 +1648,21 @@ impl ChainEndpoint for PenumbraChain {
                 let raw_proof = RawMerkleProof::decode(raw_proof_bytes.as_ref())
                     .map_err(|e| Error::other(e.to_string()))?;
 
-                let proof = raw_proof.into();
+                let proof: MerkleProof = raw_proof.into();
 
-                Ok((next_seq, Some(proof)))
+                Ok((
+                    next_seq,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        response
+                            .proof_height
+                            .expect("proof height must exist if proof exists")
+                            .try_into()
+                            .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
+                                Error::other(e.to_string())
+                            })?,
+                    )),
+                ))
             }
             IncludeProof::No => Ok((next_seq, None)),
         }
@@ -1750,7 +1846,7 @@ impl ChainEndpoint for PenumbraChain {
     ) -> Result<
         (
             ibc_relayer_types::core::ics04_channel::upgrade::Upgrade,
-            Option<MerkleProof>,
+            Option<MerkleProofWithHeight>,
         ),
         Error,
     > {
@@ -1765,7 +1861,7 @@ impl ChainEndpoint for PenumbraChain {
     ) -> Result<
         (
             ibc_relayer_types::core::ics04_channel::upgrade::ErrorReceipt,
-            Option<MerkleProof>,
+            Option<MerkleProofWithHeight>,
         ),
         Error,
     > {

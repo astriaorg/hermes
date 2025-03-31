@@ -563,8 +563,8 @@ impl<DstChain: ChainHandle, SrcChain: ChainHandle> ForeignClient<DstChain, SrcCh
             client_id: self.id.clone(),
             client_state: client_state.into(),
             consensus_state: consensus_state.into(),
-            proof_upgrade_client: proof_upgrade_client.into(),
-            proof_upgrade_consensus_state: proof_upgrade_consensus_state.into(),
+            proof_upgrade_client: proof_upgrade_client.merkle_proof().into(),
+            proof_upgrade_consensus_state: proof_upgrade_consensus_state.merkle_proof().into(),
             signer,
         }
         .to_any();

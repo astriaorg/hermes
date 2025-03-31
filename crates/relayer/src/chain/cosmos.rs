@@ -40,7 +40,7 @@ use ibc_relayer_types::core::ics04_channel::channel::{ChannelEnd, IdentifiedChan
 use ibc_relayer_types::core::ics04_channel::channel::{State, UpgradeState};
 use ibc_relayer_types::core::ics04_channel::packet::Sequence;
 use ibc_relayer_types::core::ics23_commitment::commitment::CommitmentPrefix;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::core::ics24_host::identifier::{
     ChainId, ChannelId, ClientId, ConnectionId, PortId,
 };
@@ -591,7 +591,7 @@ impl CosmosSdkChain {
         &self,
         query_data: ClientUpgradePath,
         query_height: ICSHeight,
-    ) -> Result<(Vec<u8>, MerkleProof), Error> {
+    ) -> Result<(Vec<u8>, MerkleProofWithHeight), Error> {
         let path = SDK_UPGRADE_QUERY_PATH.into();
 
         let response: QueryResponse = self.block_on(abci_query(
@@ -605,7 +605,13 @@ impl CosmosSdkChain {
 
         let proof = response.proof.ok_or_else(Error::empty_response_proof)?;
 
-        Ok((response.value, proof))
+        Ok((
+            response.value,
+            MerkleProofWithHeight::new(
+                proof.proofs,
+                Height::from_tm(response.height, &self.config.id),
+            ),
+        ))
     }
 
     /// Query the chain status via an RPC query.
@@ -1274,7 +1280,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_client_state",
             {
@@ -1293,7 +1299,13 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-                Ok((client_state, Some(proof)))
+                Ok((
+                    client_state,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((client_state, None)),
         }
@@ -1302,7 +1314,7 @@ impl ChainEndpoint for CosmosSdkChain {
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         crate::time!(
             "query_upgraded_client_state",
             {
@@ -1331,7 +1343,7 @@ impl ChainEndpoint for CosmosSdkChain {
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         crate::time!(
             "query_upgraded_consensus_state",
             {
@@ -1372,7 +1384,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_consensus_state",
             {
@@ -1403,7 +1415,13 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-                Ok((consensus_state, Some(proof)))
+                Ok((
+                    consensus_state,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((consensus_state, None)),
         }
@@ -1504,7 +1522,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_connection",
             {
@@ -1576,7 +1594,10 @@ impl ChainEndpoint for CosmosSdkChain {
 
                 Ok((
                     connection_end,
-                    Some(res.proof.ok_or_else(Error::empty_response_proof)?),
+                    Some(MerkleProofWithHeight::new(
+                        res.proof.ok_or_else(Error::empty_response_proof)?.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
                 ))
             }
             IncludeProof::No => self
@@ -1729,7 +1750,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_channel",
             {
@@ -1771,7 +1792,13 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-                Ok((channel_end, Some(proof)))
+                Ok((
+                    channel_end,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((channel_end, None)),
         }
@@ -1817,7 +1844,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_packet_commitment",
             {
@@ -1838,7 +1865,13 @@ impl ChainEndpoint for CosmosSdkChain {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
 
-                Ok((res.value, Some(proof)))
+                Ok((
+                    res.value,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((res.value, None)),
         }
@@ -1989,7 +2022,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_packet_receipt",
             {
@@ -2010,7 +2043,13 @@ impl ChainEndpoint for CosmosSdkChain {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
 
-                Ok((res.value, Some(proof)))
+                Ok((
+                    res.value,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((res.value, None)),
         }
@@ -2057,7 +2096,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_packet_acknowledgement",
             {
@@ -2078,7 +2117,13 @@ impl ChainEndpoint for CosmosSdkChain {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
 
-                Ok((res.value, Some(proof)))
+                Ok((
+                    res.value,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((res.value, None)),
         }
@@ -2250,7 +2295,7 @@ impl ChainEndpoint for CosmosSdkChain {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         crate::time!(
             "query_next_sequence_receive",
             {
@@ -2279,7 +2324,11 @@ impl ChainEndpoint for CosmosSdkChain {
         let seq: Sequence = Bytes::from(res.value).get_u64().into();
 
         let proof = if prove {
-            Some(res.proof.ok_or_else(Error::empty_response_proof)?)
+            let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
+            Some(MerkleProofWithHeight::new(
+                proof.proofs,
+                Height::from_tm(res.height, &self.config.id),
+            ))
         } else {
             None
         };
@@ -2591,7 +2640,7 @@ impl ChainEndpoint for CosmosSdkChain {
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error> {
         let port_id = PortId::from_str(&request.port_id)
             .map_err(|_| Error::invalid_port_string(request.port_id))?;
         let channel_id = ChannelId::from_str(&request.channel_id)
@@ -2609,7 +2658,13 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-                Ok((upgrade, Some(proof)))
+                Ok((
+                    upgrade,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((upgrade, None)),
         }
@@ -2620,7 +2675,7 @@ impl ChainEndpoint for CosmosSdkChain {
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error> {
         let port_id = PortId::from_str(&request.port_id)
             .map_err(|_| Error::invalid_port_string(request.port_id))?;
         let channel_id = ChannelId::from_str(&request.channel_id)
@@ -2638,7 +2693,13 @@ impl ChainEndpoint for CosmosSdkChain {
         match include_proof {
             IncludeProof::Yes => {
                 let proof = res.proof.ok_or_else(Error::empty_response_proof)?;
-                Ok((error_receipt, Some(proof)))
+                Ok((
+                    error_receipt,
+                    Some(MerkleProofWithHeight::new(
+                        proof.proofs,
+                        Height::from_tm(res.height, &self.config.id),
+                    )),
+                ))
             }
             IncludeProof::No => Ok((error_receipt, None)),
         }

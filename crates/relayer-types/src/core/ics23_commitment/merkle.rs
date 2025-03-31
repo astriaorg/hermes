@@ -28,6 +28,24 @@ impl From<CommitmentRoot> for MerkleRoot {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct MerkleProofWithHeight {
+    pub proofs: Vec<CommitmentProof>,
+    pub height: crate::Height,
+}
+
+impl MerkleProofWithHeight {
+    pub fn new(proofs: Vec<CommitmentProof>, height: crate::Height) -> Self {
+        Self { proofs, height }
+    }
+
+    pub fn merkle_proof(&self) -> MerkleProof {
+        MerkleProof {
+            proofs: self.proofs.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct MerkleProof {
     pub proofs: Vec<CommitmentProof>,
 }

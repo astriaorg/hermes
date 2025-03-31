@@ -23,7 +23,7 @@ use ibc_relayer_types::{
             packet::{PacketMsgType, Sequence},
             upgrade::{ErrorReceipt, Upgrade},
         },
-        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProofWithHeight},
         ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
     },
     proofs::Proofs,
@@ -193,7 +193,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryClientState {
             request,
             include_proof,
@@ -219,7 +219,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryConsensusState {
             request,
             include_proof,
@@ -230,14 +230,14 @@ impl ChainHandle for BaseChainHandle {
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         self.send(|reply_to| ChainRequest::QueryUpgradedClientState { request, reply_to })
     }
 
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         self.send(|reply_to| ChainRequest::QueryUpgradedConsensusState { request, reply_to })
     }
 
@@ -253,7 +253,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryConnection {
             request,
             include_proof,
@@ -279,7 +279,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryNextSequenceReceive {
             request,
             include_proof,
@@ -298,7 +298,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryChannel {
             request,
             include_proof,
@@ -419,7 +419,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryPacketCommitment {
             request,
             include_proof,
@@ -438,7 +438,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryPacketReceipt {
             request,
             include_proof,
@@ -457,7 +457,7 @@ impl ChainHandle for BaseChainHandle {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryPacketAcknowledgement {
             request,
             include_proof,
@@ -534,7 +534,7 @@ impl ChainHandle for BaseChainHandle {
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryUpgrade {
             request,
             height,
@@ -548,7 +548,7 @@ impl ChainHandle for BaseChainHandle {
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error> {
         self.send(|reply_to| ChainRequest::QueryUpgradeError {
             request,
             height,

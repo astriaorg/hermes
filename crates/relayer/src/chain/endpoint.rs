@@ -23,7 +23,7 @@ use ibc_relayer_types::core::ics04_channel::upgrade::{ErrorReceipt, Upgrade};
 use ibc_relayer_types::core::ics23_commitment::commitment::{
     CommitmentPrefix, CommitmentProofBytes,
 };
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::core::ics24_host::identifier::{
     ChainId, ChannelId, ClientId, ConnectionId, PortId,
 };
@@ -198,14 +198,14 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error>;
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error>;
 
     /// Query the consensus state at the specified height for a given client.
     fn query_consensus_state(
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error>;
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error>;
 
     /// Query the heights of every consensus state for a given client.
     fn query_consensus_state_heights(
@@ -216,12 +216,12 @@ pub trait ChainEndpoint: Sized {
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error>;
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error>;
 
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error>;
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error>;
 
     /// Performs a query to retrieve the identifiers of all connections.
     fn query_connections(
@@ -242,7 +242,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error>;
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve all channels associated with a connection.
     fn query_connection_channels(
@@ -262,7 +262,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error>;
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve the client state for the channel associated
     /// with a given channel identifier.
@@ -278,7 +278,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve all the packet commitments hashes
     /// associated with a channel. Returns the corresponding packet sequence
@@ -294,7 +294,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query about which IBC packets in the specified list has not
     /// been received. Returns the sequence numbers of the packets that were not
@@ -315,7 +315,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve all the packet acknowledgements associated
     /// with a channel. Returns the corresponding packet sequence numbers and
@@ -344,7 +344,7 @@ pub trait ChainEndpoint: Sized {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error>;
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error>;
 
     fn query_txs(&self, request: QueryTxRequest) -> Result<Vec<IbcEventWithHeight>, Error>;
 
@@ -444,7 +444,7 @@ pub trait ChainEndpoint: Sized {
                 };
 
                 client_proof = Some(
-                    CommitmentProofBytes::try_from(client_state_proof)
+                    CommitmentProofBytes::try_from(client_state_proof.merkle_proof())
                         .map_err(Error::malformed_proof)?,
                 );
 
@@ -467,7 +467,7 @@ pub trait ChainEndpoint: Sized {
 
                 consensus_proof = Option::from(
                     ConsensusProof::new(
-                        CommitmentProofBytes::try_from(consensus_state_proof)
+                        CommitmentProofBytes::try_from(consensus_state_proof.merkle_proof())
                             .map_err(Error::malformed_proof)?,
                         client_state_value.latest_height(),
                     )
@@ -482,7 +482,8 @@ pub trait ChainEndpoint: Sized {
         Ok((
             client_state,
             Proofs::new(
-                CommitmentProofBytes::try_from(connection_proof).map_err(Error::malformed_proof)?,
+                CommitmentProofBytes::try_from(connection_proof.merkle_proof())
+                    .map_err(Error::malformed_proof)?,
                 client_proof,
                 consensus_proof,
                 None, // TODO: Retrieve host consensus proof when available
@@ -514,8 +515,8 @@ pub trait ChainEndpoint: Sized {
             return Err(Error::queried_proof_not_found());
         };
 
-        let channel_proof_bytes =
-            CommitmentProofBytes::try_from(channel_proof).map_err(Error::malformed_proof)?;
+        let channel_proof_bytes = CommitmentProofBytes::try_from(channel_proof.merkle_proof())
+            .map_err(Error::malformed_proof)?;
 
         Proofs::new(
             channel_proof_bytes,
@@ -535,7 +536,7 @@ pub trait ChainEndpoint: Sized {
         port_id: PortId,
         channel_id: ChannelId,
         sequence: Sequence,
-        height: ICSHeight,
+        _height: ICSHeight,
     ) -> Result<Proofs, Error> {
         let (maybe_packet_proof, channel_proof) = match packet_type {
             PacketMsgType::Recv => {
@@ -544,7 +545,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -557,7 +558,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -570,7 +571,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -582,7 +583,7 @@ pub trait ChainEndpoint: Sized {
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -595,7 +596,7 @@ pub trait ChainEndpoint: Sized {
                         QueryChannelRequest {
                             port_id: port_id.clone(),
                             channel_id: channel_id.clone(),
-                            height: QueryHeight::Specific(height),
+                            height: QueryHeight::Latest,
                         },
                         IncludeProof::Yes,
                     )?;
@@ -605,7 +606,7 @@ pub trait ChainEndpoint: Sized {
                     };
 
                     Some(
-                        CommitmentProofBytes::try_from(channel_merkle_proof)
+                        CommitmentProofBytes::try_from(channel_merkle_proof.merkle_proof())
                             .map_err(Error::malformed_proof)?,
                     )
                 };
@@ -615,7 +616,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -628,7 +629,7 @@ pub trait ChainEndpoint: Sized {
                         QueryChannelRequest {
                             port_id: port_id.clone(),
                             channel_id: channel_id.clone(),
-                            height: QueryHeight::Specific(height),
+                            height: QueryHeight::Latest,
                         },
                         IncludeProof::Yes,
                     )?;
@@ -638,7 +639,7 @@ pub trait ChainEndpoint: Sized {
                     };
 
                     Some(
-                        CommitmentProofBytes::try_from(channel_merkle_proof)
+                        CommitmentProofBytes::try_from(channel_merkle_proof.merkle_proof())
                             .map_err(Error::malformed_proof)?,
                     )
                 };
@@ -646,7 +647,7 @@ pub trait ChainEndpoint: Sized {
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -660,12 +661,13 @@ pub trait ChainEndpoint: Sized {
         };
 
         let proofs = Proofs::new(
-            CommitmentProofBytes::try_from(packet_proof).map_err(Error::malformed_proof)?,
+            CommitmentProofBytes::try_from(packet_proof.merkle_proof())
+                .map_err(Error::malformed_proof)?,
             None,
             None,
             None,
             channel_proof,
-            height.increment(),
+            packet_proof.height.increment(),
         )
         .map_err(Error::malformed_proof)?;
 
@@ -696,14 +698,14 @@ pub trait ChainEndpoint: Sized {
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error>;
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error>;
 
     fn query_upgrade_error(
         &self,
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error>;
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error>;
 
     fn query_ccv_consumer_id(&self, client_id: ClientId) -> Result<ConsumerId, Error>;
 }

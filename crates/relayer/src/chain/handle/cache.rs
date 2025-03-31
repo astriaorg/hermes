@@ -19,7 +19,7 @@ use ibc_relayer_types::core::ics04_channel::packet::{PacketMsgType, Sequence};
 use ibc_relayer_types::core::ics04_channel::upgrade::ErrorReceipt;
 use ibc_relayer_types::core::ics04_channel::upgrade::Upgrade;
 use ibc_relayer_types::core::ics23_commitment::commitment::CommitmentPrefix;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::core::ics24_host::identifier::{
     ChainId, ChannelId, ClientId, ConnectionId, PortChannelId, PortId,
 };
@@ -177,7 +177,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error> {
         let handle = self.inner();
         match include_proof {
             IncludeProof::Yes => handle.query_client_state(request, IncludeProof::Yes),
@@ -222,21 +222,21 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error> {
         self.inner().query_consensus_state(request, include_proof)
     }
 
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error> {
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error> {
         self.inner().query_upgraded_client_state(request)
     }
 
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error> {
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error> {
         self.inner().query_upgraded_consensus_state(request)
     }
 
@@ -252,7 +252,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error> {
         let handle = self.inner();
         match include_proof {
             IncludeProof::Yes => handle.query_connection(request, IncludeProof::Yes),
@@ -297,7 +297,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error> {
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error> {
         self.inner()
             .query_next_sequence_receive(request, include_proof)
     }
@@ -313,7 +313,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error> {
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error> {
         let handle = self.inner();
         match include_proof {
             IncludeProof::Yes => handle.query_channel(request, IncludeProof::Yes),
@@ -426,7 +426,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.inner().query_packet_commitment(request, include_proof)
     }
 
@@ -441,7 +441,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.inner().query_packet_receipt(request, include_proof)
     }
 
@@ -456,7 +456,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         self.inner()
             .query_packet_acknowledgement(request, include_proof)
     }
@@ -526,7 +526,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error> {
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error> {
         self.inner.query_upgrade(request, height, include_proof)
     }
 
@@ -535,7 +535,7 @@ impl<Handle: ChainHandle> ChainHandle for CachingChainHandle<Handle> {
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error> {
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error> {
         self.inner
             .query_upgrade_error(request, height, include_proof)
     }

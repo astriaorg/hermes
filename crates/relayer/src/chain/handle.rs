@@ -22,7 +22,7 @@ use ibc_relayer_types::{
             packet::{PacketMsgType, Sequence},
             upgrade::{ErrorReceipt, Upgrade},
         },
-        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProof},
+        ics23_commitment::{commitment::CommitmentPrefix, merkle::MerkleProofWithHeight},
         ics24_host::identifier::{ChainId, ChannelId, ClientId, ConnectionId, PortId},
     },
     proofs::Proofs,
@@ -210,7 +210,7 @@ pub enum ChainRequest {
     QueryClientState {
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(AnyClientState, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(AnyClientState, Option<MerkleProofWithHeight>)>,
     },
 
     QueryClientConnections {
@@ -221,7 +221,7 @@ pub enum ChainRequest {
     QueryConsensusState {
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(AnyConsensusState, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(AnyConsensusState, Option<MerkleProofWithHeight>)>,
     },
 
     QueryConsensusStateHeights {
@@ -231,12 +231,12 @@ pub enum ChainRequest {
 
     QueryUpgradedClientState {
         request: QueryUpgradedClientStateRequest,
-        reply_to: ReplyTo<(AnyClientState, MerkleProof)>,
+        reply_to: ReplyTo<(AnyClientState, MerkleProofWithHeight)>,
     },
 
     QueryUpgradedConsensusState {
         request: QueryUpgradedConsensusStateRequest,
-        reply_to: ReplyTo<(AnyConsensusState, MerkleProof)>,
+        reply_to: ReplyTo<(AnyConsensusState, MerkleProofWithHeight)>,
     },
 
     QueryCommitmentPrefix {
@@ -250,7 +250,7 @@ pub enum ChainRequest {
     QueryConnection {
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(ConnectionEnd, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(ConnectionEnd, Option<MerkleProofWithHeight>)>,
     },
 
     QueryConnections {
@@ -271,7 +271,7 @@ pub enum ChainRequest {
     QueryChannel {
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(ChannelEnd, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(ChannelEnd, Option<MerkleProofWithHeight>)>,
     },
 
     QueryChannelClientState {
@@ -282,7 +282,7 @@ pub enum ChainRequest {
     QueryNextSequenceReceive {
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Sequence, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Sequence, Option<MerkleProofWithHeight>)>,
     },
 
     BuildChannelProofs {
@@ -304,7 +304,7 @@ pub enum ChainRequest {
     QueryPacketCommitment {
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProofWithHeight>)>,
     },
 
     QueryPacketCommitments {
@@ -315,7 +315,7 @@ pub enum ChainRequest {
     QueryPacketReceipt {
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProofWithHeight>)>,
     },
 
     QueryUnreceivedPackets {
@@ -326,7 +326,7 @@ pub enum ChainRequest {
     QueryPacketAcknowledgement {
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Vec<u8>, Option<MerkleProofWithHeight>)>,
     },
 
     QueryPacketAcknowledgements {
@@ -379,14 +379,14 @@ pub enum ChainRequest {
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(Upgrade, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(Upgrade, Option<MerkleProofWithHeight>)>,
     },
 
     QueryUpgradeError {
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-        reply_to: ReplyTo<(ErrorReceipt, Option<MerkleProof>)>,
+        reply_to: ReplyTo<(ErrorReceipt, Option<MerkleProofWithHeight>)>,
     },
 
     QueryConsumerId {
@@ -472,7 +472,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyClientState, Option<MerkleProof>), Error>;
+    ) -> Result<(AnyClientState, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve the identifiers of all connections.
     fn query_client_connections(
@@ -485,7 +485,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
-    ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error>;
+    ) -> Result<(AnyConsensusState, Option<MerkleProofWithHeight>), Error>;
 
     /// Query the heights of every consensus state for a given client.
     fn query_consensus_state_heights(
@@ -496,12 +496,12 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
     fn query_upgraded_client_state(
         &self,
         request: QueryUpgradedClientStateRequest,
-    ) -> Result<(AnyClientState, MerkleProof), Error>;
+    ) -> Result<(AnyClientState, MerkleProofWithHeight), Error>;
 
     fn query_upgraded_consensus_state(
         &self,
         request: QueryUpgradedConsensusStateRequest,
-    ) -> Result<(AnyConsensusState, MerkleProof), Error>;
+    ) -> Result<(AnyConsensusState, MerkleProofWithHeight), Error>;
 
     fn query_commitment_prefix(&self) -> Result<CommitmentPrefix, Error>;
 
@@ -514,7 +514,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryConnectionRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ConnectionEnd, Option<MerkleProof>), Error>;
+    ) -> Result<(ConnectionEnd, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve the identifiers of all connections.
     fn query_connections(
@@ -535,7 +535,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryNextSequenceReceiveRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Sequence, Option<MerkleProof>), Error>;
+    ) -> Result<(Sequence, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve all the channels of a chain.
     fn query_channels(
@@ -549,7 +549,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryChannelRequest,
         include_proof: IncludeProof,
-    ) -> Result<(ChannelEnd, Option<MerkleProof>), Error>;
+    ) -> Result<(ChannelEnd, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve the client state for the channel associated
     /// with a given channel identifier.
@@ -617,7 +617,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryPacketCommitmentRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve all the packet commitments hashes
     /// associated with a channel. Returns the corresponding packet sequence
@@ -633,7 +633,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryPacketReceiptRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query about which IBC packets in the specified list has not
     /// been received. Returns the sequence numbers of the packets that were not
@@ -654,7 +654,7 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         &self,
         request: QueryPacketAcknowledgementRequest,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error>;
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error>;
 
     /// Performs a query to retrieve all the packet acknowledgements associated
     /// with a channel. Returns the corresponding packet sequence numbers and
@@ -712,14 +712,14 @@ pub trait ChainHandle: Clone + Display + Send + Sync + Debug + 'static {
         request: QueryUpgradeRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(Upgrade, Option<MerkleProof>), Error>;
+    ) -> Result<(Upgrade, Option<MerkleProofWithHeight>), Error>;
 
     fn query_upgrade_error(
         &self,
         request: QueryUpgradeErrorRequest,
         height: Height,
         include_proof: IncludeProof,
-    ) -> Result<(ErrorReceipt, Option<MerkleProof>), Error>;
+    ) -> Result<(ErrorReceipt, Option<MerkleProofWithHeight>), Error>;
 
     fn query_ccv_consumer_id(&self, client_id: &ClientId) -> Result<ConsumerId, Error>;
 }

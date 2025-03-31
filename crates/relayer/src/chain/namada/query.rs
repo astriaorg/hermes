@@ -1,6 +1,7 @@
+use ibc_relayer_types::core::ics02_client::height::Height;
 use ibc_relayer_types::core::ics04_channel::packet::Sequence;
 use ibc_relayer_types::core::ics23_commitment::merkle::convert_tm_to_ics_merkle_proof;
-use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProof;
+use ibc_relayer_types::core::ics23_commitment::merkle::MerkleProofWithHeight;
 use ibc_relayer_types::events::IbcEvent;
 use ibc_relayer_types::Height as ICSHeight;
 use namada_sdk::address::{Address, InternalAddress};
@@ -36,7 +37,7 @@ impl NamadaChain {
         key: Key,
         height: QueryHeight,
         include_proof: IncludeProof,
-    ) -> Result<(Vec<u8>, Option<MerkleProof>), Error> {
+    ) -> Result<(Vec<u8>, Option<MerkleProofWithHeight>), Error> {
         let height = match height {
             QueryHeight::Latest => None,
             QueryHeight::Specific(h) => Some(BlockHeight(h.revision_height())),
@@ -56,7 +57,11 @@ impl NamadaChain {
             let proof_ops = proof.ok_or_else(Error::empty_response_proof)?;
             let tm_proof_ops = into_tm_proof(proof_ops);
             let proof = convert_tm_to_ics_merkle_proof(&tm_proof_ops).map_err(Error::ics23)?;
-            Some(proof)
+            // TODO: get height from the response
+            Some(MerkleProofWithHeight::new(
+                proof.proofs,
+                Height::new(0, 1).unwrap(),
+            ))
         } else {
             None
         };
