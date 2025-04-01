@@ -535,8 +535,13 @@ pub trait ChainEndpoint: Sized {
         port_id: PortId,
         channel_id: ChannelId,
         sequence: Sequence,
-        height: ICSHeight,
+        _height: ICSHeight,
     ) -> Result<Proofs, Error> {
+        let current_height = self.query_application_status()?.height;
+        let height = current_height
+            .decrement()
+            .expect("height is greater than 0");
+
         let (maybe_packet_proof, channel_proof) = match packet_type {
             PacketMsgType::Recv => {
                 let (_, maybe_packet_proof) = self.query_packet_commitment(
