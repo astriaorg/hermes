@@ -536,7 +536,7 @@ pub trait ChainEndpoint: Sized {
         port_id: PortId,
         channel_id: ChannelId,
         sequence: Sequence,
-        height: ICSHeight,
+        _height: ICSHeight,
     ) -> Result<Proofs, Error> {
         let (maybe_packet_proof, channel_proof) = match packet_type {
             PacketMsgType::Recv => {
@@ -545,8 +545,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        //height: QueryHeight::Latest,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -559,8 +558,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        //height: QueryHeight::Latest,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -573,8 +571,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        //height: QueryHeight::Latest,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -586,8 +583,7 @@ pub trait ChainEndpoint: Sized {
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        //height: QueryHeight::Latest,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -600,8 +596,7 @@ pub trait ChainEndpoint: Sized {
                         QueryChannelRequest {
                             port_id: port_id.clone(),
                             channel_id: channel_id.clone(),
-                            //height: QueryHeight::Latest,
-                            height: QueryHeight::Specific(height),
+                            height: QueryHeight::Latest,
                         },
                         IncludeProof::Yes,
                     )?;
@@ -621,8 +616,7 @@ pub trait ChainEndpoint: Sized {
                         port_id,
                         channel_id,
                         sequence,
-                        //height: QueryHeight::Latest,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -635,8 +629,7 @@ pub trait ChainEndpoint: Sized {
                         QueryChannelRequest {
                             port_id: port_id.clone(),
                             channel_id: channel_id.clone(),
-                            //height: QueryHeight::Latest,
-                            height: QueryHeight::Specific(height),
+                            height: QueryHeight::Latest,
                         },
                         IncludeProof::Yes,
                     )?;
@@ -654,8 +647,7 @@ pub trait ChainEndpoint: Sized {
                     QueryNextSequenceReceiveRequest {
                         port_id,
                         channel_id,
-                        //height: QueryHeight::Latest,
-                        height: QueryHeight::Specific(height),
+                        height: QueryHeight::Latest,
                     },
                     IncludeProof::Yes,
                 )?;
@@ -675,8 +667,7 @@ pub trait ChainEndpoint: Sized {
             None,
             None,
             channel_proof,
-            //packet_proof.height.increment(),
-            height.increment(),
+            packet_proof.height.increment(),
         )
         .map_err(Error::malformed_proof)?;
 

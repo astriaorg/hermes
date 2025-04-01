@@ -728,11 +728,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((client_state, None)),
@@ -791,11 +792,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((consensus_state, None)),
@@ -998,16 +1000,17 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    // TODO: subtracting from the height is jank but needed due to penumbra incrementing the proof height
-                    // in the response, and the caller of this method (`build_packet_proofs`) also incrementing the proof
-                    // height. the cosmos endpoint doesn't increment the height in the response (i believe) so changing
-                    // the caller to not increment is potentially more confusing.
-                    // needs a better fix.
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // TODO: subtracting from the height is jank but needed due to penumbra incrementing the proof height
+                        // in the response, and the caller of this method (`build_packet_proofs`) also incrementing the proof
+                        // height. the cosmos endpoint doesn't increment the height in the response (i believe) so changing
+                        // the caller to not increment is potentially more confusing.
+                        // needs a better fix.
+                        // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((connection_end, None)),
@@ -1117,11 +1120,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((channel_end, None)),
@@ -1189,11 +1193,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((response.commitment, None)),
@@ -1274,11 +1279,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((value, None)),
@@ -1353,11 +1359,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((response.acknowledgement, None)),
@@ -1446,11 +1453,12 @@ impl ChainEndpoint for AstriaChain {
                             .proof_height
                             .expect("proof height must exist if proof exists"),
                     )
-                    .map_err(|e: ibc_relayer_types::core::ics02_client::error::Error| {
-                        Error::other(e.to_string())
-                    })?
-                    .decrement()
-                    .expect("proof height must be positive"),
+                    .map_err(
+                        |e: ibc_relayer_types::core::ics02_client::error::Error| {
+                            Error::other(e.to_string())
+                        },
+                    )?, // .decrement()
+                        // .expect("proof height must be positive"),
                 )),
             )),
             IncludeProof::No => Ok((response.next_sequence_receive.into(), None)),
