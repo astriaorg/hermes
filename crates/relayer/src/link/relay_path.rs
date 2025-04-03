@@ -346,6 +346,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
     fn build_chan_close_confirm_from_event(
         &self,
         event: &IbcEventWithHeight,
+        query_height: Height,
     ) -> Result<Option<Any>, LinkError> {
         // Build the `MsgChannelCloseConfirm` only from `Timeout` or `CloseInitChannel` event types
         if event.event.event_type() != IbcEventType::Timeout
@@ -364,7 +365,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         let src_channel_id = self.src_channel_id();
         let proofs = self
             .src_chain()
-            .build_channel_proofs(self.src_port_id(), src_channel_id, event.height)
+            .build_channel_proofs(self.src_port_id(), src_channel_id, query_height)
             .map_err(|e| LinkError::channel(ChannelError::channel_proof(e)))?;
 
         let counterparty_upgrade_sequence = self.src_channel(QueryHeight::Latest)?.upgrade_sequence;
@@ -549,7 +550,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
         .entered();
 
         let input = events.events();
-        let src_height = match input.first() {
+        let _src_height = match input.first() {
             None => return Ok((None, None)),
             Some(ev) => ev.height,
         };
@@ -561,6 +562,13 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
         let dst_latest_height = dst_latest_info.height;
 
+        let src_latest_info = self
+            .src_chain()
+            .query_application_status()
+            .map_err(|e| LinkError::query(self.src_chain().id(), e))?;
+
+        let src_latest_height = src_latest_info.height;
+
         // Operational data targeting the source chain (e.g., Timeout packets)
         let mut src_od = OperationalData::new(
             dst_latest_height,
@@ -571,7 +579,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
         // Operational data targeting the destination chain (e.g., SendPacket messages)
         let mut dst_od = OperationalData::new(
-            src_height,
+            src_latest_height,
             OperationalDataTarget::Destination,
             events.tracking_id(),
             self.channel.connection_delay,
@@ -604,7 +612,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
 
             let (dst_msg, src_msg) = match &event_with_height.event {
                 IbcEvent::CloseInitChannel(_) => (
-                    self.build_chan_close_confirm_from_event(event_with_height)?,
+                    self.build_chan_close_confirm_from_event(event_with_height, src_latest_height)?,
                     None,
                 ),
                 IbcEvent::TimeoutPacket(_) => {
@@ -615,11 +623,14 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
                     // to the counterparty.
                     if self.ordered_channel()
                         && self
-                            .src_channel(QueryHeight::Specific(event_with_height.height))?
+                            .src_channel(QueryHeight::Specific(src_latest_height))?
                             .state_matches(&ChannelState::Closed)
                     {
                         (
-                            self.build_chan_close_confirm_from_event(event_with_height)?,
+                            self.build_chan_close_confirm_from_event(
+                                event_with_height,
+                                src_latest_height,
+                            )?,
                             None,
                         )
                     } else {
@@ -635,7 +646,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
                         self.build_recv_or_timeout_from_send_packet_event(
                             event,
                             &dst_latest_info,
-                            event_with_height.height,
+                            src_latest_height,
                         )?
                     }
                 }
@@ -654,7 +665,7 @@ impl<ChainA: ChainHandle, ChainB: ChainHandle> RelayPath<ChainA, ChainB> {
                         (None, None)
                     } else {
                         (
-                            self.build_ack_from_recv_event(event, event_with_height.height)?,
+                            self.build_ack_from_recv_event(event, src_latest_height)?,
                             None,
                         )
                     }
