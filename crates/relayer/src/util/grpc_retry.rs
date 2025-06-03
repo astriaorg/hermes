@@ -44,7 +44,7 @@ where
                 warn!(
                     operation = operation_name,
                     error = %e,
-                    "gRPC call failed, will retry"
+                    "gRPC call failed, retrying"
                 );
             }
         }
