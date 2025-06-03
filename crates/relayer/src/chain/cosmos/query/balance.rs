@@ -7,7 +7,7 @@ use ibc_proto::cosmos::bank::v1beta1::{
 use crate::account::Balance;
 use crate::config::default::max_grpc_decoding_size;
 use crate::error::Error;
-use crate::util::create_grpc_client;
+use crate::util::{create_grpc_client, grpc_retry};
 
 /// Uses the GRPC client to retrieve the account balance for a specific denom
 pub async fn query_balance(
@@ -15,30 +15,35 @@ pub async fn query_balance(
     account_address: &str,
     denom: &str,
 ) -> Result<Balance, Error> {
-    let mut client = create_grpc_client(grpc_address, QueryClient::new).await?;
+    let retry_config = grpc_retry::GrpcRetryConfig::default();
 
-    client = client.max_decoding_message_size(max_grpc_decoding_size().get_bytes() as usize);
+    grpc_retry::retry_grpc_call(&retry_config, "query_balance", || async {
+        let mut client = create_grpc_client(grpc_address, QueryClient::new).await?;
 
-    let request = tonic::Request::new(QueryBalanceRequest {
-        address: account_address.to_string(),
-        denom: denom.to_string(),
-    });
+        client = client.max_decoding_message_size(max_grpc_decoding_size().get_bytes() as usize);
 
-    let response = client
-        .balance(request)
-        .await
-        .map(|r| r.into_inner())
-        .map_err(|e| Error::grpc_status(e, "query_balance".to_owned()))?;
+        let request = tonic::Request::new(QueryBalanceRequest {
+            address: account_address.to_string(),
+            denom: denom.to_string(),
+        });
 
-    // Querying for a balance might fail, i.e. if the account doesn't actually exist
-    let balance = response
-        .balance
-        .ok_or_else(|| Error::empty_query_account(account_address.to_string()))?;
+        let response = client
+            .balance(request)
+            .await
+            .map(|r| r.into_inner())
+            .map_err(|e| Error::grpc_status(e, "query_balance".to_owned()))?;
 
-    Ok(Balance {
-        amount: balance.amount,
-        denom: balance.denom,
+        // Querying for a balance might fail, i.e. if the account doesn't actually exist
+        let balance = response
+            .balance
+            .ok_or_else(|| Error::empty_query_account(account_address.to_string()))?;
+
+        Ok(Balance {
+            amount: balance.amount,
+            denom: balance.denom,
+        })
     })
+    .await
 }
 
 /// Uses the GRPC client to retrieve the account balance for all denom
@@ -46,30 +51,35 @@ pub async fn query_all_balances(
     grpc_address: &Uri,
     account_address: &str,
 ) -> Result<Vec<Balance>, Error> {
-    let mut client = create_grpc_client(grpc_address, QueryClient::new).await?;
+    let retry_config = grpc_retry::GrpcRetryConfig::default();
 
-    client = client.max_decoding_message_size(max_grpc_decoding_size().get_bytes() as usize);
+    grpc_retry::retry_grpc_call(&retry_config, "query_all_balances", || async {
+        let mut client = create_grpc_client(grpc_address, QueryClient::new).await?;
 
-    let request = tonic::Request::new(QueryAllBalancesRequest {
-        address: account_address.to_string(),
-        pagination: None,
-        resolve_denom: false, // TODO: Correctly handle resolve_denom argument
-    });
+        client = client.max_decoding_message_size(max_grpc_decoding_size().get_bytes() as usize);
 
-    let response = client
-        .all_balances(request)
-        .await
-        .map(|r| r.into_inner())
-        .map_err(|e| Error::grpc_status(e, "query_all_balances".to_owned()))?;
+        let request = tonic::Request::new(QueryAllBalancesRequest {
+            address: account_address.to_string(),
+            pagination: None,
+            resolve_denom: false, // TODO: Correctly handle resolve_denom argument
+        });
 
-    let balances = response
-        .balances
-        .into_iter()
-        .map(|balance| Balance {
-            amount: balance.amount,
-            denom: balance.denom,
-        })
-        .collect();
+        let response = client
+            .all_balances(request)
+            .await
+            .map(|r| r.into_inner())
+            .map_err(|e| Error::grpc_status(e, "query_all_balances".to_owned()))?;
 
-    Ok(balances)
+        let balances = response
+            .balances
+            .into_iter()
+            .map(|balance| Balance {
+                amount: balance.amount,
+                denom: balance.denom,
+            })
+            .collect();
+
+        Ok(balances)
+    })
+    .await
 }

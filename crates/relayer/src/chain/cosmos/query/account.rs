@@ -7,7 +7,7 @@ use tracing::info;
 use crate::chain::cosmos::types::account::Account;
 use crate::config::default::max_grpc_decoding_size;
 use crate::error::Error;
-use crate::util::create_grpc_client;
+use crate::util::{create_grpc_client, grpc_retry};
 
 /// EthAccount defines an Ethermint account.
 /// TODO: remove when/if a canonical `EthAccount`
@@ -68,35 +68,39 @@ pub async fn query_account(
     grpc_address: &Uri,
     account_address: &str,
 ) -> Result<BaseAccount, Error> {
-    let mut client = create_grpc_client(grpc_address, QueryClient::new).await?;
+    let retry_config = grpc_retry::GrpcRetryConfig::default();
 
-    client = client.max_decoding_message_size(max_grpc_decoding_size().get_bytes() as usize);
+    grpc_retry::retry_grpc_call(&retry_config, "query_account", || async {
+        let mut client = create_grpc_client(grpc_address, QueryClient::new).await?;
 
-    let request = tonic::Request::new(QueryAccountRequest {
-        address: account_address.to_string(),
-    });
+        client = client.max_decoding_message_size(max_grpc_decoding_size().get_bytes() as usize);
 
-    let response = client.account(request).await;
+        let request = tonic::Request::new(QueryAccountRequest {
+            address: account_address.to_string(),
+        });
 
-    // Querying for an account might fail, i.e. if the account doesn't actually exist
-    let resp_account = match response
-        .map_err(|e| Error::grpc_status(e, "query_account".to_owned()))?
-        .into_inner()
-        .account
-    {
-        Some(account) => account,
-        None => return Err(Error::empty_query_account(account_address.to_string())),
-    };
+        let response = client
+            .account(request)
+            .await
+            .map_err(|e| Error::grpc_status(e, "query_account".to_owned()))?;
 
-    if resp_account.type_url == "/cosmos.auth.v1beta1.BaseAccount" {
-        Ok(BaseAccount::decode(resp_account.value.as_slice())
-            .map_err(|e| Error::protobuf_decode("BaseAccount".to_string(), e))?)
-    } else if resp_account.type_url.ends_with(".EthAccount") {
-        Ok(EthAccount::decode(resp_account.value.as_slice())
-            .map_err(|e| Error::protobuf_decode("EthAccount".to_string(), e))?
-            .base_account
-            .ok_or_else(Error::empty_base_account)?)
-    } else {
-        Err(Error::unknown_account_type(resp_account.type_url))
-    }
+        // Querying for an account might fail, i.e. if the account doesn't actually exist
+        let resp_account = match response.into_inner().account {
+            Some(account) => account,
+            None => return Err(Error::empty_query_account(account_address.to_string())),
+        };
+
+        if resp_account.type_url == "/cosmos.auth.v1beta1.BaseAccount" {
+            Ok(BaseAccount::decode(resp_account.value.as_slice())
+                .map_err(|e| Error::protobuf_decode("BaseAccount".to_string(), e))?)
+        } else if resp_account.type_url.ends_with(".EthAccount") {
+            Ok(EthAccount::decode(resp_account.value.as_slice())
+                .map_err(|e| Error::protobuf_decode("EthAccount".to_string(), e))?
+                .base_account
+                .ok_or_else(Error::empty_base_account)?)
+        } else {
+            Err(Error::unknown_account_type(resp_account.type_url))
+        }
+    })
+    .await
 }

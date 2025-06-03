@@ -119,6 +119,7 @@ toml                     = "0.8.19"
 tonic                    = "0.12"
 tracing                  = { version = "0.1.36", default-features = false }
 tracing-subscriber       = "0.3.14"
+tryhard                  = "0.5.1"
 uint                     = "0.9"
 uuid                     = "1.10.5"
 
