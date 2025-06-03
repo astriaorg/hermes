@@ -65,6 +65,7 @@ use crate::{
     keyring::{Ed25519KeyPair, KeyRing},
     light_client::{tendermint::LightClient, LightClient as _},
     misbehaviour::MisbehaviourEvidence,
+    util::grpc_retry,
 };
 use astria_core::crypto::VerificationKey;
 use astria_core::primitive::v1::Address;
@@ -656,12 +657,21 @@ impl ChainEndpoint for AstriaChain {
     ) -> Result<Vec<IdentifiedAnyClientState>, Error> {
         use crate::{chain::utils::client_id_suffix, util::pretty::PrettyIdentifiedClientState};
 
-        let mut client = self.ibc_client_grpc_client.clone();
+        let retry_config = grpc_retry::GrpcRetryConfig::default();
 
-        let request = tonic::Request::new(request.into());
         let response = self
-            .block_on(client.client_states(request))
-            .map_err(|e| Error::grpc_status(e, "query_clients".to_owned()))?
+            .block_on(grpc_retry::retry_grpc_call(
+                &retry_config,
+                "query_clients",
+                || async {
+                    let mut client = self.ibc_client_grpc_client.clone();
+                    let request = tonic::Request::new(request.clone().into());
+                    client
+                        .client_states(request)
+                        .await
+                        .map_err(|e| Error::grpc_status(e, "query_clients".to_owned()))
+                },
+            ))?
             .into_inner();
 
         // Deserialize into domain type
@@ -694,24 +704,34 @@ impl ChainEndpoint for AstriaChain {
         request: QueryClientStateRequest,
         include_proof: IncludeProof,
     ) -> Result<(AnyClientState, Option<MerkleProof>), Error> {
-        let mut client = self.ibc_client_grpc_client.clone();
-
-        let mut req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
-            client_id: request.client_id.to_string(),
-        }
-        .into_request();
-
-        let height = match request.height {
-            QueryHeight::Latest => 0.to_string(),
-            QueryHeight::Specific(h) => h.to_string(),
-        };
-
-        req.metadata_mut()
-            .insert("height", height.parse().expect("valid ascii"));
+        let retry_config = grpc_retry::GrpcRetryConfig::default();
 
         let response = self
-            .block_on(client.client_state(req))
-            .map_err(|e| Error::grpc_status(e, "query_client_state".to_owned()))?
+            .block_on(grpc_retry::retry_grpc_call(
+                &retry_config,
+                "query_client_state",
+                || async {
+                    let mut client = self.ibc_client_grpc_client.clone();
+
+                    let mut req = ibc_proto::ibc::core::client::v1::QueryClientStateRequest {
+                        client_id: request.client_id.to_string(),
+                    }
+                    .into_request();
+
+                    let height = match request.height {
+                        QueryHeight::Latest => 0.to_string(),
+                        QueryHeight::Specific(h) => h.to_string(),
+                    };
+
+                    req.metadata_mut()
+                        .insert("height", height.parse().expect("valid ascii"));
+
+                    client
+                        .client_state(req)
+                        .await
+                        .map_err(|e| Error::grpc_status(e, "query_client_state".to_owned()))
+                },
+            ))?
             .into_inner();
 
         let Some(client_state) = response.client_state else {
@@ -733,26 +753,36 @@ impl ChainEndpoint for AstriaChain {
         request: QueryConsensusStateRequest,
         include_proof: IncludeProof,
     ) -> Result<(AnyConsensusState, Option<MerkleProof>), Error> {
-        let mut client = self.ibc_client_grpc_client.clone();
-
-        let mut req = ibc_proto::ibc::core::client::v1::QueryConsensusStateRequest {
-            client_id: request.client_id.to_string(),
-            revision_height: request.consensus_height.revision_height(),
-            revision_number: request.consensus_height.revision_number(),
-            latest_height: false,
-        }
-        .into_request();
-
-        let map = req.metadata_mut();
-        let height_str: String = match request.query_height {
-            QueryHeight::Latest => 0.to_string(),
-            QueryHeight::Specific(h) => h.to_string(),
-        };
-        map.insert("height", height_str.parse().expect("valid ascii string"));
+        let retry_config = grpc_retry::GrpcRetryConfig::default();
 
         let response = self
-            .block_on(client.consensus_state(req))
-            .map_err(|e| Error::grpc_status(e, "query_consensus_state".to_owned()))?
+            .block_on(grpc_retry::retry_grpc_call(
+                &retry_config,
+                "query_consensus_state",
+                || async {
+                    let mut client = self.ibc_client_grpc_client.clone();
+
+                    let mut req = ibc_proto::ibc::core::client::v1::QueryConsensusStateRequest {
+                        client_id: request.client_id.to_string(),
+                        revision_height: request.consensus_height.revision_height(),
+                        revision_number: request.consensus_height.revision_number(),
+                        latest_height: false,
+                    }
+                    .into_request();
+
+                    let map = req.metadata_mut();
+                    let height_str: String = match request.query_height {
+                        QueryHeight::Latest => 0.to_string(),
+                        QueryHeight::Specific(h) => h.to_string(),
+                    };
+                    map.insert("height", height_str.parse().expect("valid ascii string"));
+
+                    client
+                        .consensus_state(req)
+                        .await
+                        .map_err(|e| Error::grpc_status(e, "query_consensus_state".to_owned()))
+                },
+            ))?
             .into_inner();
 
         let Some(consensus_state) = response.consensus_state else {
@@ -780,16 +810,25 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryConsensusStateHeightsRequest,
     ) -> Result<Vec<ICSHeight>, Error> {
-        let mut client = self.ibc_client_grpc_client.clone();
-
-        let req = ibc_proto::ibc::core::client::v1::QueryConsensusStateHeightsRequest {
-            client_id: request.client_id.to_string(),
-            pagination: Default::default(),
-        };
+        let retry_config = grpc_retry::GrpcRetryConfig::default();
 
         let response = self
-            .block_on(client.consensus_state_heights(req))
-            .map_err(|e| Error::grpc_status(e, "query_consensus_state_heights".to_owned()))?
+            .block_on(grpc_retry::retry_grpc_call(
+                &retry_config,
+                "query_consensus_state_heights",
+                || async {
+                    let mut client = self.ibc_client_grpc_client.clone();
+
+                    let req = ibc_proto::ibc::core::client::v1::QueryConsensusStateHeightsRequest {
+                        client_id: request.client_id.to_string(),
+                        pagination: Default::default(),
+                    };
+
+                    client.consensus_state_heights(req).await.map_err(|e| {
+                        Error::grpc_status(e, "query_consensus_state_heights".to_owned())
+                    })
+                },
+            ))?
             .into_inner();
 
         let heights = response
@@ -804,22 +843,32 @@ impl ChainEndpoint for AstriaChain {
         &self,
         request: QueryUpgradedClientStateRequest,
     ) -> Result<(AnyClientState, MerkleProof), Error> {
-        let mut client = self.ibc_client_grpc_client.clone();
-        let mut req =
-            ibc_proto::ibc::core::client::v1::QueryUpgradedClientStateRequest {}.into_request();
-        let map = req.metadata_mut();
-        map.insert(
-            "height",
-            request
-                .upgrade_height
-                .to_string()
-                .parse()
-                .expect("valid ascii string"),
-        );
+        let retry_config = grpc_retry::GrpcRetryConfig::default();
 
         let response = self
-            .block_on(client.upgraded_client_state(req))
-            .map_err(|e| Error::grpc_status(e, "query_upgraded_client_state".to_owned()))?
+            .block_on(grpc_retry::retry_grpc_call(
+                &retry_config,
+                "query_upgraded_client_state",
+                || async {
+                    let mut client = self.ibc_client_grpc_client.clone();
+                    let mut req =
+                        ibc_proto::ibc::core::client::v1::QueryUpgradedClientStateRequest {}
+                            .into_request();
+                    let map = req.metadata_mut();
+                    map.insert(
+                        "height",
+                        request
+                            .upgrade_height
+                            .to_string()
+                            .parse()
+                            .expect("valid ascii string"),
+                    );
+
+                    client.upgraded_client_state(req).await.map_err(|e| {
+                        Error::grpc_status(e, "query_upgraded_client_state".to_owned())
+                    })
+                },
+            ))?
             .into_inner();
 
         let client_state = response
